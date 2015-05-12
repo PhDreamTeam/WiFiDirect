@@ -22,9 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.net.wifi.WpsInfo;
-import android.net.wifi.p2p.WifiP2pConfig;
-import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pInfo;
+import android.net.wifi.p2p.*;
 import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -34,6 +32,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
 
 import java.io.*;
@@ -52,9 +51,12 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     private WifiP2pInfo info;
     ProgressDialog progressDialog = null;
 
+    private String role = null;
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
     }
 
     @Override
@@ -68,9 +70,19 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 WifiP2pConfig config = new WifiP2pConfig();
                 config.deviceAddress = device.deviceAddress;
                 config.wps.setup = WpsInfo.PBC;
+
+                config.groupOwnerIntent = (role != null && role.equals("GO")) ? 15 : 0; // 15 max, 0 min
+
+                Context context = getActivity().getApplicationContext();
+                CharSequence text = "Group owner intent -> " + config.groupOwnerIntent;
+                Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
+                toast.show();
+
                 if (progressDialog != null && progressDialog.isShowing()) {
                     progressDialog.dismiss();
                 }
+
+
                 progressDialog = ProgressDialog.show(getActivity(), "Press back to cancel",
                         "Connecting to :" + device.deviceAddress, true, true
 //                        new DialogInterface.OnCancelListener() {
@@ -80,7 +92,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 //                                ((DeviceActionListener) getActivity()).cancelDisconnect();
 //                            }
 //                        }
-                        );
+                );
                 ((DeviceActionListener) getActivity()).connect(config);
 
             }
@@ -137,15 +149,32 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         this.info = info;
         this.getView().setVisibility(View.VISIBLE);
 
-        // The owner IP is now known.
+        // The owner IP is now known. - "Am I the Group Owner"
         TextView view = (TextView) mContentView.findViewById(R.id.group_owner);
         view.setText(getResources().getString(R.string.group_owner_text)
-                + ((info.isGroupOwner == true) ? getResources().getString(R.string.yes)
-                        : getResources().getString(R.string.no)));
+                + (info.isGroupOwner ? getResources().getString(R.string.yes) : getResources().getString(R.string.no)));
 
         // InetAddress from WifiP2pInfo struct.
         view = (TextView) mContentView.findViewById(R.id.device_info);
-        view.setText("Group Owner IP - " + info.groupOwnerAddress.getHostAddress());
+        view.setText("Group Owner IP - " +  info.groupOwnerAddress.getHostAddress());
+
+//        if (info.isGroupOwner) {
+//            WifiP2pManager manager = (WifiP2pManager) (getActivity().getSystemService(Context.WIFI_P2P_SERVICE));
+//            WifiP2pManager.Channel channel = manager.initialize(getActivity(), getActivity().getMainLooper(), null);
+//
+//            manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+//                @Override
+//                public void onGroupInfoAvailable(WifiP2pGroup group) {
+//                    String groupInfo = group.getNetworkName() + " " + group.getPassphrase();
+//                    Log.e("wifidirectdemo",
+//                            "Group info: " + groupInfo + " ==========================================================");
+//
+////                    Context context = getActivity().getApplicationContext();
+////                    Toast toast = Toast.makeText(context, groupInfo, Toast.LENGTH_SHORT);
+////                    toast.show();
+//                }
+//            });
+//        }
 
         // After the group negotiation, we assign the group owner as the file
         // server. The file server is single threaded, single connection server
@@ -167,7 +196,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
     /**
      * Updates the UI with device data
-     * 
+     *
      * @param device the device to be displayed
      */
     public void showDetails(WifiP2pDevice device) {
@@ -178,6 +207,15 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         view = (TextView) mContentView.findViewById(R.id.device_info);
         view.setText(device.toString());
 
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+
+        Context context = getActivity().getApplicationContext();
+        CharSequence text = "Set Role with " + role;
+        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
+        toast.show();
     }
 
     /**

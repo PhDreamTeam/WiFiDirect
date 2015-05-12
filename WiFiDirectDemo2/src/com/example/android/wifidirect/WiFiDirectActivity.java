@@ -35,7 +35,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
-
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
 
 /**
@@ -55,6 +54,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     private final IntentFilter intentFilter = new IntentFilter();
     private Channel channel;
     private BroadcastReceiver receiver = null;
+    private String role = null;
 
     /**
      * @param isWifiP2pEnabled the isWifiP2pEnabled to set
@@ -68,6 +68,8 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
+
+
         // add necessary intent values to be matched.
 
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -75,8 +77,27 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        channel = manager.initialize(this, getMainLooper(), null);
+//        manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+//        channel = manager.initialize(this, getMainLooper(), null);
+
+        Intent intent = getIntent();
+        role = intent.getStringExtra("role");
+
+        DeviceDetailFragment fragmentDetails = (DeviceDetailFragment) getFragmentManager()
+                .findFragmentById(R.id.frag_detail);
+        fragmentDetails.setRole(role);
+
+        Context context = getApplicationContext();
+        Toast toast = Toast.makeText(context, role + "!!!!+", Toast.LENGTH_SHORT);
+        toast.show();
+        // TODO CHECK THIS
+//        manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+//            @Override
+//            public void onGroupInfoAvailable(WifiP2pGroup group) {
+//                String groupInfo = group.getNetworkName() + " " + group.getPassphrase();
+//                Log.e(TAG, "Group info: " + groupInfo + " ==========================================================");
+//            }
+//        });
     }
 
     /** register the BroadcastReceiver with the intent values to be matched */
@@ -146,8 +167,8 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
                 final DeviceListFragment fragment = (DeviceListFragment) getFragmentManager()
                         .findFragmentById(R.id.frag_list);
                 fragment.onInitiateDiscovery();
-                manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
 
+                manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
                         Toast.makeText(WiFiDirectActivity.this, "Discovery Initiated",
@@ -176,11 +197,30 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 
     @Override
     public void connect(WifiP2pConfig config) {
+
+        config.groupOwnerIntent = (role != null && role.equals("GO")) ? 15 : 0; // 15 max, 0 min
+
+        Context context = getApplicationContext();
+        CharSequence text = "Connecting with Group Owner intent -> " + config.groupOwnerIntent;
+        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
+        toast.show();
+
         manager.connect(channel, config, new ActionListener() {
 
             @Override
             public void onSuccess() {
                 // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
+
+                // CHECK NEW CODE ========================================================
+//                manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+//                    @Override
+//                    public void onGroupInfoAvailable(WifiP2pGroup group) {
+//                        String groupInfo = group.getNetworkName() + " " + group.getPassphrase();
+//                        Toast.makeText(WiFiDirectActivity.this, groupInfo,
+//                                Toast.LENGTH_LONG).show();
+//                    }
+//                });
+                // CHECK END
             }
 
             @Override

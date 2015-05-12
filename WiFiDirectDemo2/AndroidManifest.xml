@@ -18,14 +18,16 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@android:style/Theme.Holo">
+
         <activity
-            android:name="com.example.android.wifidirect.WiFiDirectActivity"
-            android:label="@string/app_name" android:launchMode="singleTask">
+                android:name="com.example.android.wifidirect.WiFiDirectActivity"
+                android:label="@string/app_name" android:launchMode="singleTask">
+        </activity>
+        <activity android:name="com.example.android.wifidirect.MyMainActivity"
+                  android:label="BiDi Wi-Fi Direct">
             <intent-filter>
-                <action
-                    android:name="android.intent.action.MAIN" />
-                <category
-                    android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
