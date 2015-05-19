@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.Toast;
 
 /**
@@ -48,6 +49,12 @@ public class MyMainActivity extends Activity {
 
                         Intent intent = new Intent(myThis, WiFiDirectActivity.class);
                         intent.putExtra("role", "Relay");
+                        // teste DR
+//                        String CRPort = ((EditText) findViewById(R.id.editTextCRPortNumber)).getText().toString();
+//                        Toast toast2 = Toast.makeText(context, CRPort, Toast.LENGTH_SHORT);
+//                        toast2.show();
+                        intent.putExtra("CrPortNumber", ((EditText) findViewById(R.id.editTextCRPortNumber)).getText().toString());
+
                         startActivity(intent);
                     }
                 });
@@ -63,6 +70,8 @@ public class MyMainActivity extends Activity {
 
                         Intent intent = new Intent(myThis, WiFiDirectActivity.class);
                         intent.putExtra("role", "Client");
+                        intent.putExtra("CrPortNumber", ((EditText) findViewById(R.id.editTextCRPortNumber2)).getText().toString());
+                        intent.putExtra("CrIpAddress", ((EditText) findViewById(R.id.editTextCrIpAddress)).getText().toString());
                         startActivity(intent);
                     }
                 });
