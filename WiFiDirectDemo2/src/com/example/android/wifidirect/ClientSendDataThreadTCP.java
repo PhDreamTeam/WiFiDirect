@@ -7,7 +7,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * Created by dremedios on 20/05/2015.
+ * Created by DR & AT on 20/05/2015.
+ * .
  */
 public class ClientSendDataThreadTCP extends Thread{
     String destIpAddress;
