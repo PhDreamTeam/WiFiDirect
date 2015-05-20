@@ -30,6 +30,8 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity android:name=".RelayActivity" android:label="Relay Activity"/>
+        <activity android:name=".ClientActivity" android:label="Client Activity"/>
 
         <!-- Used for transferring files  after a successful connection -->
         <service android:enabled="true" android:name=".FileTransferService" />

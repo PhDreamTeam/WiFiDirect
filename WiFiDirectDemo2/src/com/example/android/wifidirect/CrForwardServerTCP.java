@@ -33,14 +33,11 @@ public class CrForwardServerTCP extends Thread {
 
                 Socket cliSock = serverSocket.accept();
                 new CrForwardThreadTCP(cliSock).start();
-
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
-
     }
 
     void stopServer() {
@@ -76,6 +73,7 @@ public class CrForwardServerTCP extends Thread {
                 DataOutputStream dos = new DataOutputStream(destSocket.getOutputStream());
 
                 // firstly send packet destination address in case of needed by another cr
+                dos.writeInt(addressInfoLen);
                 dos.write(buffer, 0, addressInfoLen);
 
                 // start forwarding all data to destination...

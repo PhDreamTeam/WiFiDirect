@@ -6,85 +6,22 @@
     <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Group Owner"
-            android:id="@+id/btnGroupOwner" android:layout_gravity="center_horizontal"/>
+            android:text="Wi-Fi Direct - Group Owner"
+            android:id="@+id/btnWFDGroupOwner" android:layout_gravity="center_horizontal"/>
+    <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Wi-Fi Direct - Client"
+            android:id="@+id/btnWFDClient" android:layout_gravity="center_horizontal"/>
     <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Relay"
             android:layout_gravity="center_horizontal" android:id="@+id/btnRelay"/>
-    <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="CR Port Number:"
-                android:id="@+id/textView3"/>
-        <EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:inputType="number"
-                android:ems="10"
-                android:id="@+id/editTextCRPortNumber" android:text="20000"/>
-    </LinearLayout>
     <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Client"
             android:id="@+id/btnClient" android:layout_gravity="center_horizontal"/>
-    <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="CR IP Address:"
-                android:id="@+id/textView"/>
-        <EditText
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/editTextCrIpAddress" android:text="192.168.49.11"/>
-    </LinearLayout>
-    <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="CR Port number:"
-                android:id="@+id/textView2"/>
-        <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number"
-                android:ems="10"
-                android:id="@+id/editTextCRPortNumber2" android:text="20000"/>
-    </LinearLayout>
-    <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="dest IP Address:"
-                  android:id="@+id/textView4"/>
-        <EditText
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/editTextDestIpAddress" android:text="192.168.49.21"/>
-    </LinearLayout>
-    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
-                  android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="dest Port Number:" android:id="@+id/textView5"/>
-        <EditText
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number"
-                android:ems="10"
-                android:id="@+id/editTextDestPortNumber" android:text="30000"/>
-    </LinearLayout>
 
 </LinearLayout>
