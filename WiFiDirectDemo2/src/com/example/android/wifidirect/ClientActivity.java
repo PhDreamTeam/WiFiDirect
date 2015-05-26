@@ -13,10 +13,11 @@ import android.widget.Toast;
  */
 public class ClientActivity extends Activity {
     ClientActivity myThis;
-    ClientSendDataThreadTCP clientTransmiter;
-    ClientDataReceiverServerSocketThreadTCP clientReceiver;
+    IStopable clientTransmiter;
+    IStopable clientReceiver;
 
-    Button btnStartStopServer, btnStartStopTransmitting;
+    Button btnStartStopServer, btnStartStopTransmitting, btnTcpUdp;
+    boolean isTcp;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -25,6 +26,9 @@ public class ClientActivity extends Activity {
         setContentView(R.layout.client_activity);
         btnStartStopTransmitting = (Button) findViewById(R.id.buttonStartStopTransmitting);
         btnStartStopServer = (Button) findViewById(R.id.buttonStartStopServer);
+        btnTcpUdp = (Button) findViewById(R.id.buttonTcpUdp);
+
+        isTcp = btnTcpUdp.getText().toString().equals("TCP");
 
 
         findViewById(R.id.buttonStartStopTransmitting).setOnClickListener(
@@ -44,14 +48,22 @@ public class ClientActivity extends Activity {
                             Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
                             toast.show();
 
-                            clientTransmiter = new ClientSendDataThreadTCP(destIpAddress, Integer.parseInt(destPortNumber)
-                                    , crIpAddress, Integer.parseInt(crPortNumber)
-                                    , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
-                                    , ((EditText) findViewById(R.id.editTextSentData)));
+                            if (isTcp)
+                                clientTransmiter = new ClientSendDataThreadTCP(destIpAddress, Integer.parseInt(destPortNumber)
+                                        , crIpAddress, Integer.parseInt(crPortNumber)
+                                        , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
+                                        , ((EditText) findViewById(R.id.editTextSentData)));
+                            //TODO UDP
+//                            else
+//                                clientTransmiter = new ClientSendDataThreadUDP(destIpAddress, Integer.parseInt(destPortNumber)
+//                                        , crIpAddress, Integer.parseInt(crPortNumber)
+//                                        , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
+//                                        , ((EditText) findViewById(R.id.editTextSentData)));
+
                             clientTransmiter.start();
                             btnStartStopTransmitting.setText("Stop Transmitting!!!");
                         } else {
-                            clientTransmiter.stopSendDataThread();
+                            clientTransmiter.stopThread();
                             btnStartStopTransmitting.setText("Start Transmitting");
                         }
                     }
@@ -70,14 +82,33 @@ public class ClientActivity extends Activity {
                             Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
                             toast.show();
 
-                            clientReceiver = new ClientDataReceiverServerSocketThreadTCP(Integer.parseInt(rcvPortNumber)
-                                    , ((EditText) findViewById(R.id.editTextRcvData)));
+                            if (isTcp)
+                                clientReceiver = new ClientDataReceiverServerSocketThreadTCP(Integer.parseInt(rcvPortNumber)
+                                        , ((EditText) findViewById(R.id.editTextRcvData)));
+                            //TODO UDP
+//                            else
+//                                clientReceiver = new ClientDataReceiverServerSocketThreadUDP(Integer.parseInt(rcvPortNumber)
+//                                        , ((EditText) findViewById(R.id.editTextRcvData)));
                             clientReceiver.start();
 
                             btnStartStopServer.setText("Stop Receiving!!!");
                         } else {
-                            clientTransmiter.stopSendDataThread();
+                            clientTransmiter.stopThread();
                             btnStartStopServer.setText("Start Receiving");
+                        }
+                    }
+                });
+
+        findViewById(R.id.buttonTcpUdp).setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (btnTcpUdp.getText().toString().equals("TCP")) {
+                            btnTcpUdp.setText("UDP");
+                            isTcp = false;
+                        } else {
+                            btnTcpUdp.setText("TCP");
+                            isTcp = true;
                         }
                     }
                 });

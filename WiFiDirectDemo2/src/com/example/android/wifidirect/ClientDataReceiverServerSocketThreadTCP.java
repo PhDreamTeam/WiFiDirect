@@ -1,5 +1,6 @@
 package com.example.android.wifidirect;
 
+import android.util.Log;
 import android.widget.EditText;
 
 import java.io.DataInputStream;
@@ -12,7 +13,7 @@ import java.net.Socket;
  * Created by DR & AT on 20/05/2015.
  * .
  */
-public class ClientDataReceiverServerSocketThreadTCP extends Thread {
+public class ClientDataReceiverServerSocketThreadTCP extends Thread implements IStopable{
     int portNumber;
     ServerSocket serverSocket;
     boolean run = true;
@@ -42,15 +43,16 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread {
         }
     }
 
-    void stopClientDataReceiver() {
+    @Override
+    public void stopThread() {
         run = false;
         this.interrupt();
     }
 
-    private class ClientDataReceiverThreadTCP extends Thread {
+    private class ClientDataReceiverThreadTCP extends Thread implements IStopable{
         boolean run = true;
         Socket originSocket;
-        byte buffer[] = new byte[4096];
+        byte buffer[] = new byte[CommonDefinitions.BUFFER_SIZE];
         long rcvDataCounterTotal;
         long initialNanoTime;
         double lastUpdate = 0;
@@ -77,6 +79,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread {
 
                 // Receive client data
                 initialNanoTime = System.nanoTime();
+                Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + CommonDefinitions.BUFFER_SIZE);
+
                 while (run) {
                     // receive and count rcvData
                     int readDataLen = dis.read(buffer);
@@ -132,7 +136,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread {
 
         }
 
-        void stopClientDataReceiverThread() {
+        @Override
+        public void stopThread() {
             run = false;
             this.interrupt();
         }

@@ -1,5 +1,6 @@
 package com.example.android.wifidirect;
 
+import android.util.Log;
 import android.widget.EditText;
 
 import java.io.DataOutputStream;
@@ -12,7 +13,7 @@ import java.net.Socket;
  * Created by DR & AT on 20/05/2015.
  * .
  */
-public class ClientSendDataThreadTCP extends Thread {
+public class ClientSendDataThreadTCP extends Thread implements IStopable {
     String destIpAddress;
     int destPortNumber;
     String crIpAddress;
@@ -44,12 +45,13 @@ public class ClientSendDataThreadTCP extends Thread {
     @Override
     public void run() {
         // Send data
-        byte buffer[] = new byte[4096];
+        byte buffer[] = new byte[CommonDefinitions.BUFFER_SIZE];
         byte b = 0;
         for (int i = 0; i < buffer.length; i++, b++) {
             buffer[i] = b;
         }
         try {
+
             Socket cliSocket = new Socket(crIpAddress, crPortNumber);
             DataOutputStream dos = new DataOutputStream(cliSocket.getOutputStream());
 
@@ -57,6 +59,8 @@ public class ClientSendDataThreadTCP extends Thread {
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
             dos.writeInt(addressData.getBytes().length);
             dos.write(addressData.getBytes());
+
+            Log.d( WiFiDirectActivity.TAG, "Using BufferSize: " + CommonDefinitions.BUFFER_SIZE);
 
             while (run) {
                 dos.write(buffer);
@@ -88,9 +92,9 @@ public class ClientSendDataThreadTCP extends Thread {
         }
     }
 
-    void stopSendDataThread() {
+    @Override
+    public void stopThread() {
         run = false;
         this.interrupt();
     }
-
 }

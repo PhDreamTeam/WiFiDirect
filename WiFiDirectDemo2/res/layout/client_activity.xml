@@ -4,111 +4,126 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent">
 
-    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
-                  android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CR IP Address:"
-                  android:id="@+id/textView80"/>
-        <EditText android:layout_width="fill_parent" android:layout_height="wrap_content"
-                  android:id="@+id/editTextCrIpAddress" android:text="127.0.0.1"/>
-    </LinearLayout>
-    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
-                  android:layout_height="wrap_content">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="CR Port number:" android:id="@+id/textView81"/>
-        <EditText android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
-                  android:ems="10" android:id="@+id/editTextCrPortNumber" android:text="30000"/>
-    </LinearLayout>
-    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
-                  android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="dest IP Address:" android:id="@+id/textView82"/>
-        <EditText android:layout_width="fill_parent" android:layout_height="wrap_content"
-                  android:id="@+id/editTextDestIpAddress" android:text="192.168.49.21"/>
-    </LinearLayout>
-    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
-                  android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="dest Port Number:" android:id="@+id/textView83"/>
-        <EditText android:layout_width="fill_parent" android:layout_height="wrap_content" android:inputType="number"
-                  android:ems="10" android:id="@+id/editTextDestPortNumber" android:text="30000"/>
-    </LinearLayout>
-    <LinearLayout
-            android:orientation="horizontal" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Total Bytes to send (KB):"
-                android:id="@+id/textView" android:gravity="center_vertical"/>
-        <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/editTextTotalBytesToSend" android:layout_gravity="center_horizontal" android:text="0"/>
-    </LinearLayout>
-    <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Delay (ms):"
-                android:id="@+id/textView2"/>
-        <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="0" android:id="@+id/editTextDelay" android:inputType="number"/>
-    </LinearLayout>
-    <Button
-            android:layout_width="match_parent"
+    <ScrollView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Start Transmitting"
-            android:id="@+id/buttonStartStopTransmitting" android:layout_gravity="center_horizontal"/>
-    <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Sent Data (KB):"
-                android:id="@+id/textView3"/>
-        <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/editTextSentData" android:text="0" android:inputType="none"/>
-    </LinearLayout>
-    <Space
-            android:layout_width="match_parent"
-            android:layout_height="60px"
-            android:background="#ff6d6eff" />
-    <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Server Receive Port Number:"
-                android:id="@+id/textView4"/>
-        <EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:inputType="number"
-                android:ems="10"
-                android:id="@+id/editTextServerPortNumber" android:text="30000"/>
-    </LinearLayout>
-    <Button
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Start Receiving"
-            android:id="@+id/buttonStartStopServer" android:layout_gravity="center_horizontal"/>
-    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
-                  android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="Received Data (KB):" android:id="@+id/textView5"/>
-        <EditText android:layout_width="match_parent" android:layout_height="wrap_content"
-                  android:id="@+id/editTextRcvData" android:text="0" android:inputType="none"
-                  android:editable="false"/>
-    </LinearLayout>
+            android:id="@+id/scrollView">
+        <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+            <Button
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="TCP"
+                    android:id="@+id/buttonTcpUdp" android:layout_gravity="center_horizontal"/>
+            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                          android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CR IP Address:"
+                          android:id="@+id/textView80"/>
+                <EditText android:layout_width="fill_parent" android:layout_height="wrap_content"
+                          android:id="@+id/editTextCrIpAddress" android:text="192.168.1.68"/>
+            </LinearLayout>
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
+                          android:layout_height="wrap_content">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:text="CR Port number:" android:id="@+id/textView81"/>
+                <EditText android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
+                          android:ems="10" android:id="@+id/editTextCrPortNumber" android:text="20000"/>
+            </LinearLayout>
+            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                          android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:text="dest IP Address:" android:id="@+id/textView82"/>
+                <EditText android:layout_width="fill_parent" android:layout_height="wrap_content"
+                          android:id="@+id/editTextDestIpAddress" android:text="192.168.1.77"/>
+            </LinearLayout>
+            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                          android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:text="dest Port Number:" android:id="@+id/textView83"/>
+                <EditText android:layout_width="fill_parent" android:layout_height="wrap_content" android:inputType="number"
+                          android:ems="10" android:id="@+id/editTextDestPortNumber" android:text="30000"/>
+            </LinearLayout>
+            <LinearLayout
+                    android:orientation="horizontal" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Total Bytes to send (KB):"
+                        android:id="@+id/textView" android:gravity="center_vertical"/>
+                <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/editTextTotalBytesToSend" android:layout_gravity="center_horizontal" android:text="0"/>
+            </LinearLayout>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content">
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Delay (ms):"
+                        android:id="@+id/textView2"/>
+                <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0" android:id="@+id/editTextDelay" android:inputType="number"/>
+            </LinearLayout>
+            <Button
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Start Transmitting"
+                    android:id="@+id/buttonStartStopTransmitting" android:layout_gravity="center_horizontal"/>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sent Data (KB):"
+                        android:id="@+id/textView3"/>
+                <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/editTextSentData" android:text="0" android:inputType="none"/>
+            </LinearLayout>
+            <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="60px"
+                    android:background="#ff6d6eff" />
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content">
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Server Receive Port Number:"
+                        android:id="@+id/textView4"/>
+                <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:ems="10"
+                        android:id="@+id/editTextServerPortNumber" android:text="30000"/>
+            </LinearLayout>
+            <Button
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Start Receiving"
+                    android:id="@+id/buttonStartStopServer" android:layout_gravity="center_horizontal"/>
+            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                          android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:text="Received Data (KB):" android:id="@+id/textView5"/>
+                <EditText android:layout_width="match_parent" android:layout_height="wrap_content"
+                          android:id="@+id/editTextRcvData" android:text="0" android:inputType="none"
+                          android:editable="false"/>
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>
