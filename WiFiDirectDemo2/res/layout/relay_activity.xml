@@ -13,6 +13,13 @@
         <EditText android:layout_width="wrap_content" android:layout_height="wrap_content" android:inputType="number"
                   android:ems="10" android:id="@+id/editTextCrPortNumber" android:text="20000"/>
     </LinearLayout>
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
+                  android:layout_height="wrap_content">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:text="Buffer Max size (KB):" android:id="@+id/textView9"/>
+        <EditText android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
+                  android:ems="10" android:id="@+id/editTextCRMaxBufferSize" android:text="1"/>
+    </LinearLayout>
     <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

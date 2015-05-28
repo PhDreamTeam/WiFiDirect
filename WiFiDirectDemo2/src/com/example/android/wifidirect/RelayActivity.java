@@ -25,6 +25,7 @@ public class RelayActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.relay_activity);
         btnStartStop = (Button) findViewById(R.id.buttonStartStop);
+        btnTcpUdp = (Button) findViewById(R.id.buttonTcpUdp);
 
         isTcp = btnTcpUdp.getText().toString().equals("TCP");
 
@@ -36,16 +37,16 @@ public class RelayActivity extends Activity {
                         if(btnStartStop.getText().toString().equals("Start Relaying")) {
                             Context context = getApplicationContext();
                             String CRPort = ((EditText) findViewById(R.id.editTextCrPortNumber)).getText().toString();
+                            int bufferSize = 1024 * Integer.parseInt(((EditText) findViewById(R.id.editTextCRMaxBufferSize)).getText().toString());
 
                             CharSequence text = "Start Relaying at port: "+ CRPort +"!!!!!";
                             Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
                             toast.show();
 
                             if (isTcp)
-                                crForwarder = new CrForwardServerTCP(Integer.parseInt(CRPort), ((TextView) findViewById(R.id.textViewTransferedData)));
-                            //TODO UDP
-//                            else
-//                                crForwarder = new CrForwardServerUDP(Integer.parseInt(CRPort), ((TextView) findViewById(R.id.textViewTransferedData)));
+                                crForwarder = new CrForwardServerTCP(Integer.parseInt(CRPort), ((TextView) findViewById(R.id.textViewTransferedData)), bufferSize);
+                            else
+                                crForwarder = new CrForwardServerUDP(Integer.parseInt(CRPort), ((TextView) findViewById(R.id.textViewTransferedData)), bufferSize);
 
                             crForwarder.start();
                             btnStartStop.setText("Stop Relaying!!!");

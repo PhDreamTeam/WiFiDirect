@@ -5,13 +5,16 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import java.io.DataOutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
 /**
- * Created by DR & AT on 20/05/2015.
- * .
+ * Created by DR e AT on 27/05/2015.
  */
-public class ClientSendDataThreadTCP extends Thread implements IStopable {
+public class ClientSendDataThreadUDP extends Thread implements IStopable {
     private int bufferSize;
     String destIpAddress;
     int destPortNumber;
@@ -20,17 +23,15 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
     long speed = 0; // number of millis to sleep between each 4096 of sent Bytes
     long dataLimit = 0;
     long sentData = 0;
-
     EditText editTextSentData;
-
     boolean run = true;
     double lastUpdate;
 
-    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, EditText editTextSentData, int bufferSize) {
+    public ClientSendDataThreadUDP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, EditText editTextSentData, int bufferSize) {
         this(destIpAddress, destPortNumber, crIpAddress, crPortNumber, 0, 0, editTextSentData, bufferSize);
     }
 
-    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, long speed, long dataLimit, EditText editTextSentData, int bufferSize) {
+    public ClientSendDataThreadUDP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, long speed, long dataLimit, EditText editTextSentData, int bufferSize) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
         this.crIpAddress = crIpAddress;
@@ -41,12 +42,13 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         this.bufferSize = bufferSize;
     }
 
+
     @Override
     public void run() {
         editTextSentData.post(new Runnable() {
             @Override
             public void run() {
-                CharSequence text = "" + bufferSize + "KB, ClientSendDataThreadTCP";
+                CharSequence text = "" + bufferSize + "KB, ClientSendDataThreadUDP";
                 Toast.makeText(editTextSentData.getContext(), text, Toast.LENGTH_SHORT).show();
             }
         });
@@ -59,18 +61,21 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         }
         try {
 
-            Socket cliSocket = new Socket(crIpAddress, crPortNumber);
-            DataOutputStream dos = new DataOutputStream(cliSocket.getOutputStream());
-
-            // send destination information for the forward node
+            DatagramSocket cliSocket = new DatagramSocket();
+             // send destination information for the forward node
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
-            dos.writeInt(addressData.getBytes().length);
-            dos.write(addressData.getBytes());
 
-            Log.d( WiFiDirectActivity.TAG, "Using BufferSize: " + buffer.length);
+            ByteBuffer buf = ByteBuffer.allocate(4);
+            buf.putInt(addressData.length());
+            System.arraycopy(buf.array(), 0, buffer, 0, 4);
+            System.arraycopy(addressData.getBytes(), 0, buffer, 4, addressData.getBytes().length);
+
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(crIpAddress), crPortNumber);
+
+            Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSize);
 
             while (run) {
-                dos.write(buffer);
+                cliSocket.send(packet);
                 sentData += buffer.length;
                 updateSentData(sentData);
                 if (dataLimit != 0 && sentData > dataLimit) {
@@ -99,9 +104,12 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         }
     }
 
+
+
     @Override
     public void stopThread() {
         run = false;
         this.interrupt();
     }
+
 }

@@ -9,7 +9,8 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 /**
- * Created by dremedios on 20/05/2015.
+ * Created by DR e AT on 20/05/2015.
+ *
  */
 public class ClientActivity extends Activity {
     ClientActivity myThis;
@@ -43,6 +44,7 @@ public class ClientActivity extends Activity {
                             String destPortNumber = ((EditText) findViewById(R.id.editTextDestPortNumber)).getText().toString();
                             String totalBytesToSend = ((EditText) findViewById(R.id.editTextTotalBytesToSend)).getText().toString();
                             String delay = ((EditText) findViewById(R.id.editTextDelay)).getText().toString();
+                            int bufferSize = 1024 * Integer.parseInt(((EditText) findViewById(R.id.editTextMaxBufferSize)).getText().toString());
 
                             CharSequence text = "Start transmitting!!!!!";
                             Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
@@ -52,13 +54,14 @@ public class ClientActivity extends Activity {
                                 clientTransmiter = new ClientSendDataThreadTCP(destIpAddress, Integer.parseInt(destPortNumber)
                                         , crIpAddress, Integer.parseInt(crPortNumber)
                                         , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
-                                        , ((EditText) findViewById(R.id.editTextSentData)));
-                            //TODO UDP
-//                            else
-//                                clientTransmiter = new ClientSendDataThreadUDP(destIpAddress, Integer.parseInt(destPortNumber)
-//                                        , crIpAddress, Integer.parseInt(crPortNumber)
-//                                        , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
-//                                        , ((EditText) findViewById(R.id.editTextSentData)));
+                                        , ((EditText) findViewById(R.id.editTextSentData))
+                                        , bufferSize);
+                            else
+                                clientTransmiter = new ClientSendDataThreadUDP(destIpAddress, Integer.parseInt(destPortNumber)
+                                        , crIpAddress, Integer.parseInt(crPortNumber)
+                                        , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
+                                        , ((EditText) findViewById(R.id.editTextSentData))
+                                        , bufferSize);
 
                             clientTransmiter.start();
                             btnStartStopTransmitting.setText("Stop Transmitting!!!");
@@ -77,6 +80,7 @@ public class ClientActivity extends Activity {
                         if (btnStartStopServer.getText().toString().equals("Start Receiving")) {
                             Context context = getApplicationContext();
                             String rcvPortNumber = ((EditText) findViewById(R.id.editTextServerPortNumber)).getText().toString();
+                            int bufferSize = 1024 * Integer.parseInt(((EditText) findViewById(R.id.editTextMaxBufferSize)).getText().toString());
 
                             CharSequence text = "Start Receiving!!!!!";
                             Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
@@ -84,16 +88,15 @@ public class ClientActivity extends Activity {
 
                             if (isTcp)
                                 clientReceiver = new ClientDataReceiverServerSocketThreadTCP(Integer.parseInt(rcvPortNumber)
-                                        , ((EditText) findViewById(R.id.editTextRcvData)));
-                            //TODO UDP
-//                            else
-//                                clientReceiver = new ClientDataReceiverServerSocketThreadUDP(Integer.parseInt(rcvPortNumber)
-//                                        , ((EditText) findViewById(R.id.editTextRcvData)));
+                                        , ((EditText) findViewById(R.id.editTextRcvData)), bufferSize);
+                            else
+                                clientReceiver = new ClientDataReceiverServerSocketThreadUDP(Integer.parseInt(rcvPortNumber)
+                                        , ((EditText) findViewById(R.id.editTextRcvData)), bufferSize);
                             clientReceiver.start();
 
                             btnStartStopServer.setText("Stop Receiving!!!");
                         } else {
-                            clientTransmiter.stopThread();
+                            clientReceiver.stopThread();
                             btnStartStopServer.setText("Start Receiving");
                         }
                     }

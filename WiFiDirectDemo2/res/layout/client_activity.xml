@@ -22,14 +22,14 @@
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CR IP Address:"
                           android:id="@+id/textView80"/>
                 <EditText android:layout_width="fill_parent" android:layout_height="wrap_content"
-                          android:id="@+id/editTextCrIpAddress" android:text="192.168.1.68"/>
+                          android:id="@+id/editTextCrIpAddress" android:text="192.168.1.70"/>
             </LinearLayout>
             <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
                           android:layout_height="wrap_content">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                           android:text="CR Port number:" android:id="@+id/textView81"/>
                 <EditText android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
-                          android:ems="10" android:id="@+id/editTextCrPortNumber" android:text="20000"/>
+                          android:ems="10" android:id="@+id/editTextCrPortNumber" android:text="30000"/>
             </LinearLayout>
             <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
                           android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
@@ -44,6 +44,22 @@
                           android:text="dest Port Number:" android:id="@+id/textView83"/>
                 <EditText android:layout_width="fill_parent" android:layout_height="wrap_content" android:inputType="number"
                           android:ems="10" android:id="@+id/editTextDestPortNumber" android:text="30000"/>
+            </LinearLayout>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent">
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Buffer Max size (KB):"
+                        android:id="@+id/textView8"/>
+                <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:ems="10"
+                        android:id="@+id/editTextMaxBufferSize" android:text="1"/>
             </LinearLayout>
             <LinearLayout
                     android:orientation="horizontal" android:layout_width="match_parent"

@@ -3,6 +3,7 @@ package com.example.android.wifidirect;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -12,21 +13,21 @@ import java.net.Socket;
 
 /**
  * Created by DR & AT on 20/05/2015.
+ *
  */
 public class CrForwardServerTCP extends Thread implements IStopable{
+    private int bufferSize;
     int portNumber;
     ServerSocket serverSocket;
     boolean run = true;
     TextView editTextTransferedData;
 
-    public CrForwardServerTCP(int portNumber, TextView editTextTransferedData) {
+    public CrForwardServerTCP(int portNumber, TextView editTextTransferedData, int bufferSize) {
         this.portNumber = portNumber;
         this.editTextTransferedData = editTextTransferedData;
+        this.bufferSize = bufferSize;
     }
 
-    public CrForwardServerTCP() {
-        this.portNumber = 20000;
-    }
 
     @Override
     public void run() {
@@ -37,7 +38,7 @@ public class CrForwardServerTCP extends Thread implements IStopable{
             while (run) {
 
                 Socket cliSock = serverSocket.accept();
-                new CrForwardThreadTCP(cliSock).start();
+                new CrForwardThreadTCP(cliSock, bufferSize).start();
             }
 
         } catch (Exception e) {
@@ -52,19 +53,30 @@ public class CrForwardServerTCP extends Thread implements IStopable{
     }
 
     private class CrForwardThreadTCP extends Thread implements IStopable{
+        private int bufferSize;
         Socket originSocket;
         boolean run = true;
         long forwardedData = 0;
+        long deltaForwardData = 0;
         long lastUpdate = 0;
         long initialNanoTime;
 
-        public CrForwardThreadTCP(Socket cliSock) {
+        public CrForwardThreadTCP(Socket cliSock, int bufferSize) {
             this.originSocket = cliSock;
+            this.bufferSize = bufferSize;
         }
 
         @Override
         public void run() {
-            byte buffer[] = new byte[CommonDefinitions.BUFFER_SIZE];
+            editTextTransferedData.post(new Runnable() {
+                @Override
+                public void run() {
+                    CharSequence text = "" + bufferSize + "KB, CrForwardThreadTCP";
+                    Toast.makeText(editTextTransferedData.getContext(), text, Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            byte buffer[] = new byte[bufferSize];
             try {
                 // read initial destination data...
                 DataInputStream dis = new DataInputStream(originSocket.getInputStream());
@@ -85,7 +97,7 @@ public class CrForwardServerTCP extends Thread implements IStopable{
                 dos.writeInt(addressInfoLen);
                 dos.write(buffer, 0, addressInfoLen);
 
-                Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + CommonDefinitions.BUFFER_SIZE);
+                Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + buffer.length);
 
                 initialNanoTime = System.nanoTime();
                 // start forwarding all data to destination...
@@ -94,7 +106,8 @@ public class CrForwardServerTCP extends Thread implements IStopable{
                     if (nBytesRead != -1) {
                         dos.write(buffer, 0, nBytesRead);
                         forwardedData += nBytesRead;
-                        updateVisualInformation();
+                        deltaForwardData += nBytesRead;
+                        updateVisualDeltaInformation();
                     } else
                         run = false;
                 }
@@ -113,6 +126,28 @@ public class CrForwardServerTCP extends Thread implements IStopable{
             this.interrupt();
         }
 
+        void updateVisualDeltaInformation() {
+            // elapsed time
+            long currentNanoTime = System.nanoTime();
+
+            if (currentNanoTime > lastUpdate + 1000000000) {
+
+                long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
+                double elapsedDeltaRcvTimeSeconds = (double) elapsedDeltaRcvTimeNano / 1000000000.0;
+                // transfer speed B/s
+                double speed = (deltaForwardData / 1024) / elapsedDeltaRcvTimeSeconds;
+                final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
+                lastUpdate = currentNanoTime;
+                editTextTransferedData.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        editTextTransferedData.setText(msg);
+                    }
+                });
+                deltaForwardData = 0;
+            }
+
+        }
         void updateVisualInformation() {
             // elapsed time
             long currentNanoTime = System.nanoTime();
