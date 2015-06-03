@@ -16,6 +16,7 @@
 
 package com.example.android.wifidirect;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -151,9 +152,27 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
         // The owner IP is now known. - "Am I the Group Owner"
         TextView view = (TextView) mContentView.findViewById(R.id.group_owner);
+        final TextView TVgroupInfo= (TextView) mContentView.findViewById(R.id.textViewGroupInfo);
+
         view.setText(getResources().getString(R.string.group_owner_text)
                 + (info.isGroupOwner ? getResources().getString(R.string.yes) : getResources().getString(R.string.no)));
-
+        /* DEBUG DR AT*/
+        final Activity act = getActivity();
+        WifiP2pManager manager = (WifiP2pManager) act.getSystemService(Context.WIFI_P2P_SERVICE);
+        WifiP2pManager.Channel channel = manager.initialize(act, act.getMainLooper(), null);
+        manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(WifiP2pGroup group) {
+                if (group == null) {
+                    Toast.makeText(act, "Group is Null On DevicedetailFragment", Toast.LENGTH_LONG).show();
+                } else {
+                    String groupInfoStr = "Group Info: " + group.getNetworkName() + " " + group.getPassphrase();
+                    Toast.makeText(act, groupInfoStr,
+                            Toast.LENGTH_LONG).show();
+                    TVgroupInfo.setText(groupInfoStr);
+                }
+            }
+        });
         // InetAddress from WifiP2pInfo struct.
         view = (TextView) mContentView.findViewById(R.id.device_info);
         view.setText("Group Owner IP - " +  info.groupOwnerAddress.getHostAddress());

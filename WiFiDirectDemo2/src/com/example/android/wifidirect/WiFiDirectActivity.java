@@ -23,6 +23,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
@@ -77,8 +78,8 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-//        manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-//        channel = manager.initialize(this, getMainLooper(), null);
+        manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        channel = manager.initialize(this, getMainLooper(), null);
 
         Intent intent = getIntent();
         role = intent.getStringExtra("role");
@@ -212,14 +213,18 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
                 // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
 
                 // CHECK NEW CODE ========================================================
-//                manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
-//                    @Override
-//                    public void onGroupInfoAvailable(WifiP2pGroup group) {
-//                        String groupInfo = group.getNetworkName() + " " + group.getPassphrase();
-//                        Toast.makeText(WiFiDirectActivity.this, groupInfo,
-//                                Toast.LENGTH_LONG).show();
-//                    }
-//                });
+                manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+                    @Override
+                    public void onGroupInfoAvailable(WifiP2pGroup group) {
+                        if(group == null){
+                            Toast.makeText(WiFiDirectActivity.this, "Group is Null On connect success", Toast.LENGTH_LONG).show();
+                        }else {
+                            String groupInfo = group.getNetworkName() + " " + group.getPassphrase();
+                            Toast.makeText(WiFiDirectActivity.this, groupInfo,
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
                 // CHECK END
             }
 
