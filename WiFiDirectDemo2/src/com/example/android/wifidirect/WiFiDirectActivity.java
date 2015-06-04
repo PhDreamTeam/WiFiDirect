@@ -139,7 +139,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     }
 
     /** register the BroadcastReceiver with the intent values to be matched
-     *  */
+     *      */
     @Override
     public void onResume() {
         super.onResume();
