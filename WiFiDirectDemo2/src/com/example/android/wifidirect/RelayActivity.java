@@ -2,7 +2,6 @@ package com.example.android.wifidirect;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -44,9 +43,14 @@ public class RelayActivity extends Activity {
                             toast.show();
 
                             if (isTcp)
-                                crForwarder = new CrForwardServerTCP(Integer.parseInt(CRPort), ((TextView) findViewById(R.id.textViewTransferedData)), bufferSize);
+                                crForwarder = new CrForwardServerTCP(Integer.parseInt(CRPort)
+                                        , ((TextView) findViewById(R.id.textViewTransferedDataOrigDest))
+                                        , ((TextView) findViewById(R.id.textViewTransferedDataDestOrig))
+                                        , bufferSize);
                             else
-                                crForwarder = new CrForwardServerUDP(Integer.parseInt(CRPort), ((TextView) findViewById(R.id.textViewTransferedData)), bufferSize);
+                                crForwarder = new CrForwardServerUDP(Integer.parseInt(CRPort)
+                                        , ((TextView) findViewById(R.id.textViewTransferedDataOrigDest))
+                                        , bufferSize);
 
                             crForwarder.start();
                             btnStartStop.setText("Stop Relaying!!!");

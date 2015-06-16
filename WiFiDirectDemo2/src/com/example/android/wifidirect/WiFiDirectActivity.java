@@ -21,8 +21,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -39,12 +37,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
-
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Enumeration;
 
 /**
  * An activity that uses WiFi Direct APIs to discover and connect with available
@@ -116,6 +108,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     private void printNetworkInfo(Context context) {
         // Debug networks
         String netStr = "Networks2: ";
+//    TESTE 1
 //        ConnectivityManager connMng = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 //        NetworkInfo nia[] = connMng.getAllNetworkInfo();
 //        for(NetworkInfo ni: nia){
@@ -123,18 +116,18 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 //        }
 //        Toast toast2 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
 //        toast2.show();
-
-        Enumeration<NetworkInterface> nets = null;
-        try {
-            nets = NetworkInterface.getNetworkInterfaces();
-            for (NetworkInterface netint : Collections.list(nets)){
-                netStr += netint.getName() + ", " + netint.getDisplayName()  + "\n";
-            }
-            Toast toast2 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
-            toast2.show();
-        } catch (SocketException e) {
-            e.printStackTrace();
-        }
+//    TESTE 2 - listar o nome das interfaces de rede
+//        Enumeration<NetworkInterface> nets = null;
+//        try {
+//            nets = NetworkInterface.getNetworkInterfaces();
+//            for (NetworkInterface netint : Collections.list(nets)){
+//                netStr += netint.getName() + ", " + netint.getDisplayName()  + "\n";
+//            }
+//            Toast toast2 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
+//            toast2.show();
+//        } catch (SocketException e) {
+//            e.printStackTrace();
+//        }
 
     }
 

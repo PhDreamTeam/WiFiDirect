@@ -1,10 +1,10 @@
 package com.example.android.wifidirect;
 
 import android.util.Log;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -20,11 +20,13 @@ public class CrForwardServerTCP extends Thread implements IStopable{
     int portNumber;
     ServerSocket serverSocket;
     boolean run = true;
-    TextView editTextTransferedData;
+    TextView textViewTransferedDataOrigDest, textViewTransferedDataDestOrig;
 
-    public CrForwardServerTCP(int portNumber, TextView editTextTransferedData, int bufferSize) {
+    public CrForwardServerTCP(int portNumber, TextView textViewTransferedDataOrigDest
+            , TextView textViewTransferedDataDestOrig, int bufferSize) {
         this.portNumber = portNumber;
-        this.editTextTransferedData = editTextTransferedData;
+        this.textViewTransferedDataOrigDest = textViewTransferedDataOrigDest;
+        this.textViewTransferedDataDestOrig = textViewTransferedDataDestOrig;
         this.bufferSize = bufferSize;
     }
 
@@ -55,11 +57,14 @@ public class CrForwardServerTCP extends Thread implements IStopable{
     private class CrForwardThreadTCP extends Thread implements IStopable{
         private int bufferSize;
         Socket originSocket;
+        Socket destSocket;
         boolean run = true;
-        long forwardedData = 0;
-        long deltaForwardData = 0;
-        long lastUpdate = 0;
-        long initialNanoTime;
+        Thread threadForwardDataOrigDest = null;
+        Thread threadForwardDataDestOrig = null;
+        DataInputStream origDIS;
+        DataOutputStream origDOS;
+        DataOutputStream destDOS;
+        DataInputStream destDIS;
 
         public CrForwardThreadTCP(Socket cliSock, int bufferSize) {
             this.originSocket = cliSock;
@@ -68,21 +73,23 @@ public class CrForwardServerTCP extends Thread implements IStopable{
 
         @Override
         public void run() {
-            editTextTransferedData.post(new Runnable() {
+            textViewTransferedDataOrigDest.post(new Runnable() {
                 @Override
                 public void run() {
                     CharSequence text = "" + bufferSize + "KB, CrForwardThreadTCP";
-                    Toast.makeText(editTextTransferedData.getContext(), text, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(textViewTransferedDataOrigDest.getContext(), text, Toast.LENGTH_SHORT).show();
                 }
             });
 
             byte buffer[] = new byte[bufferSize];
+
             try {
                 // read initial destination data...
-                DataInputStream dis = new DataInputStream(originSocket.getInputStream());
+                origDIS = new DataInputStream(originSocket.getInputStream());
+                origDOS = new DataOutputStream(originSocket.getOutputStream());
 
-                int addressInfoLen = dis.readInt();
-                dis.read(buffer, 0, addressInfoLen);
+                int addressInfoLen = origDIS.readInt();
+                origDIS.read(buffer, 0, addressInfoLen);
                 String addressInfo = new String(buffer, 0, addressInfoLen);
                 String aia[] = addressInfo.split(";");
 
@@ -90,83 +97,128 @@ public class CrForwardServerTCP extends Thread implements IStopable{
                 int destPortNumber = Integer.parseInt(aia[1]);
 
                 // open destination socket
-                Socket destSocket = new Socket(destIpAddress, destPortNumber);
-                DataOutputStream dos = new DataOutputStream(destSocket.getOutputStream());
+                destSocket = new Socket(destIpAddress, destPortNumber);
+                destDOS = new DataOutputStream(destSocket.getOutputStream());
+                destDIS = new DataInputStream(destSocket.getInputStream());
 
                 // firstly send packet destination address in case of needed by another cr
-                dos.writeInt(addressInfoLen);
-                dos.write(buffer, 0, addressInfoLen);
+                destDOS.writeInt(addressInfoLen);
+                destDOS.write(buffer, 0, addressInfoLen);
+
+                threadForwardDataOrigDest = forwardData(origDIS, destDOS, textViewTransferedDataOrigDest);
+                threadForwardDataDestOrig = forwardData(destDIS, origDOS, textViewTransferedDataDestOrig);
 
                 Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + buffer.length);
 
-                initialNanoTime = System.nanoTime();
-                // start forwarding all data to destination...
-                while (run) {
-                    int nBytesRead = dis.read(buffer);
-                    if (nBytesRead != -1) {
-                        dos.write(buffer, 0, nBytesRead);
-                        forwardedData += nBytesRead;
-                        deltaForwardData += nBytesRead;
-                        updateVisualDeltaInformation();
-                    } else
-                        run = false;
-                }
-                dos.close();
-                dis.close();
-                originSocket.close();
-                destSocket.close();
+                threadForwardDataOrigDest.join();
+                threadForwardDataDestOrig.join();
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }finally {
+                closeCloseable(destDOS);
+                closeCloseable(origDIS);
+                closeCloseable(originSocket);
+                closeCloseable(destSocket);
+            }
+        }
+
+        public void closeCloseable(Closeable closeable) {
+            try {
+                closeable.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
+        private Thread forwardData(final DataInputStream dis, final DataOutputStream dos, final TextView textView ) {
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    byte buffer[] = new byte[bufferSize];
+                    long lastUpdate = 0;
+                    long initialNanoTime;
+                    long forwardedData = 0;
+                    long deltaForwardData = 0;
+                    int nBytesRead = 0;
+
+                    initialNanoTime = System.nanoTime();
+                    // start forwarding all data to destination...
+                    try {
+                        while (run) {
+                            nBytesRead = dis.read(buffer);
+
+                            if (nBytesRead != -1) {
+                                dos.write(buffer, 0, nBytesRead);
+                                forwardedData += nBytesRead;
+                                deltaForwardData += nBytesRead;
+                                long updatedLastTime = updateVisualDeltaInformation(forwardedData, deltaForwardData, lastUpdate, textView);
+                                if(updatedLastTime !=0) {
+                                    deltaForwardData = 0; // if updated clear delta counter
+                                    lastUpdate = updatedLastTime; // new updated inf timestamp
+                                }
+                            } else
+                                run = false;
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            thread.start();
+            return thread;
+        }
+
         @Override
         public void stopThread() {
             run = false;
-            this.interrupt();
+            threadForwardDataOrigDest.interrupt();
+            threadForwardDataDestOrig.interrupt();
         }
 
-        void updateVisualDeltaInformation() {
+        // returns 0 if not updated, else return the lastUpdateTime
+        long updateVisualDeltaInformation(long forwardedData, long deltaForwardData, long lastUpdate, TextView textView) {
             // elapsed time
             long currentNanoTime = System.nanoTime();
 
             if (currentNanoTime > lastUpdate + 1000000000) {
-
                 long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
                 double elapsedDeltaRcvTimeSeconds = (double) elapsedDeltaRcvTimeNano / 1000000000.0;
                 // transfer speed B/s
                 double speed = (deltaForwardData / 1024) / elapsedDeltaRcvTimeSeconds;
                 final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
                 lastUpdate = currentNanoTime;
-                editTextTransferedData.post(new Runnable() {
+                textViewTransferedDataOrigDest.post(new Runnable() {
                     @Override
                     public void run() {
-                        editTextTransferedData.setText(msg);
+                        textViewTransferedDataOrigDest.setText(msg);
                     }
                 });
-                deltaForwardData = 0;
+                return lastUpdate;
             }
-
+            return 0;
         }
-        void updateVisualInformation() {
-            // elapsed time
-            long currentNanoTime = System.nanoTime();
 
-            if (currentNanoTime > lastUpdate + 1000000000) {
-                long elapsedRcvTimeNano = currentNanoTime - initialNanoTime; // div 10^-9 para ter em segundos
-                double elapsedRcvTimeSeconds = (double) elapsedRcvTimeNano / 1000000000.0;
-                // transfer speed B/s
-                double speed = (forwardedData / 1024) / elapsedRcvTimeSeconds;
-                final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
-                lastUpdate = currentNanoTime;
-                editTextTransferedData.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        editTextTransferedData.setText(msg);
-                    }
-                });
-            }
-
-        }
+//        void updateVisualInformation() {
+//            // elapsed time
+//            long currentNanoTime = System.nanoTime();
+//
+//            if (currentNanoTime > lastUpdate + 1000000000) {
+//                long elapsedRcvTimeNano = currentNanoTime - initialNanoTime; // div 10^-9 para ter em segundos
+//                double elapsedRcvTimeSeconds = (double) elapsedRcvTimeNano / 1000000000.0;
+//                // transfer speed B/s
+//                double speed = (forwardedData / 1024) / elapsedRcvTimeSeconds;
+//                final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
+//                lastUpdate = currentNanoTime;
+//                textViewTransferedDataOrigDest.post(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        textViewTransferedDataOrigDest.setText(msg);
+//                    }
+//                });
+//            }
+//
+//        }
     }
 }
