@@ -115,6 +115,7 @@ public class RelayActivity extends Activity {
 
 //    TESTE 2 - listar o nome das interfaces de rede
         Enumeration<NetworkInterface> nets = null;
+        netStr = "";
         try {
             nets = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface netint : Collections.list(nets)) {
@@ -130,12 +131,12 @@ public class RelayActivity extends Activity {
 
         //    TESTE 3 - listar o nome das interfaces de rede
         Network[] nets2 = null;
-
+        netStr = "";
         nets2 = connMng.getAllNetworks();
         for (Network netint : nets2) {
             netStr += "\t" + netint.toString() + "\n";
         }
-        ((TextView) findViewById(R.id.textViewNetInfo)).append("\nGetNetworkInterfaces: \n" + netStr);
+        ((TextView) findViewById(R.id.textViewNetInfo)).append("\nGetAllNetworks: \n" + netStr);
 
 //            Toast toast3 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
 //            toast3.show();
