@@ -11,6 +11,7 @@ import android.widget.Toast;
 
 /**
  * Created by DR & AT on 20/05/2015.
+ *
  */
 public class RelayActivity extends Activity {
     RelayActivity myThis;
@@ -76,5 +77,15 @@ public class RelayActivity extends Activity {
                         }
                     }
                 });
+    }
+
+    @Override
+    protected void onDestroy() {
+        Toast.makeText(getApplicationContext(), "onDestroy", Toast.LENGTH_SHORT).show();
+
+        if(crForwarder != null)
+            crForwarder.stopThread();
+
+        super.onDestroy();
     }
 }

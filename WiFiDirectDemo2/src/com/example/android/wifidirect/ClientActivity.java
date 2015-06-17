@@ -10,7 +10,6 @@ import android.widget.Toast;
 
 /**
  * Created by DR e AT on 20/05/2015.
- *
  */
 public class ClientActivity extends Activity {
     ClientActivity myThis;
@@ -20,46 +19,6 @@ public class ClientActivity extends Activity {
     Button btnStartStopServer, btnStartStopTransmitting, btnTcpUdp;
     boolean isTcp;
 
-    public void onStop() {
-        super.onStop();
-        Toast.makeText(getApplicationContext(), "onStop", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Toast.makeText(getApplicationContext(), "onPause", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-        Toast.makeText(getApplicationContext(), "onRestart", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Toast.makeText(getApplicationContext(), "onResume", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Toast.makeText(getApplicationContext(), "onDestroy", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Toast.makeText(getApplicationContext(), "onStart", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        Toast.makeText(getApplicationContext(), "onBackPressed", Toast.LENGTH_SHORT).show();
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -80,27 +39,35 @@ public class ClientActivity extends Activity {
                     public void onClick(View v) {
                         if (btnStartStopTransmitting.getText().toString().equals("Start Transmitting")) {
                             Context context = getApplicationContext();
-                            String crIpAddress = ((EditText) findViewById(R.id.editTextCrIpAddress)).getText().toString();
-                            String crPortNumber = ((EditText) findViewById(R.id.editTextCrPortNumber)).getText().toString();
-                            String destIpAddress = ((EditText) findViewById(R.id.editTextDestIpAddress)).getText().toString();
-                            String destPortNumber = ((EditText) findViewById(R.id.editTextDestPortNumber)).getText().toString();
-                            String totalBytesToSend = ((EditText) findViewById(R.id.editTextTotalBytesToSend)).getText().toString();
+                            String crIpAddress = ((EditText) findViewById(
+                                    R.id.editTextCrIpAddress)).getText().toString();
+                            String crPortNumber = ((EditText) findViewById(
+                                    R.id.editTextCrPortNumber)).getText().toString();
+                            String destIpAddress = ((EditText) findViewById(
+                                    R.id.editTextDestIpAddress)).getText().toString();
+                            String destPortNumber = ((EditText) findViewById(
+                                    R.id.editTextDestPortNumber)).getText().toString();
+                            String totalBytesToSend = ((EditText) findViewById(
+                                    R.id.editTextTotalBytesToSend)).getText().toString();
                             String delay = ((EditText) findViewById(R.id.editTextDelay)).getText().toString();
-                            int bufferSize = 1024 * Integer.parseInt(((EditText) findViewById(R.id.editTextMaxBufferSize)).getText().toString());
+                            int bufferSize = 1024 * Integer.parseInt(
+                                    ((EditText) findViewById(R.id.editTextMaxBufferSize)).getText().toString());
 
                             CharSequence text = "Start transmitting!!!!!";
                             Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
                             toast.show();
 
                             if (isTcp)
-                                clientTransmiter = new ClientSendDataThreadTCP(destIpAddress, Integer.parseInt(destPortNumber)
+                                clientTransmiter = new ClientSendDataThreadTCP(destIpAddress,
+                                        Integer.parseInt(destPortNumber)
                                         , crIpAddress, Integer.parseInt(crPortNumber)
                                         , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
                                         , ((EditText) findViewById(R.id.editTextTxThrdSentData))
                                         , ((EditText) findViewById(R.id.editTextTxThrdRcvData))
                                         , bufferSize);
                             else
-                                clientTransmiter = new ClientSendDataThreadUDP(destIpAddress, Integer.parseInt(destPortNumber)
+                                clientTransmiter = new ClientSendDataThreadUDP(destIpAddress,
+                                        Integer.parseInt(destPortNumber)
                                         , crIpAddress, Integer.parseInt(crPortNumber)
                                         , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
                                         , ((EditText) findViewById(R.id.editTextTxThrdSentData))
@@ -122,19 +89,23 @@ public class ClientActivity extends Activity {
                     public void onClick(View v) {
                         if (btnStartStopServer.getText().toString().equals("Start Receiving")) {
                             Context context = getApplicationContext();
-                            String rcvPortNumber = ((EditText) findViewById(R.id.editTextServerPortNumber)).getText().toString();
-                            int bufferSize = 1024 * Integer.parseInt(((EditText) findViewById(R.id.editTextMaxBufferSize)).getText().toString());
+                            String rcvPortNumber = ((EditText) findViewById(
+                                    R.id.editTextServerPortNumber)).getText().toString();
+                            int bufferSize = 1024 * Integer.parseInt(
+                                    ((EditText) findViewById(R.id.editTextMaxBufferSize)).getText().toString());
 
                             CharSequence text = "Start Receiving!!!!!";
                             Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
                             toast.show();
 
                             if (isTcp)
-                                clientReceiver = new ClientDataReceiverServerSocketThreadTCP(Integer.parseInt(rcvPortNumber)
+                                clientReceiver = new ClientDataReceiverServerSocketThreadTCP(
+                                        Integer.parseInt(rcvPortNumber)
                                         , ((EditText) findViewById(R.id.editTextRcvThrdRcvData))
                                         , ((EditText) findViewById(R.id.editTextRcvThrdSentData)), bufferSize);
                             else
-                                clientReceiver = new ClientDataReceiverServerSocketThreadUDP(Integer.parseInt(rcvPortNumber)
+                                clientReceiver = new ClientDataReceiverServerSocketThreadUDP(
+                                        Integer.parseInt(rcvPortNumber)
                                         , ((EditText) findViewById(R.id.editTextRcvThrdRcvData)), bufferSize);
                             clientReceiver.start();
 
@@ -160,5 +131,54 @@ public class ClientActivity extends Activity {
                     }
                 });
     }
+
+    @Override
+    protected void onDestroy() {
+        Toast.makeText(getApplicationContext(), "onDestroy", Toast.LENGTH_SHORT).show();
+
+        if (clientTransmiter != null)
+            clientTransmiter.stopThread();
+
+        if (clientReceiver != null)
+            clientReceiver.stopThread();
+
+        super.onDestroy();
+    }
+
+    public void onStop() {
+        super.onStop();
+        Toast.makeText(getApplicationContext(), "onStop", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Toast.makeText(getApplicationContext(), "onPause", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        Toast.makeText(getApplicationContext(), "onRestart", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Toast.makeText(getApplicationContext(), "onResume", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Toast.makeText(getApplicationContext(), "onStart", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        Toast.makeText(getApplicationContext(), "onBackPressed", Toast.LENGTH_SHORT).show();
+    }
+
 
 }

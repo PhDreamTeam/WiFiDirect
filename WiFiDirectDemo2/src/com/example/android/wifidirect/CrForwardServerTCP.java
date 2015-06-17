@@ -10,6 +10,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  * Created by DR & AT on 20/05/2015.
@@ -21,6 +22,7 @@ public class CrForwardServerTCP extends Thread implements IStopable{
     ServerSocket serverSocket;
     boolean run = true;
     TextView textViewTransferedDataOrigDest, textViewTransferedDataDestOrig;
+    ArrayList<IStopable> workingThreads = new ArrayList<IStopable>();
 
     public CrForwardServerTCP(int portNumber, TextView textViewTransferedDataOrigDest
             , TextView textViewTransferedDataDestOrig, int bufferSize) {
@@ -38,9 +40,10 @@ public class CrForwardServerTCP extends Thread implements IStopable{
             serverSocket = new ServerSocket(portNumber);
 
             while (run) {
-
                 Socket cliSock = serverSocket.accept();
-                new CrForwardThreadTCP(cliSock, bufferSize).start();
+                IStopable thd = new CrForwardThreadTCP(cliSock, bufferSize);
+                workingThreads.add(thd);
+                thd.start();
             }
 
         } catch (Exception e) {
@@ -52,6 +55,8 @@ public class CrForwardServerTCP extends Thread implements IStopable{
     public void stopThread() {
         run = false;
         this.interrupt();
+        for (IStopable stopable : workingThreads)
+            stopable.stopThread();
     }
 
     private class CrForwardThreadTCP extends Thread implements IStopable{
@@ -200,26 +205,5 @@ public class CrForwardServerTCP extends Thread implements IStopable{
             }
             return 0;
         }
-
-//        void updateVisualInformation() {
-//            // elapsed time
-//            long currentNanoTime = System.nanoTime();
-//
-//            if (currentNanoTime > lastUpdate + 1000000000) {
-//                long elapsedRcvTimeNano = currentNanoTime - initialNanoTime; // div 10^-9 para ter em segundos
-//                double elapsedRcvTimeSeconds = (double) elapsedRcvTimeNano / 1000000000.0;
-//                // transfer speed B/s
-//                double speed = (forwardedData / 1024) / elapsedRcvTimeSeconds;
-//                final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
-//                lastUpdate = currentNanoTime;
-//                textViewTransferedDataOrigDest.post(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        textViewTransferedDataOrigDest.setText(msg);
-//                    }
-//                });
-//            }
-//
-//        }
     }
 }

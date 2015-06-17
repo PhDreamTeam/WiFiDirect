@@ -9,6 +9,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  * Created by DR & AT on 20/05/2015.
@@ -22,6 +23,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
     EditText editTextRcvData;
     EditText editTextSendData;
+
+    ArrayList<IStopable> workingThreads = new ArrayList<IStopable>();
 
     public ClientDataReceiverServerSocketThreadTCP(int portNumber, EditText editTextRcvData, EditText editTextSendData, int bufferSize) {
         this.portNumber = portNumber;
@@ -47,8 +50,9 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 // wait connections
                 Socket cliSock = serverSocket.accept();
                 System.out.println(" Received a connection, starting transfer thread...");
-                new ClientDataReceiverThreadTCP(cliSock, bufferSize).start();
-
+                IStopable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize);
+                workingThreads.add(t);
+                t.start();
             }
 
         } catch (IOException e) {
@@ -60,6 +64,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
     public void stopThread() {
         run = false;
         this.interrupt();
+        for (IStopable stopable : workingThreads)
+            stopable.stopThread();
     }
 
     private class ClientDataReceiverThreadTCP extends Thread implements IStopable{
