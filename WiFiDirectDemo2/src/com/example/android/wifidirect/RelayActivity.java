@@ -3,6 +3,7 @@ package com.example.android.wifidirect;
 import android.app.Activity;
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.net.Network;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.view.View;
@@ -18,7 +19,6 @@ import java.util.Enumeration;
 
 /**
  * Created by DR & AT on 20/05/2015.
- *
  */
 public class RelayActivity extends Activity {
     RelayActivity myThis;
@@ -42,12 +42,13 @@ public class RelayActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if(btnStartStop.getText().toString().equals("Start Relaying")) {
+                        if (btnStartStop.getText().toString().equals("Start Relaying")) {
                             Context context = getApplicationContext();
                             String CRPort = ((EditText) findViewById(R.id.editTextCrPortNumber)).getText().toString();
-                            int bufferSize = 1024 * Integer.parseInt(((EditText) findViewById(R.id.editTextCRMaxBufferSize)).getText().toString());
+                            int bufferSize = 1024 * Integer.parseInt(
+                                    ((EditText) findViewById(R.id.editTextCRMaxBufferSize)).getText().toString());
 
-                            CharSequence text = "Start Relaying at port: "+ CRPort +"!!!!!";
+                            CharSequence text = "Start Relaying at port: " + CRPort + "!!!!!";
                             Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
                             toast.show();
 
@@ -63,7 +64,7 @@ public class RelayActivity extends Activity {
 
                             crForwarder.start();
                             btnStartStop.setText("Stop Relaying!!!");
-                        }else{
+                        } else {
                             crForwarder.stopThread();
                             btnStartStop.setText("Start Relaying");
                         }
@@ -91,7 +92,7 @@ public class RelayActivity extends Activity {
     protected void onDestroy() {
         Toast.makeText(getApplicationContext(), "onDestroy", Toast.LENGTH_SHORT).show();
 
-        if(crForwarder != null)
+        if (crForwarder != null)
             crForwarder.stopThread();
 
         super.onDestroy();
@@ -126,6 +127,19 @@ public class RelayActivity extends Activity {
         } catch (SocketException e) {
             e.printStackTrace();
         }
+
+        //    TESTE 3 - listar o nome das interfaces de rede
+        Network[] nets2 = null;
+
+        nets2 = connMng.getAllNetworks();
+        for (Network netint : nets2) {
+            netStr += "\t" + netint.toString() + "\n";
+        }
+        ((TextView) findViewById(R.id.textViewNetInfo)).append("\nGetNetworkInterfaces: \n" + netStr);
+
+//            Toast toast3 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
+//            toast3.show();
+
 
     }
 }
