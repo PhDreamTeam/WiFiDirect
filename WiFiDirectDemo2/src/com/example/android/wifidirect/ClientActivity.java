@@ -10,6 +10,7 @@ import android.widget.Toast;
 
 /**
  * Created by DR e AT on 20/05/2015.
+ *
  */
 public class ClientActivity extends Activity {
     ClientActivity myThis;
