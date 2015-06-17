@@ -4,7 +4,9 @@ import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 
 /**
@@ -19,18 +21,21 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
     int crPortNumber;
     long speed = 0; // number of millis to sleep between each 4096 of sent Bytes
     long dataLimit = 0;
-    long sentData = 0;
+    long sentData = 0, rcvData = 0;
 
     EditText editTextSentData;
+    EditText editTextRcvData;
 
     boolean run = true;
     double lastUpdate;
 
-    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, EditText editTextSentData, int bufferSize) {
-        this(destIpAddress, destPortNumber, crIpAddress, crPortNumber, 0, 0, editTextSentData, bufferSize);
+    Thread rcvThread;
+
+    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, EditText editTextSentData, EditText editTextRcvData, int bufferSize) {
+        this(destIpAddress, destPortNumber, crIpAddress, crPortNumber, 0, 0, editTextSentData, editTextRcvData, bufferSize);
     }
 
-    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, long speed, long dataLimit, EditText editTextSentData, int bufferSize) {
+    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, long speed, long dataLimit, EditText editTextSentData, EditText editTextRcvData, int bufferSize) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
         this.crIpAddress = crIpAddress;
@@ -38,6 +43,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         this.speed = speed;
         this.dataLimit = dataLimit * 1024;
         this.editTextSentData = editTextSentData;
+        this.editTextRcvData = editTextRcvData;
         this.bufferSize = bufferSize;
     }
 
@@ -61,6 +67,10 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
 
             Socket cliSocket = new Socket(crIpAddress, crPortNumber);
             DataOutputStream dos = new DataOutputStream(cliSocket.getOutputStream());
+            DataInputStream dis = new DataInputStream(cliSocket.getInputStream());
+
+            // receive replys from destination
+            rcvThread = createRcvThread(dis);
 
             // send destination information for the forward node
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
@@ -85,6 +95,32 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         }
     }
 
+    private Thread createRcvThread(final DataInputStream dis) {
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                byte buffer[] = new byte[bufferSize];
+
+                int nBytesRead = 0;
+
+                try {
+                    while (run) {
+                        nBytesRead = dis.read(buffer);
+
+                        if (nBytesRead != -1) {
+                            rcvData += nBytesRead;
+                        } else
+                            run = false;
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        thread.start();
+        return thread;
+    }
+
     private void updateSentData(final long sentData) {
         long currentNanoTime = System.nanoTime();
 
@@ -96,6 +132,12 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
                     editTextSentData.setText("" + (sentData / 1024) + " KB");
                 }
             });
+            editTextRcvData.post(new Runnable() {
+                @Override
+                public void run() {
+                    editTextRcvData.setText("" + rcvData + " B");
+                }
+            });
         }
     }
 
@@ -103,5 +145,6 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
     public void stopThread() {
         run = false;
         this.interrupt();
+        rcvThread.interrupt();
     }
 }

@@ -5,8 +5,8 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -21,10 +21,12 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
     boolean run = true;
 
     EditText editTextRcvData;
+    EditText editTextSendData;
 
-    public ClientDataReceiverServerSocketThreadTCP(int portNumber, EditText editTextRcvData, int bufferSize) {
+    public ClientDataReceiverServerSocketThreadTCP(int portNumber, EditText editTextRcvData, EditText editTextSendData, int bufferSize) {
         this.portNumber = portNumber;
         this.editTextRcvData = editTextRcvData;
+        this.editTextSendData = editTextSendData;
         this.bufferSize = bufferSize;
     }
 
@@ -65,7 +67,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         boolean run = true;
         Socket originSocket;
         byte buffer[];
-        long rcvDataCounterTotal, rcvDataCounterDelta;
+        long rcvDataCounterTotal, rcvDataCounterDelta, sendDataCounterTotal;
         long initialNanoTime;
         long lastUpdate = 0;
 
@@ -88,6 +90,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             System.out.println(" Receiver transfer thread started...");
             try {
                 DataInputStream dis = new DataInputStream(originSocket.getInputStream());
+                DataOutputStream dos = new DataOutputStream(originSocket.getOutputStream());
+
                 int addressLen = dis.readInt();
                 dis.read(buffer, 0, addressLen);
 
@@ -104,6 +108,9 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     if (readDataLen != -1) {
                         rcvDataCounterTotal += readDataLen;
                         rcvDataCounterDelta += readDataLen;
+                        //send reply
+                        dos.write("ok".getBytes()); // send reply to original client
+                        sendDataCounterTotal += "ok".getBytes().length;
                         updateVisualDeltaInformation(); // this may slow down reception. may want to get data only when necessary
                     } else {
                         // end of data
@@ -138,6 +145,12 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     }
                 });
                 rcvDataCounterDelta = 0;
+                editTextSendData.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        editTextSendData.setText("" + sendDataCounterTotal + " Bytes" );
+                    }
+                });
             }
 
         }

@@ -54,13 +54,14 @@ public class ClientActivity extends Activity {
                                 clientTransmiter = new ClientSendDataThreadTCP(destIpAddress, Integer.parseInt(destPortNumber)
                                         , crIpAddress, Integer.parseInt(crPortNumber)
                                         , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
-                                        , ((EditText) findViewById(R.id.editTextSentData))
+                                        , ((EditText) findViewById(R.id.editTextTxThrdSentData))
+                                        , ((EditText) findViewById(R.id.editTextTxThrdRcvData))
                                         , bufferSize);
                             else
                                 clientTransmiter = new ClientSendDataThreadUDP(destIpAddress, Integer.parseInt(destPortNumber)
                                         , crIpAddress, Integer.parseInt(crPortNumber)
                                         , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
-                                        , ((EditText) findViewById(R.id.editTextSentData))
+                                        , ((EditText) findViewById(R.id.editTextTxThrdSentData))
                                         , bufferSize);
 
                             clientTransmiter.start();
@@ -88,10 +89,11 @@ public class ClientActivity extends Activity {
 
                             if (isTcp)
                                 clientReceiver = new ClientDataReceiverServerSocketThreadTCP(Integer.parseInt(rcvPortNumber)
-                                        , ((EditText) findViewById(R.id.editTextRcvData)), bufferSize);
+                                        , ((EditText) findViewById(R.id.editTextRcvThrdRcvData))
+                                        , ((EditText) findViewById(R.id.editTextRcvThrdSentData)), bufferSize);
                             else
                                 clientReceiver = new ClientDataReceiverServerSocketThreadUDP(Integer.parseInt(rcvPortNumber)
-                                        , ((EditText) findViewById(R.id.editTextRcvData)), bufferSize);
+                                        , ((EditText) findViewById(R.id.editTextRcvThrdRcvData)), bufferSize);
                             clientReceiver.start();
 
                             btnStartStopServer.setText("Stop Receiving!!!");

@@ -101,19 +101,18 @@
                 <EditText
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:id="@+id/editTextThrdSentData" android:text="0" android:inputType="none"
+                        android:id="@+id/editTextTxThrdSentData" android:text="0" android:inputType="none"
                         android:editable="false" android:enabled="false" android:layout_weight="1"/>
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                           android:inputType="none" android:text="Rcv Data (KB):" android:id="@+id/textView10"
                           android:layout_weight="1"/>
                 <EditText android:layout_width="0dp" android:layout_height="wrap_content"
-                          android:id="@+id/editTextThrdRcvData" android:text="0" android:inputType="none"
+                          android:id="@+id/editTextTxThrdRcvData" android:text="0" android:inputType="none"
                           android:editable="false" android:enabled="false" android:layout_weight="1"/>
             </LinearLayout>
             <Space
                     android:layout_width="match_parent"
                     android:layout_height="60px"
-                    android:background="#9d0020b9" android:backgroundTint="#ff3f35af"
                     android:clickable="false"/>
             <LinearLayout
                     android:orientation="horizontal"
@@ -145,7 +144,7 @@
                           android:id="@+id/editTextRcvThrdRcvData" android:text="0" android:inputType="none"
                           android:editable="false" android:layout_weight="1"/>
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                          android:text="Sent Data (KB):" android:id="@+id/textView11" android:inputType="none"
+                          android:text="Sent Data (B):" android:id="@+id/textView11" android:inputType="none"
                           android:layout_weight="1"/>
                 <EditText android:layout_width="0dp" android:layout_height="wrap_content"
                           android:id="@+id/editTextRcvThrdSentData" android:text="0" android:inputType="none"
