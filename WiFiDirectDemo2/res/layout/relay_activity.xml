@@ -28,7 +28,7 @@
                 <EditText android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
                           android:ems="10" android:id="@+id/editTextCRMaxBufferSize" android:text="1"/>
             </LinearLayout>
-            <TextView android:layout_width="match_parent" android:layout_height="80px"
+            <TextView android:layout_width="match_parent" android:layout_height="30dp"
                       android:id="@+id/textView24" android:gravity="center" android:background="#f7160a54"
                       android:text="  "/>
             <TableLayout
@@ -89,7 +89,7 @@
                               android:id="@+id/editTextLn3CRelayIP" android:layout_weight="1"/>
                 </TableRow>
             </TableLayout>
-            <TextView android:layout_width="match_parent" android:layout_height="80px"
+            <TextView android:layout_width="match_parent" android:layout_height="30dp"
                       android:text=" "
                       android:id="@+id/textView25" android:gravity="center" android:background="#f7160a54"/>
             <Button

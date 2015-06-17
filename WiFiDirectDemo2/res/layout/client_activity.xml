@@ -110,7 +110,7 @@
                           android:id="@+id/editTextTxThrdRcvData" android:text="0 B" android:inputType="none"
                           android:editable="false" android:layout_weight="3"/>
             </LinearLayout>
-            <TextView android:layout_width="match_parent" android:layout_height="80px"
+            <TextView android:layout_width="match_parent" android:layout_height="30dp"
                       android:text="  "
                       android:id="@+id/textView23" android:gravity="center" android:background="#f7160a54"/>
             <LinearLayout
