@@ -36,6 +36,7 @@ public class RelayActivity extends Activity {
 
         isTcp = btnTcpUdp.getText().toString().equals("TCP");
 
+        printNetworkInfo(getApplicationContext());
 
         findViewById(R.id.buttonStartStop).setOnClickListener(
                 new View.OnClickListener() {
@@ -108,8 +109,8 @@ public class RelayActivity extends Activity {
         }
         ((TextView) findViewById(R.id.textViewNetInfo)).append("getAllNetworkInfo: \n" + netStr);
 
-       // Toast toast2 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
-       // toast2.show();
+       Toast toast2 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
+       toast2.show();
 
 //    TESTE 2 - listar o nome das interfaces de rede
         Enumeration<NetworkInterface> nets = null;
@@ -119,8 +120,8 @@ public class RelayActivity extends Activity {
                 netStr += netint.getName() + ", " + netint.getDisplayName() + "\n";
             }
             ((TextView) findViewById(R.id.textViewNetInfo)).append("getNetworkInterfaces: \n" + netStr);
-//            Toast toast3 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
-//            toast3.show();
+            Toast toast3 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
+            toast3.show();
         } catch (SocketException e) {
             e.printStackTrace();
         }
