@@ -178,7 +178,7 @@ public class CrForwardServerTCP extends Thread implements IStopable{
         }
 
         // returns 0 if not updated, else return the lastUpdateTime
-        long updateVisualDeltaInformation(long forwardedData, long deltaForwardData, long lastUpdate, TextView textView) {
+        long updateVisualDeltaInformation(long forwardedData, long deltaForwardData, long lastUpdate, final TextView textView) {
             // elapsed time
             long currentNanoTime = System.nanoTime();
 
@@ -187,12 +187,13 @@ public class CrForwardServerTCP extends Thread implements IStopable{
                 double elapsedDeltaRcvTimeSeconds = (double) elapsedDeltaRcvTimeNano / 1000000000.0;
                 // transfer speed B/s
                 double speed = (deltaForwardData / 1024) / elapsedDeltaRcvTimeSeconds;
-                final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
+                //final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
+                final String msg = String.format("%d KB %4.2f KBps", forwardedData / 1024,  speed);
                 lastUpdate = currentNanoTime;
-                textViewTransferedDataOrigDest.post(new Runnable() {
+                textView.post(new Runnable() {
                     @Override
                     public void run() {
-                        textViewTransferedDataOrigDest.setText(msg);
+                        textView.setText(msg);
                     }
                 });
                 return lastUpdate;

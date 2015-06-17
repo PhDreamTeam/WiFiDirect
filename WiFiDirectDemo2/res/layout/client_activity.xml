@@ -22,11 +22,11 @@
                 <TextView android:layout_width="0px" android:layout_height="wrap_content" android:layout_weight="3"
                           android:text="CR Address:"
                           android:id="@+id/textView80"/>
-                <EditText android:layout_width="0px" android:layout_height="wrap_content" android:layout_weight="5"
+                <EditText android:layout_width="0px" android:layout_height="wrap_content" android:layout_weight="4"
                           android:id="@+id/editTextCrIpAddress" android:text="192.168.49.1"/>
                 <EditText android:layout_width="0px" android:layout_height="wrap_content" android:inputType="number"
                           android:ems="10" android:id="@+id/editTextCrPortNumber" android:text="30000"
-                          android:layout_weight="2"/>
+                          android:layout_weight="3"/>
             </LinearLayout>
             <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
                           android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
@@ -34,10 +34,10 @@
                           android:text="dest IP Address:" android:id="@+id/textView82" android:layout_weight="3"/>
                 <EditText android:layout_width="0dp" android:layout_height="wrap_content"
                           android:id="@+id/editTextDestIpAddress" android:text="192.168.1.77"
-                          android:layout_weight="5"/>
+                          android:layout_weight="4"/>
                 <EditText android:layout_width="0dp" android:layout_height="wrap_content" android:inputType="number"
                           android:ems="10" android:id="@+id/editTextDestPortNumber" android:text="30000"
-                          android:layout_weight="2"/>
+                          android:layout_weight="3"/>
             </LinearLayout>
             <LinearLayout
                     android:orientation="horizontal"
@@ -96,19 +96,19 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:inputType="none"
-                        android:text="Sent Data (KB):"
-                        android:id="@+id/textView3" android:layout_weight="1"/>
+                        android:text="Sent Data:"
+                        android:id="@+id/textView3" android:layout_weight="2"/>
                 <EditText
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:id="@+id/editTextTxThrdSentData" android:text="0" android:inputType="none"
-                        android:editable="false" android:enabled="false" android:layout_weight="1"/>
+                        android:editable="false"  android:layout_weight="3"/>
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                          android:inputType="none" android:text="Rcv Data (KB):" android:id="@+id/textView10"
-                          android:layout_weight="1"/>
+                          android:inputType="none" android:text="Rcv Data:" android:id="@+id/textView10"
+                          android:layout_weight="2"/>
                 <EditText android:layout_width="0dp" android:layout_height="wrap_content"
                           android:id="@+id/editTextTxThrdRcvData" android:text="0" android:inputType="none"
-                          android:editable="false" android:enabled="false" android:layout_weight="1"/>
+                          android:editable="false" android:layout_weight="3"/>
             </LinearLayout>
             <Space
                     android:layout_width="match_parent"
@@ -138,13 +138,13 @@
             <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
                           android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                          android:text="Rcv Data (KB):" android:id="@+id/textView5"
+                          android:text="Rcv Data:" android:id="@+id/textView5"
                           android:inputType="none" android:layout_weight="1"/>
                 <EditText android:layout_width="0dp" android:layout_height="wrap_content"
                           android:id="@+id/editTextRcvThrdRcvData" android:text="0" android:inputType="none"
                           android:editable="false" android:layout_weight="1"/>
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                          android:text="Sent Data (B):" android:id="@+id/textView11" android:inputType="none"
+                          android:text="Sent Data:" android:id="@+id/textView11" android:inputType="none"
                           android:layout_weight="1"/>
                 <EditText android:layout_width="0dp" android:layout_height="wrap_content"
                           android:id="@+id/editTextRcvThrdSentData" android:text="0" android:inputType="none"

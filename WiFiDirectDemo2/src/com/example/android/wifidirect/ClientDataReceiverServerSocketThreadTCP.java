@@ -136,7 +136,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 double elapsedDeltaRcvTimeSeconds = (double) elapsedDeltaRcvTimeNano / 1000000000.0;
                 // transfer speed B/s
                 double speed = (rcvDataCounterDelta / 1024) / elapsedDeltaRcvTimeSeconds;
-                final String msg = (rcvDataCounterTotal / 1024) + " KBytes " + speed + " KBps";
+               // final String msg = (rcvDataCounterTotal / 1024) + " KBytes " + speed + " KBps";
+                final String msg = String.format("%d KB %4.2f KBps", rcvDataCounterTotal / 1024,  speed);
                 lastUpdate = currentNanoTime;
                 editTextRcvData.post(new Runnable() {
                     @Override
