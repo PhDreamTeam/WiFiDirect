@@ -153,38 +153,46 @@ public class RelayActivity extends Activity {
                 "\nGetProcessDefaultNetwork: " + (net == null ? "null" : net.toString()));
 
         //    TESTE 5 - getActiveNetworkInfo
-        NetworkRequest netReq =  new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).
-                build(); //addCapability(NetworkCapabilities.NET_CAPABILITY_WIFI_P2P)
+
+        // get WIFI Network
+        NetworkRequest netReq = new NetworkRequest.Builder().
+                addTransportType(NetworkCapabilities.TRANSPORT_WIFI).
+                build();
 
         ConnectivityManager.NetworkCallback netCallBack = new ConnectivityManager.NetworkCallback() {
             public void onAvailable(Network network) {
                 ((TextView) findViewById(R.id.textViewNetInfo)).append(
-                        "\nNetCallBack fired: " + network.toString());
+                        "\nNetCallBack fired available: " + network);
             }
-            public void onLost (Network network) {
+
+            public void onLost(Network network) {
                 ((TextView) findViewById(R.id.textViewNetInfo)).append(
-                        "\nNetCallBack lost fired: " + network.toString());
+                        "\nNetCallBack lost fired: " + network);
             }
         };
 
         connMng.requestNetwork(netReq, netCallBack);
 
-
-        NetworkRequest netReq2 =  new NetworkRequest.Builder().addCapability(
-                NetworkCapabilities.NET_CAPABILITY_WIFI_P2P).
+        // get P2P Network
+        // cada vez que se activa este callback dá um erro "o Wi-Fi Direct foi imterrompido"
+        // mesmo que comentado o interior do callback
+        // CONCLUSÃO: NÃO SE PODE UTILIZAR NO "OPO"
+        NetworkRequest netReq2 = new NetworkRequest.Builder().
+                addCapability(NetworkCapabilities.NET_CAPABILITY_WIFI_P2P).
+                //addTransportType(NetworkCapabilities.TRANSPORT_WIFI).
                 build();
 
         ConnectivityManager.NetworkCallback netCallBack2 = new ConnectivityManager.NetworkCallback() {
-            public void onAvailable(Network network) {
-                ((TextView) findViewById(R.id.textViewNetInfo)).append(
-                        "\nNetCallBackP2P fired: " + network);
-            }
-            public void onLost (Network network) {
-                ((TextView) findViewById(R.id.textViewNetInfo)).append(
-                        "\nNetCallBackP2P lost fired: " + network);
-            }
+//            public void onAvailable(Network network) {
+//                ((TextView) findViewById(R.id.textViewNetInfo)).append(
+//                        "\nNetCallBackP2P fired available: " + network);
+//            }
+//
+//            public void onLost(Network network) {
+//                ((TextView) findViewById(R.id.textViewNetInfo)).append(
+//                        "\nNetCallBackP2P lost fired: " + network);
+//            }
         };
-
         connMng.requestNetwork(netReq2, netCallBack2);
 
     }
