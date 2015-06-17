@@ -2,12 +2,19 @@ package com.example.android.wifidirect;
 
 import android.app.Activity;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Collections;
+import java.util.Enumeration;
 
 /**
  * Created by DR & AT on 20/05/2015.
@@ -87,5 +94,36 @@ public class RelayActivity extends Activity {
             crForwarder.stopThread();
 
         super.onDestroy();
+    }
+
+    private void printNetworkInfo(Context context) {
+        // Debug networks
+        String netStr = "Networks2: ";
+
+//    TESTE 1
+        ConnectivityManager connMng = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo nia[] = connMng.getAllNetworkInfo();
+        for (NetworkInfo ni : nia) {
+            netStr += ni.getTypeName() + ", " + ni.getExtraInfo() + "\n";
+        }
+        ((TextView) findViewById(R.id.textViewNetInfo)).append("getAllNetworkInfo: \n" + netStr);
+
+       // Toast toast2 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
+       // toast2.show();
+
+//    TESTE 2 - listar o nome das interfaces de rede
+        Enumeration<NetworkInterface> nets = null;
+        try {
+            nets = NetworkInterface.getNetworkInterfaces();
+            for (NetworkInterface netint : Collections.list(nets)) {
+                netStr += netint.getName() + ", " + netint.getDisplayName() + "\n";
+            }
+            ((TextView) findViewById(R.id.textViewNetInfo)).append("getNetworkInterfaces: \n" + netStr);
+//            Toast toast3 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
+//            toast3.show();
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
     }
 }

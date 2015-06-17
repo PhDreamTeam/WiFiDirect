@@ -70,7 +70,6 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
         setContentView(R.layout.main);
 
 
-
         // add necessary intent values to be matched.
 
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -108,31 +107,34 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     private void printNetworkInfo(Context context) {
         // Debug networks
         String netStr = "Networks2: ";
+
 //    TESTE 1
 //        ConnectivityManager connMng = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 //        NetworkInfo nia[] = connMng.getAllNetworkInfo();
-//        for(NetworkInfo ni: nia){
+//        for (NetworkInfo ni : nia) {
 //            netStr += ni.getTypeName() + ", " + ni.getExtraInfo() + "\n";
 //        }
 //        Toast toast2 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
 //        toast2.show();
+
 //    TESTE 2 - listar o nome das interfaces de rede
 //        Enumeration<NetworkInterface> nets = null;
 //        try {
 //            nets = NetworkInterface.getNetworkInterfaces();
-//            for (NetworkInterface netint : Collections.list(nets)){
-//                netStr += netint.getName() + ", " + netint.getDisplayName()  + "\n";
+//            for (NetworkInterface netint : Collections.list(nets)) {
+//                netStr += netint.getName() + ", " + netint.getDisplayName() + "\n";
 //            }
-//            Toast toast2 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
-//            toast2.show();
+//            Toast toast3 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
+//            toast3.show();
 //        } catch (SocketException e) {
 //            e.printStackTrace();
 //        }
 
     }
 
-    /** register the BroadcastReceiver with the intent values to be matched
-     *      */
+    /**
+     * register the BroadcastReceiver with the intent values to be matched
+     */
     @Override
     public void onResume() {
         super.onResume();
@@ -247,9 +249,10 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
                 manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
                     @Override
                     public void onGroupInfoAvailable(WifiP2pGroup group) {
-                        if(group == null){
-                            Toast.makeText(WiFiDirectActivity.this, "Group is Null On connect success", Toast.LENGTH_LONG).show();
-                        }else {
+                        if (group == null) {
+                            Toast.makeText(WiFiDirectActivity.this, "Group is Null On connect success",
+                                    Toast.LENGTH_LONG).show();
+                        } else {
                             String groupInfo = group.getNetworkName() + " " + group.getPassphrase();
                             Toast.makeText(WiFiDirectActivity.this, groupInfo,
                                     Toast.LENGTH_LONG).show();
