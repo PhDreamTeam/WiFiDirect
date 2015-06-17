@@ -153,8 +153,8 @@ public class RelayActivity extends Activity {
                 "\nGetProcessDefaultNetwork: " + (net == null ? "null" : net.toString()));
 
         //    TESTE 5 - getActiveNetworkInfo
-        NetworkRequest netReq =  new NetworkRequest.Builder().addCapability(NetworkCapabilities.TRANSPORT_WIFI).
-                addCapability(NetworkCapabilities.NET_CAPABILITY_WIFI_P2P).build();
+        NetworkRequest netReq =  new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).
+                build(); //addCapability(NetworkCapabilities.NET_CAPABILITY_WIFI_P2P)
 
         ConnectivityManager.NetworkCallback netCallBack = new ConnectivityManager.NetworkCallback() {
             public void onAvailable(Network network) {
@@ -168,6 +168,24 @@ public class RelayActivity extends Activity {
         };
 
         connMng.requestNetwork(netReq, netCallBack);
+
+
+        NetworkRequest netReq2 =  new NetworkRequest.Builder().addCapability(
+                NetworkCapabilities.NET_CAPABILITY_WIFI_P2P).
+                build();
+
+        ConnectivityManager.NetworkCallback netCallBack2 = new ConnectivityManager.NetworkCallback() {
+            public void onAvailable(Network network) {
+                ((TextView) findViewById(R.id.textViewNetInfo)).append(
+                        "\nNetCallBackP2P fired: " + network);
+            }
+            public void onLost (Network network) {
+                ((TextView) findViewById(R.id.textViewNetInfo)).append(
+                        "\nNetCallBackP2P lost fired: " + network);
+            }
+        };
+
+        connMng.requestNetwork(netReq2, netCallBack2);
 
     }
 }
