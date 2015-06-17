@@ -2,9 +2,7 @@ package com.example.android.wifidirect;
 
 import android.app.Activity;
 import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkInfo;
+import android.net.*;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -12,6 +10,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Collections;
@@ -106,7 +105,7 @@ public class RelayActivity extends Activity {
         ConnectivityManager connMng = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo nia[] = connMng.getAllNetworkInfo();
         for (NetworkInfo ni : nia) {
-            netStr += "\t" + ni.getTypeName() + ", " + ni.getExtraInfo() + "\n";
+            netStr += "\t" + ni.getTypeName() + ", " + ni.getType() + "\n";
         }
         ((TextView) findViewById(R.id.textViewNetInfo)).append("getAllNetworkInfo: \n" + netStr);
 
@@ -120,6 +119,10 @@ public class RelayActivity extends Activity {
             nets = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface netint : Collections.list(nets)) {
                 netStr += "\t" + netint.getName() + ", " + netint.getDisplayName() + "\n";
+                Enumeration<InetAddress> inetAdds = netint.getInetAddresses();
+                for (InetAddress inetAddr : Collections.list((inetAdds))) {
+                    netStr += "\t\t" + inetAddr + "\n";
+                }
             }
             ((TextView) findViewById(R.id.textViewNetInfo)).append("\nGetNetworkInterfaces: \n" + netStr);
 
@@ -141,6 +144,30 @@ public class RelayActivity extends Activity {
 //            Toast toast3 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
 //            toast3.show();
 
+//    TESTE 4 - getActiveNetworkInfo
+        NetworkInfo netInfo = connMng.getActiveNetworkInfo();
+        ((TextView) findViewById(R.id.textViewNetInfo)).append("\nGetActiveNetworkInfo: \n" + netInfo.toString());
+
+        Network net = ConnectivityManager.getProcessDefaultNetwork();
+        ((TextView) findViewById(R.id.textViewNetInfo)).append(
+                "\nGetProcessDefaultNetwork: " + (net == null ? "null" : net.toString()));
+
+        //    TESTE 5 - getActiveNetworkInfo
+        NetworkRequest netReq =  new NetworkRequest.Builder().addCapability(NetworkCapabilities.TRANSPORT_WIFI).
+                addCapability(NetworkCapabilities.NET_CAPABILITY_WIFI_P2P).build();
+
+        ConnectivityManager.NetworkCallback netCallBack = new ConnectivityManager.NetworkCallback() {
+            public void onAvailable(Network network) {
+                ((TextView) findViewById(R.id.textViewNetInfo)).append(
+                        "\nNetCallBack fired: " + network.toString());
+            }
+            public void onLost (Network network) {
+                ((TextView) findViewById(R.id.textViewNetInfo)).append(
+                        "\nNetCallBack lost fired: " + network.toString());
+            }
+        };
+
+        connMng.registerNetworkCallback(netReq, netCallBack);
 
     }
 }
