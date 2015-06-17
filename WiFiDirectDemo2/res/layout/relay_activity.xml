@@ -18,7 +18,7 @@
                           android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                           android:text="CR Port Number:" android:id="@+id/textView6"/>
-                <EditText android:layout_width="wrap_content" android:layout_height="wrap_content" android:inputType="number"
+                <EditText android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
                           android:ems="10" android:id="@+id/editTextCrPortNumber" android:text="30000"/>
             </LinearLayout>
             <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
@@ -28,6 +28,9 @@
                 <EditText android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
                           android:ems="10" android:id="@+id/editTextCRMaxBufferSize" android:text="1"/>
             </LinearLayout>
+            <TextView android:layout_width="match_parent" android:layout_height="80px"
+                      android:id="@+id/textView24" android:gravity="center" android:background="#f7160a54"
+                      android:text="  "/>
             <TableLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
@@ -86,6 +89,9 @@
                               android:id="@+id/editTextLn3CRelayIP" android:layout_weight="1"/>
                 </TableRow>
             </TableLayout>
+            <TextView android:layout_width="match_parent" android:layout_height="80px"
+                      android:text=" "
+                      android:id="@+id/textView25" android:gravity="center" android:background="#f7160a54"/>
             <Button
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
