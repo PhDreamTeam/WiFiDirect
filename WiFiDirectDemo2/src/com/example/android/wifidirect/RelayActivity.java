@@ -167,7 +167,7 @@ public class RelayActivity extends Activity {
             }
         };
 
-        connMng.registerNetworkCallback(netReq, netCallBack);
+        connMng.requestNetwork(netReq, netCallBack);
 
     }
 }
