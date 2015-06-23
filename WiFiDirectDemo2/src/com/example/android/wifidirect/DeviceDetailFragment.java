@@ -61,7 +61,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, final ViewGroup container, Bundle savedInstanceState) {
 
         mContentView = inflater.inflate(R.layout.device_detail, null);
         mContentView.findViewById(R.id.btn_connect).setOnClickListener(new View.OnClickListener() {
@@ -71,6 +71,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 WifiP2pConfig config = new WifiP2pConfig();
                 config.deviceAddress = device.deviceAddress;
                 config.wps.setup = WpsInfo.PBC;
+
+
 
                 config.groupOwnerIntent = (role != null && role.equals("GO")) ? 15 : 0; // 15 max, 0 min
 
@@ -173,6 +175,9 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 }
             }
         });
+
+
+
         // InetAddress from WifiP2pInfo struct.
         view = (TextView) mContentView.findViewById(R.id.device_info);
         view.setText("Group Owner IP - " +  info.groupOwnerAddress.getHostAddress());
@@ -220,6 +225,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
      */
     public void showDetails(WifiP2pDevice device) {
         this.device = device;
+
         this.getView().setVisibility(View.VISIBLE);
         TextView view = (TextView) mContentView.findViewById(R.id.device_address);
         view.setText(device.deviceAddress);

@@ -28,6 +28,7 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -37,6 +38,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * An activity that uses WiFi Direct APIs to discover and connect with available
@@ -82,6 +86,8 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 
         Intent intent = getIntent();
         role = intent.getStringExtra("role");
+        if(role.equals("GO"))
+            startRegistration();
 
         DeviceDetailFragment fragmentDetails = (DeviceDetailFragment) getFragmentManager()
                 .findFragmentById(R.id.frag_detail);
@@ -102,6 +108,40 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 //                Log.e(TAG, "Group info: " + groupInfo + " ==========================================================");
 //            }
 //        });
+    }
+
+    public void startRegistration() {
+        //  Create a string map containing information about your service.
+        Map<String, String> record = new HashMap<>();
+        record.put("listenport", String.valueOf(30000));
+        record.put("role", role);
+        record.put("busy level", String.valueOf(1));
+
+        // Service information.  Pass it an instance name, service type
+        // _protocol._transportlayer , and the map containing
+        // information other devices will want once they connect to this one.
+        WifiP2pDnsSdServiceInfo serviceInfo =
+                WifiP2pDnsSdServiceInfo.newInstance("GO" + (int) (Math.random() * 10), "_backbone1GO1CR._tcp", record);
+
+        // Add the local service, sending the service info, network channel,
+        // and listener that will be used to indicate success or failure of
+        // the request.
+        manager.addLocalService(channel, serviceInfo, new ActionListener() {
+            @Override
+            public void onSuccess() {
+                // Command successful! Code isn't necessarily needed here,
+                // Unless you want to update the UI or add logging statements.
+                Toast.makeText(WiFiDirectActivity.this, "Service Discovery registered successfully.",
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(int errorCode) {
+                // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
+                Toast.makeText(WiFiDirectActivity.this, "Service Discovery register FAILED: " + errorCode,
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void printNetworkInfo(Context context) {
