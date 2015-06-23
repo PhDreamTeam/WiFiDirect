@@ -61,6 +61,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     private BroadcastReceiver receiver = null;
     private String role = null;
 
+
     /**
      * @param isWifiP2pEnabled the isWifiP2pEnabled to set
      */
@@ -86,8 +87,9 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 
         Intent intent = getIntent();
         role = intent.getStringExtra("role");
+
         if(role.equals("GO"))
-            startRegistration();
+            registerNsdService();
 
         DeviceDetailFragment fragmentDetails = (DeviceDetailFragment) getFragmentManager()
                 .findFragmentById(R.id.frag_detail);
@@ -110,18 +112,20 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 //        });
     }
 
-    public void startRegistration() {
+    public void registerNsdService() {
         //  Create a string map containing information about your service.
         Map<String, String> record = new HashMap<>();
-        record.put("listenport", String.valueOf(30000));
+        record.put("listenPort", String.valueOf(30000));
         record.put("role", role);
-        record.put("busy level", String.valueOf(1));
+        record.put("busyLevel", String.valueOf(1));
+        record.put("deviceName", "GO" + (int) (Math.random() * 10));
+
 
         // Service information.  Pass it an instance name, service type
         // _protocol._transportlayer , and the map containing
         // information other devices will want once they connect to this one.
         WifiP2pDnsSdServiceInfo serviceInfo =
-                WifiP2pDnsSdServiceInfo.newInstance("GO" + (int) (Math.random() * 10), "_backbone1GO1CR._tcp", record);
+                WifiP2pDnsSdServiceInfo.newInstance("GO", "_backbone1GO1CR._tcp", record);
 
         // Add the local service, sending the service info, network channel,
         // and listener that will be used to indicate success or failure of
@@ -143,6 +147,8 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
             }
         });
     }
+
+
 
     private void printNetworkInfo(Context context) {
         // Debug networks

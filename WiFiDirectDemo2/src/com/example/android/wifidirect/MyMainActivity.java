@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.Toast;
 
 /**
@@ -15,22 +14,20 @@ import android.widget.Toast;
 
 public class MyMainActivity extends Activity {
     MyMainActivity myThis;
+    Context context;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.my_main_activity);
-
+        context = getApplicationContext();
         myThis = this;
 
         findViewById(R.id.btnWFDGroupOwner).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Context context = getApplicationContext();
-                        CharSequence text = "Group Owner!!!!!";
-                        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
-                        toast.show();
+                        Toast.makeText(context, "Group Owner!!!!!", Toast.LENGTH_SHORT).show();
 
                         Intent intent = new Intent(myThis, WiFiDirectActivity.class);
                         intent.putExtra("role", "GO");
@@ -42,12 +39,21 @@ public class MyMainActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Context context = getApplicationContext();
-                        CharSequence text = "Wi-Fi Direct Client!!!!!";
-                        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
-                        toast.show();
+                        Toast.makeText(context, "Wi-Fi Direct Client!!!!!", Toast.LENGTH_SHORT).show();
 
                         Intent intent = new Intent(myThis, WiFiDirectActivity.class);
+                        intent.putExtra("role", "Client");
+                        startActivity(intent);
+                    }
+                });
+
+        findViewById(R.id.btnWFDAutoClient).setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Toast.makeText(context, "Wi-Fi Direct Auto Client!!!!!", Toast.LENGTH_SHORT).show();
+
+                        Intent intent = new Intent(myThis, AutoClientActivity.class);
                         intent.putExtra("role", "Client");
                         startActivity(intent);
                     }
@@ -57,10 +63,7 @@ public class MyMainActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Context context = getApplicationContext();
-                        CharSequence text = "Relay!!!!!";
-                        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
-                        toast.show();
+                        Toast.makeText(context, "Relay!!!!!", Toast.LENGTH_SHORT).show();
 
                         Intent intent = new Intent(myThis, RelayActivity.class);
                         //intent.putExtra("role", "Relay");
@@ -78,10 +81,7 @@ public class MyMainActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Context context = getApplicationContext();
-                        CharSequence text = "Simple Client!!!!!";
-                        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
-                        toast.show();
+                        Toast.makeText(context, "Simple Client!!!!!", Toast.LENGTH_SHORT).show();
 
                         Intent intent = new Intent(myThis, ClientActivity.class);
 //                        intent.putExtra("role", "Client");
