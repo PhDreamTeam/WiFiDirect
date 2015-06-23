@@ -79,12 +79,12 @@ public class AutoClientActivity extends Activity {
 
                 // Add to the custom adapter defined specifically for showing
                 // wifi devices.
-                peersAdapter.add(resourceType.toString());
-//                peersAdapter.notifyDataSetChanged();
+                peersAdapter.add(resourceType.toString() + "\n  " +
+                        discoveredNodes.get(resourceType.deviceAddress).toString());
 
-                Toast.makeText(AutoClientActivity.this, "serviceAvailable: " + instanceName + ", "
-                                + registrationType + ", " + resourceType.deviceName,
-                        Toast.LENGTH_SHORT).show();
+                        Toast.makeText(AutoClientActivity.this, "serviceAvailable: " + instanceName + ", "
+                                        + registrationType + ", " + resourceType.deviceName,
+                                Toast.LENGTH_SHORT).show();
             }
         };
 
