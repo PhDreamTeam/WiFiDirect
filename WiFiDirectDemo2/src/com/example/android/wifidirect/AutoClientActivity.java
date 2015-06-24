@@ -10,15 +10,9 @@ import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.*;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.os.Bundle;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by AT e DR on 23-06-2015.
@@ -47,6 +41,12 @@ public class AutoClientActivity extends Activity {
 
     BroadcastReceiver receiver;
 
+    // ExpandableListView TEST
+    ExpandableListAdapter listAdapter;
+    ExpandableListView expListView;
+    List<String> listDataHeader;
+    HashMap<String, List<String>> listDataChild;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -70,15 +70,66 @@ public class AutoClientActivity extends Activity {
         listViewDiscoveredPeers = ((ListView) findViewById(R.id.listViewDiscoveredPeers));
         adapterDiscoveredPeers = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, discoveredPeersArrayList);
         listViewDiscoveredPeers.setAdapter(adapterDiscoveredPeers);
-        adapterDiscoveredPeers.add("Helloooo");
+        //adapterDiscoveredPeers.add("Helloooo");
 
         listViewBDPeers = ((ListView) findViewById(R.id.listViewBDSensedPeers));
         adapterBDPeers = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, BDPeersArrayList);
         listViewBDPeers.setAdapter(adapterBDPeers);
 
         discoverNsdService();
-    }
 
+        // ExpandableListView TEST
+
+        // get the listview
+        expListView = (ExpandableListView) findViewById(R.id.lvExp);
+        // preparing list data
+        prepareListData();
+        listAdapter = new ExpandableListAdapter(this, listDataHeader, listDataChild);
+        // setting list adapter
+        expListView.setAdapter(listAdapter);
+
+    }
+    /*
+         * Preparing the list data
+         */
+    private void prepareListData() {
+        listDataHeader = new ArrayList<String>();
+        listDataChild = new HashMap<String, List<String>>();
+
+        // Adding child data
+        listDataHeader.add("Top 250");
+        listDataHeader.add("Now Showing");
+        listDataHeader.add("Coming Soon..");
+
+        // Adding child data
+        List<String> top250 = new ArrayList<String>();
+        top250.add("The Shawshank Redemption");
+        top250.add("The Godfather");
+        top250.add("The Godfather: Part II");
+        top250.add("Pulp Fiction");
+        top250.add("The Good, the Bad and the Ugly");
+        top250.add("The Dark Knight");
+        top250.add("12 Angry Men");
+
+        List<String> nowShowing = new ArrayList<String>();
+        nowShowing.add("The Conjuring");
+        nowShowing.add("Despicable Me 2");
+        nowShowing.add("Turbo");
+        nowShowing.add("Grown Ups 2");
+        nowShowing.add("Red 2");
+        nowShowing.add("The Wolverine");
+
+        List<String> comingSoon = new ArrayList<String>();
+        comingSoon.add("2 Guns");
+        comingSoon.add("The Smurfs 2");
+        comingSoon.add("The Spectacular Now");
+        comingSoon.add("The Canyons");
+        comingSoon.add("Europa Report");
+
+        listDataChild.put(listDataHeader.get(0), top250); // Header, Child data
+        listDataChild.put(listDataHeader.get(1), nowShowing);
+        listDataChild.put(listDataHeader.get(2), comingSoon);
+    }
 
     private void discoverNsdService() {
         WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
@@ -301,11 +352,24 @@ public class AutoClientActivity extends Activity {
 
     private void update_P2P_PeerList(Intent intent) {
         WifiP2pDeviceList peers = intent.getParcelableExtra(WifiP2pManager.EXTRA_P2P_DEVICE_LIST);
-        // TODO here colocar esta info. na List da GUI de BD peers
-        adapterBDPeers.clear();
-        Collection<WifiP2pDevice> devList =  peers.getDeviceList();
-        for (WifiP2pDevice dev : devList)
-            adapterBDPeers.add(dev.toString());
+        if(peers != null) {
+            adapterBDPeers.clear();
+            Collection<WifiP2pDevice> devList = peers.getDeviceList();
+            for (WifiP2pDevice dev : devList)
+                adapterBDPeers.add(dev.toString());
+        }
+        else {
+            // API less than 18
+            manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
+                @Override
+                public void onPeersAvailable(WifiP2pDeviceList peers) {
+                    adapterBDPeers.clear();
+                    Collection<WifiP2pDevice> devList = peers.getDeviceList();
+                    for (WifiP2pDevice dev : devList)
+                        adapterBDPeers.add(dev.toString());
+                }
+            });
+        }
     }
 
     private void update_P2P_connection(Intent intent) {
