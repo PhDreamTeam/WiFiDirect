@@ -30,11 +30,6 @@ public class AutoClientActivity extends Activity {
     ListView listViewBDPeers;
     TextView tvConsole;
 
-    ArrayList<String> discoveredPeersArrayList = new ArrayList<>();
-    ArrayList<String> BDPeersArrayList = new ArrayList<>();
-    ArrayAdapter<String> adapterDiscoveredPeers;
-    ArrayAdapter<String> adapterBDPeers;
-
     boolean alreadyConnecting = false;
 
     private final IntentFilter intentFilter = new IntentFilter();
@@ -42,11 +37,10 @@ public class AutoClientActivity extends Activity {
     BroadcastReceiver receiver;
 
     // ExpandableListView TEST
-    ExpandableListAdapter listAdapter;
-    ExpandableListView expListView;
-    List<String> listDataHeader;
-    HashMap<String, List<String>> listDataChild;
-
+    ExpandableListAdapter <String, String> expListAdapterDiscoverdPeers;
+    ExpandableListView expListViewDiscoverdPeers;
+    ExpandableListAdapter <String, WifiP2pDevice > expListAdapterBroadcastPeers;
+    ExpandableListView expListViewBroadcastPeers;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -67,69 +61,19 @@ public class AutoClientActivity extends Activity {
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        listViewDiscoveredPeers = ((ListView) findViewById(R.id.listViewDiscoveredPeers));
-        adapterDiscoveredPeers = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, discoveredPeersArrayList);
-        listViewDiscoveredPeers.setAdapter(adapterDiscoveredPeers);
-        //adapterDiscoveredPeers.add("Helloooo");
+        // ExpandableListViews
+        expListViewDiscoverdPeers = (ExpandableListView) findViewById(R.id.expListViewDiscoveredPeers);
+        expListAdapterDiscoverdPeers = new ExpandableListAdapter<>(this);
+        expListViewDiscoverdPeers.setAdapter(expListAdapterDiscoverdPeers);
 
-        listViewBDPeers = ((ListView) findViewById(R.id.listViewBDSensedPeers));
-        adapterBDPeers = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, BDPeersArrayList);
-        listViewBDPeers.setAdapter(adapterBDPeers);
+        expListViewBroadcastPeers = (ExpandableListView) findViewById(R.id.expListViewBroadcastPeers);
+        expListAdapterBroadcastPeers = new ExpandableListAdapter<>(this);
+        expListViewBroadcastPeers.setAdapter(expListAdapterBroadcastPeers);
+
 
         discoverNsdService();
-
-        // ExpandableListView TEST
-
-        // get the listview
-        expListView = (ExpandableListView) findViewById(R.id.lvExp);
-        // preparing list data
-        prepareListData();
-        listAdapter = new ExpandableListAdapter(this, listDataHeader, listDataChild);
-        // setting list adapter
-        expListView.setAdapter(listAdapter);
-
     }
-    /*
-         * Preparing the list data
-         */
-    private void prepareListData() {
-        listDataHeader = new ArrayList<String>();
-        listDataChild = new HashMap<String, List<String>>();
 
-        // Adding child data
-        listDataHeader.add("Top 250");
-        listDataHeader.add("Now Showing");
-        listDataHeader.add("Coming Soon..");
-
-        // Adding child data
-        List<String> top250 = new ArrayList<String>();
-        top250.add("The Shawshank Redemption");
-        top250.add("The Godfather");
-        top250.add("The Godfather: Part II");
-        top250.add("Pulp Fiction");
-        top250.add("The Good, the Bad and the Ugly");
-        top250.add("The Dark Knight");
-        top250.add("12 Angry Men");
-
-        List<String> nowShowing = new ArrayList<String>();
-        nowShowing.add("The Conjuring");
-        nowShowing.add("Despicable Me 2");
-        nowShowing.add("Turbo");
-        nowShowing.add("Grown Ups 2");
-        nowShowing.add("Red 2");
-        nowShowing.add("The Wolverine");
-
-        List<String> comingSoon = new ArrayList<String>();
-        comingSoon.add("2 Guns");
-        comingSoon.add("The Smurfs 2");
-        comingSoon.add("The Spectacular Now");
-        comingSoon.add("The Canyons");
-        comingSoon.add("Europa Report");
-
-        listDataChild.put(listDataHeader.get(0), top250); // Header, Child data
-        listDataChild.put(listDataHeader.get(1), nowShowing);
-        listDataChild.put(listDataHeader.get(2), comingSoon);
-    }
 
     private void discoverNsdService() {
         WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
@@ -163,7 +107,8 @@ public class AutoClientActivity extends Activity {
                 // wifi devices.
                 String discoveryInfo = discoveredNodes.containsKey(resourceType.deviceAddress) ?
                         discoveredNodes.get(resourceType.deviceAddress).toString() : "{no discovery info}";
-                adapterDiscoveredPeers.add(resourceType.toString() + "\n  " + discoveryInfo);
+                expListAdapterDiscoverdPeers.addDataChild(resourceType.deviceName, resourceType.toString() + "\n  " + discoveryInfo);
+//                adapterDiscoveredPeers.add(resourceType.toString() + "\n  " + discoveryInfo);
 
                 Toast.makeText(AutoClientActivity.this, "serviceAvailable: " + instanceName + ", "
                                 + registrationType + ", " + resourceType.deviceName,
@@ -179,6 +124,7 @@ public class AutoClientActivity extends Activity {
 
                             // connect to GO
                             connectToGO(resourceType);
+                            alreadyConnecting = true;
                         }
                     }
                 }
@@ -353,20 +299,20 @@ public class AutoClientActivity extends Activity {
     private void update_P2P_PeerList(Intent intent) {
         WifiP2pDeviceList peers = intent.getParcelableExtra(WifiP2pManager.EXTRA_P2P_DEVICE_LIST);
         if(peers != null) {
-            adapterBDPeers.clear();
+            expListAdapterBroadcastPeers.clear();
             Collection<WifiP2pDevice> devList = peers.getDeviceList();
             for (WifiP2pDevice dev : devList)
-                adapterBDPeers.add(dev.toString());
+                expListAdapterBroadcastPeers.addDataChild(dev.deviceName, dev);
         }
         else {
             // API less than 18
             manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
                 @Override
                 public void onPeersAvailable(WifiP2pDeviceList peers) {
-                    adapterBDPeers.clear();
+                    expListAdapterBroadcastPeers.clear();
                     Collection<WifiP2pDevice> devList = peers.getDeviceList();
                     for (WifiP2pDevice dev : devList)
-                        adapterBDPeers.add(dev.toString());
+                        expListAdapterBroadcastPeers.addDataChild(dev.deviceName, dev);
                 }
             });
         }

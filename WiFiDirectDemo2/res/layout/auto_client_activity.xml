@@ -14,10 +14,10 @@
                 android:text="Discovered Peers"
                 android:id="@+id/textView26" android:gravity="center" android:background="#ff536aaf"
                 android:textColor="#fffaf9ff"/>
-        <ListView
-                android:layout_width="wrap_content"
+        <ExpandableListView
+                android:id="@+id/expListViewDiscoveredPeers"
                 android:layout_height="match_parent"
-                android:id="@+id/listViewDiscoveredPeers" android:background="#ff46445d"/>
+                android:layout_width="match_parent" android:background="#ff46445d"/>
     </LinearLayout>
     <LinearLayout
             android:orientation="vertical"
@@ -29,10 +29,10 @@
                 android:text="Broadcast Peers"
                 android:id="@+id/textView21" android:gravity="center" android:background="#ff86af86"
                 android:textColor="#fffef5ff"/>
-        <ListView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/listViewBDSensedPeers" android:layout_weight="2" android:background="#ff4f6a4b"/>
+        <ExpandableListView
+                android:id="@+id/expListViewBroadcastPeers"
+                android:layout_height="match_parent"
+                android:layout_width="match_parent" android:background="#ff4f6a4b"/>
     </LinearLayout>
     <LinearLayout
             android:orientation="vertical"
@@ -43,14 +43,16 @@
                 android:layout_height="wrap_content"
                 android:text="Console"
                 android:id="@+id/textView27" android:gravity="center" android:background="#ff3b434a"/>
-        <TextView
+        <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:id="@+id/textViewConsole"/>
-        <ExpandableListView
-                android:id="@+id/lvExp"
-                android:layout_height="match_parent"
-                android:layout_width="match_parent"/>
+                android:id="@+id/scrollView3">
+            <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:id="@+id/textViewConsole"/>
+        </ScrollView>
+
     </LinearLayout>
 
 </LinearLayout>

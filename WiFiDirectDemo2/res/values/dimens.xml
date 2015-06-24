@@ -16,6 +16,6 @@
  -->
 <resources>
     <dimen name="tablet_list_width">300dp</dimen>
-    <dimen name="phone_list_height">200dp</dimen>
+    <dimen name="phone_list_height">300dp</dimen>
     
 </resources>
