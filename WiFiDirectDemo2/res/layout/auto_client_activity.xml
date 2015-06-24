@@ -4,17 +4,49 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent">
 
-    <ListView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:id="@+id/listViewDiscoveredPeers" android:layout_weight="2"/>
-    <ListView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/listViewBDSensedPeers" android:layout_weight="2"/>
-    <TextView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:text="New Text"
-            android:id="@+id/textViewConsole" android:layout_weight="2"/>
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" android:layout_weight="1">
+        <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Discovered Peers"
+                android:id="@+id/textView26" android:gravity="center" android:background="#ff536aaf"
+                android:textColor="#fffaf9ff"/>
+        <ListView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:id="@+id/listViewDiscoveredPeers" android:background="#ff46445d"/>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" android:layout_weight="1">
+        <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Broadcast Peers"
+                android:id="@+id/textView21" android:gravity="center" android:background="#ff86af86"
+                android:textColor="#fffef5ff"/>
+        <ListView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/listViewBDSensedPeers" android:layout_weight="2" android:background="#ff4f6a4b"/>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" android:layout_weight="1">
+        <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Console"
+                android:id="@+id/textView27" android:gravity="center" android:background="#ff3b434a"/>
+        <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="New Text"
+                android:id="@+id/textViewConsole" android:layout_weight="1"/>
+    </LinearLayout>
 </LinearLayout>
