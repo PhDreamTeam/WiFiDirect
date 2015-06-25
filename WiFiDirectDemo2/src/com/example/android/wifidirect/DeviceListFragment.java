@@ -67,7 +67,7 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
         return device;
     }
 
-    private static String getDeviceStatus(int deviceStatus) {
+    static String getDeviceStatus(int deviceStatus) {
         Log.d(WiFiDirectActivity.TAG, "Peer status :" + deviceStatus);
         switch (deviceStatus) {
             case WifiP2pDevice.AVAILABLE:

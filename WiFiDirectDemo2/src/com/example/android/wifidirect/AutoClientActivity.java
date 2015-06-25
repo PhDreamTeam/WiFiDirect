@@ -1,22 +1,24 @@
 package com.example.android.wifidirect;
 
 import android.app.Activity;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.app.ProgressDialog;
+import android.content.*;
 import android.net.NetworkInfo;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.*;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.widget.*;
 
 import java.util.*;
 
 /**
  * Created by AT e DR on 23-06-2015.
- *
  */
 public class AutoClientActivity extends Activity {
     Context context;
@@ -26,9 +28,23 @@ public class AutoClientActivity extends Activity {
 
     private HashMap<String, HashMap<String, String>> discoveredNodes = new HashMap<>();
 
-    ListView listViewDiscoveredPeers;
-    ListView listViewBDPeers;
+    // visual controls
+    TextView txtP2pOnOff;
+    Button btnP2pOn;
+    Button btnP2pOff;
+
+    TextView txtDeviceName;
+    TextView txtDeviceStatus;
+    TextView txtDeviceGroupFormed;
+    TextView txtDeviceIsGO;
+    TextView txtGOName;
+    TextView txtGOAddress;
+    TextView txtNetworkName;
+    TextView txtNetworkPassphrase;
+
     TextView tvConsole;
+
+    ProgressDialog progressDialog;
 
     boolean alreadyConnecting = false;
 
@@ -37,10 +53,12 @@ public class AutoClientActivity extends Activity {
     BroadcastReceiver receiver;
 
     // ExpandableListView TEST
-    ExpandableListAdapter <String, String> expListAdapterDiscoverdPeers;
+    ExpandableListAdapter<String, String> expListAdapterDiscoverdPeers;
     ExpandableListView expListViewDiscoverdPeers;
-    ExpandableListAdapter <String, WifiP2pDevice > expListAdapterBroadcastPeers;
+    ExpandableListAdapter<String, WifiP2pDevice> expListAdapterBroadcastPeers;
     ExpandableListView expListViewBroadcastPeers;
+
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -60,6 +78,22 @@ public class AutoClientActivity extends Activity {
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+
+        //Control state and buttons
+        txtP2pOnOff = (TextView) findViewById(R.id.textViewP2pOnOff);
+        btnP2pOn = (Button) findViewById(R.id.buttonP2pOn);
+        btnP2pOff = (Button) findViewById(R.id.buttonP2pOff);
+
+        // info Controls
+        txtDeviceName = (TextView) findViewById(R.id.textViewDeviceName);
+        txtDeviceStatus = (TextView) findViewById(R.id.textViewDeviceStatus);
+        txtDeviceGroupFormed = (TextView) findViewById(R.id.textViewGroupFormed);
+        txtDeviceIsGO = (TextView) findViewById(R.id.textViewIsGroupOwner);
+        txtGOName = (TextView) findViewById(R.id.textViewGOName);
+        txtGOAddress = (TextView) findViewById(R.id.textViewGOAddress);
+        txtNetworkName = (TextView) findViewById(R.id.textViewNetworkName);
+        txtNetworkPassphrase = (TextView) findViewById(R.id.textViewNetworkPassphrase);
+
 
         // ExpandableListViews
         expListViewDiscoverdPeers = (ExpandableListView) findViewById(R.id.expListViewDiscoveredPeers);
@@ -254,22 +288,22 @@ public class AutoClientActivity extends Activity {
                 switch (action) {
 
                     case WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION:
-                        tvConsole.append("\nBroadcast receiver: WIFI_P2P_STATE_CHANGED_ACTION");
+                        tvConsole.append("\nBDC: WIFI_P2P_STATE_CHANGED");
                         update_P2P_state(intent);
                         break;
 
                     case WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION:
-                        tvConsole.append("\nBroadcast receiver: WIFI_P2P_PEERS_CHANGED_ACTION");
+                        tvConsole.append("\nBDC: WIFI_P2P_PEERS_CHANGED");
                         update_P2P_PeerList(intent);
                         break;
 
                     case WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION:
-                        tvConsole.append("\nBroadcast receiver: WIFI_P2P_CONNECTION_CHANGED_ACTION");
+                        tvConsole.append("\nBDC: WIFI_P2P_CONNECTION_CHANGED");
                         update_P2P_connection(intent);
                         break;
 
                     case WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION:
-                        tvConsole.append("\nBroadcast receiver: WIFI_P2P_THIS_DEVICE_CHANGED_ACTION");
+                        tvConsole.append("\nBDC: WIFI_P2P_THIS_DEVICE_CHANGED");
                         update_P2P_this_device_changed(intent);
                         break;
 
@@ -290,25 +324,34 @@ public class AutoClientActivity extends Activity {
         // UI update to indicate wifi p2p status.
         int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
         if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
-            tvConsole.append("\nBroadcast receiver: WiFi P2P state enabled");
+            tvConsole.append("\n  WiFi P2P state enabled");
+            txtP2pOnOff.setText("P2P: ON");
+            btnP2pOn.setEnabled(false);
+            btnP2pOff.setEnabled(true);
         } else {
-            tvConsole.append("\nBroadcast receiver: WiFi P2P state disabled");
+            tvConsole.append("\n  WiFi P2P state disabled");
+            txtP2pOnOff.setText("P2P: OFF");
+            btnP2pOn.setEnabled(true);
+            btnP2pOff.setEnabled(false);
+            // TODO add listener to the buttons and enable/disable P2P...
         }
     }
 
     private void update_P2P_PeerList(Intent intent) {
         WifiP2pDeviceList peers = intent.getParcelableExtra(WifiP2pManager.EXTRA_P2P_DEVICE_LIST);
-        if(peers != null) {
+        if (peers != null) {
             expListAdapterBroadcastPeers.clear();
             Collection<WifiP2pDevice> devList = peers.getDeviceList();
             for (WifiP2pDevice dev : devList)
                 expListAdapterBroadcastPeers.addDataChild(dev.deviceName, dev);
-        }
-        else {
+        } else {
             // API less than 18
             manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
                 @Override
                 public void onPeersAvailable(WifiP2pDeviceList peers) {
+                    if (progressDialog != null && progressDialog.isShowing()) {
+                        progressDialog.dismiss();
+                    }
                     expListAdapterBroadcastPeers.clear();
                     Collection<WifiP2pDevice> devList = peers.getDeviceList();
                     for (WifiP2pDevice dev : devList)
@@ -325,17 +368,35 @@ public class AutoClientActivity extends Activity {
         // Another extra EXTRA_NETWORK_INFO provides the network info in
         // the form of a NetworkInfo. A third extra provides the details of the group.
 
-        WifiP2pInfo  wifiP2pInfo =  intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
+        WifiP2pInfo wifiP2pInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
+        tvConsole.append("\n  WifiP2pInfo:\n  " + wifiP2pInfo.toString());
+        txtDeviceGroupFormed.setText(wifiP2pInfo.groupFormed ? "Group Formed" : "");
+        txtDeviceIsGO.setText(wifiP2pInfo.isGroupOwner?"is GO":"");
+        txtGOAddress.setText(wifiP2pInfo.groupOwnerAddress == null ? "" : "" + wifiP2pInfo.groupOwnerAddress);
 
         NetworkInfo networkInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
+        tvConsole.append("\n  NetworkInfo:\n  " + networkInfo.toString());
+        //networkInfo.
 
-        WifiP2pGroup  wifiP2pGroup = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
+        WifiP2pGroup wifiP2pGroup = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
+        tvConsole.append("\n  WifiP2pGroup:\n    " + (wifiP2pGroup == null ? "not available on this API" : wifiP2pGroup.toString()));
+        if(wifiP2pGroup != null) {
+            txtNetworkName.setText(wifiP2pGroup.getNetworkName());
+            txtNetworkPassphrase.setText(wifiP2pGroup.getPassphrase());
+            txtGOName.setText(wifiP2pGroup.getOwner()!=null?wifiP2pGroup.getOwner().deviceName:"");
+            //            wifiP2pGroup.
+        }// TODO else try and get wifiP2pGroup in another way for API 16
 
         // TODO HERE do it
     }
 
     private void update_P2P_this_device_changed(Intent intent) {
-
+        WifiP2pDevice dev = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
+        tvConsole.append("\n  WifiP2pDevice:\n  " + dev.toString());
+        tvConsole.append("\n   Status: " + DeviceListFragment.getDeviceStatus(dev.status));
+        txtDeviceName.setText(dev.deviceName);
+        txtDeviceStatus.setText(DeviceListFragment.getDeviceStatus(dev.status));
+        //txtDeviceIsGO.setText(dev.isGroupOwner()?"is GO":"");
 
         // TODO HERE do it
     }
@@ -344,5 +405,70 @@ public class AutoClientActivity extends Activity {
     public void onPause() {
         super.onPause();
         unregisterReceiver(receiver);
+    }
+
+
+    // MENU TEST
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.search_action_items, menu);
+        return true;
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see android.app.Activity#onOptionsItemSelected(android.view.MenuItem)
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+//            case R.id.atn_direct_enable:
+//                if (manager != null && channel != null) {
+//
+//                    // Since this is the system wireless settings activity, it's
+//                    // not going to send us a result. We will be notified by
+//                    // WiFiDeviceBroadcastReceiver instead.
+//
+//                    startActivity(new Intent(Settings.ACTION_WIRELESS_SETTINGS));
+//                } else {
+//                    Log.e("wifidirectdemo", "channel or manager is null");
+//                }
+//                return true;
+
+            case R.id.atn_direct_discover:
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
+                progressDialog = ProgressDialog.show(this, "Press back to cancel", "finding peers", true,
+                        true, new DialogInterface.OnCancelListener() {
+
+                            @Override
+                            public void onCancel(DialogInterface dialog) {
+
+                            }
+                        });
+
+                manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Toast.makeText(AutoClientActivity.this, "Discovery Initiated",
+                                Toast.LENGTH_SHORT).show();
+                        // test
+//                        progressDialog.dismiss();
+                    }
+
+                    @Override
+                    public void onFailure(int reasonCode) {
+                        Toast.makeText(AutoClientActivity.this, "Discovery Failed : " + reasonCode,
+                                Toast.LENGTH_SHORT).show();
+                        // test
+//                        progressDialog.dismiss();
+                    }
+                });
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 }
