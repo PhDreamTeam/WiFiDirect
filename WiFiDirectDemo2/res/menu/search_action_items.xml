@@ -6,4 +6,9 @@
         android:icon="@drawable/ic_action_discover"
         android:title="@string/discover_peers_button"
         android:showAsAction="ifRoom|withText" />
+    <item
+            android:id="@+id/atn_direct_stop_discover"
+            android:icon="@drawable/ic_action_stop_discover"
+            android:title="@string/stop_discover_peers_button"
+            android:showAsAction="ifRoom|withText" />
 </menu>

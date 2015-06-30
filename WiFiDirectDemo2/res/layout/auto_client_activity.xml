@@ -30,6 +30,16 @@
                     android:layout_height="wrap_content"
                     android:text="OFF"
                     android:id="@+id/buttonP2pOff"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Peer Discovery: "
+                    android:id="@+id/textView39"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="stopped"
+                    android:id="@+id/textViewPeerDiscoveryState"/>
         </LinearLayout>
         <LinearLayout
                 android:orientation="horizontal"
