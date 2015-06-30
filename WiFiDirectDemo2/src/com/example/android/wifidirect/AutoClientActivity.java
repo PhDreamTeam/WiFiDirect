@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.*;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiManager;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.*;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
@@ -11,6 +13,7 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.*;
 
 import java.util.*;
@@ -30,6 +33,7 @@ public class AutoClientActivity extends Activity {
     TextView txtP2pOnOff;
     Button btnP2pOn;
     Button btnP2pOff;
+    Button wiFiButton;
 
     TextView txtDeviceName;
     TextView txtDeviceStatus;
@@ -40,6 +44,9 @@ public class AutoClientActivity extends Activity {
     TextView txtNetworkName;
     TextView txtNetworkPassphrase;
     TextView txtPeerDiscoveryState;
+
+    MenuItem discoverPeerView;
+    MenuItem stopDiscoverPeerView;
 
     TextView tvConsole;
 
@@ -57,6 +64,8 @@ public class AutoClientActivity extends Activity {
     ExpandableListAdapter<String, WifiP2pDevice> expListAdapterBroadcastPeers;
     ExpandableListView expListViewBroadcastPeers;
 
+    Menu menu;
+    private boolean isPeerDiscoveryActivated = false;
 
 
     @Override
@@ -68,7 +77,6 @@ public class AutoClientActivity extends Activity {
 
         manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         channel = manager.initialize(this, getMainLooper(), null);
-
 
         tvConsole = ((TextView) findViewById(R.id.textViewConsole));
 
@@ -85,6 +93,16 @@ public class AutoClientActivity extends Activity {
         btnP2pOn = (Button) findViewById(R.id.buttonP2pOn);
         btnP2pOff = (Button) findViewById(R.id.buttonP2pOff);
 
+        wiFiButton = (Button)findViewById(R.id.buttonWiFiConnect);
+        wiFiButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String ssid = "DIRECT-Ds-3-XT1068_34c2";
+                String key = "qhHQaCLX";
+                tvConsole.append("\nConnecting to WiFi: " + ssid + ", " + key);
+                connectToWifi(ssid, key);
+            }
+        });
 
         // info Controls
         txtDeviceName = (TextView) findViewById(R.id.textViewDeviceName);
@@ -281,6 +299,11 @@ public class AutoClientActivity extends Activity {
     @Override
     public void onResume() {
         super.onResume();
+
+        // TESTE DEBUG DR AT
+//        View discoverPeerView2 = findViewById(R.id.atn_direct_discover);
+//        View stopDiscoverPeerView2 = findViewById(R.id.atn_direct_stop_discover);
+
         receiver = new BroadcastReceiver() {
 
             @Override
@@ -327,10 +350,18 @@ public class AutoClientActivity extends Activity {
         switch (state) {
             case WifiP2pManager.WIFI_P2P_DISCOVERY_STARTED:
                 txtPeerDiscoveryState.setText("Running");
+                isPeerDiscoveryActivated = true;
+//                discoverPeerView.setVisible(false);
+//                stopDiscoverPeerView.setVisible(true);
+                invalidateOptionsMenu();
                 tvConsole.append("\n  WifiP2pManager.EXTRA_DISCOVERY_STATE: Running");
                 break;
             case WifiP2pManager.WIFI_P2P_DISCOVERY_STOPPED:
                 txtPeerDiscoveryState.setText("Stopped");
+                isPeerDiscoveryActivated = false;
+//                stopDiscoverPeerView.setVisible(false);
+//                discoverPeerView.setVisible(true);
+                invalidateOptionsMenu();
                 tvConsole.append("\n  WifiP2pManager.EXTRA_DISCOVERY_STATE: Stopped");
                 break;
             default:
@@ -434,9 +465,25 @@ public class AutoClientActivity extends Activity {
 
     // MENU TEST
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+
+        stopDiscoverPeerView.setVisible(isPeerDiscoveryActivated);
+        discoverPeerView.setVisible(!isPeerDiscoveryActivated);
+
+//        discoverPeerView = menu.findItem(R.id.atn_direct_discover);
+//        stopDiscoverPeerView = menu.findItem(R.id.atn_direct_stop_discover);
+        return true;
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        //super.onCreateOptionsMenu(menu);
+        this.menu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.search_action_items, menu);
+        // get search icons
+        discoverPeerView = menu.findItem(R.id.atn_direct_discover);
+        stopDiscoverPeerView = menu.findItem(R.id.atn_direct_stop_discover);
         return true;
     }
 
@@ -480,6 +527,7 @@ public class AutoClientActivity extends Activity {
                                 Toast.LENGTH_SHORT).show();
                         txtPeerDiscoveryState.setText("Started");
 
+
                         // test
 //                        progressDialog.dismiss();
                     }
@@ -516,6 +564,70 @@ public class AutoClientActivity extends Activity {
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
+        }
+    }
+
+
+
+    void connectToWifi(String ssid, String key) {
+        WifiConfiguration wifiConfig = new WifiConfiguration();
+        wifiConfig.SSID = String.format("\"%s\"", ssid);
+        wifiConfig.preSharedKey = String.format("\"%s\"", key);
+
+        wifiConfig.status = WifiConfiguration.Status.ENABLED;
+        wifiConfig.priority = 10000;
+
+        wifiConfig.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+        wifiConfig.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
+        wifiConfig.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+        wifiConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
+        wifiConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
+        wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP40);
+        wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP104);
+        wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
+        wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
+
+//        wfc.preSharedKey = "\"".concat(password).concat("\"");
+
+
+        WifiManager wifiManager = (WifiManager)getSystemService(WIFI_SERVICE);
+
+
+        tvConsole.append("\n-------------1----------------");
+        printNetworks(wifiManager);
+        tvConsole.append("\n--------------1 end---------------");
+
+
+        //remember id
+
+        int netId = wifiManager.addNetwork(wifiConfig);
+        tvConsole.append("Add network returned -> " + netId);
+
+        wifiManager.disconnect();
+
+        boolean connected1 = wifiManager.enableNetwork(netId, true);
+        tvConsole.append("Enabled networks returned -> " + connected1);
+
+        tvConsole.append("\n-------------2----------------");
+        printNetworks(wifiManager);
+        tvConsole.append("\n--------------2 end---------------");
+
+        wifiManager.saveConfiguration();
+        boolean connected2 = wifiManager.reconnect();
+        tvConsole.append("Reconnect (network) returned -> " + connected2);
+    }
+
+    void printNetworks (WifiManager wifiManager) {
+        List<WifiConfiguration> nets = wifiManager.getConfiguredNetworks();
+        tvConsole.append("\n Configured networks:");
+        for (WifiConfiguration wfconf : nets) {
+            tvConsole.append("\n..." + wfconf.SSID + " priority " + wfconf.priority);
+            if(wfconf.SSID.equalsIgnoreCase("\"Vodafone-514A4E\"")){
+                wfconf.status = WifiConfiguration.Status.DISABLED;
+                int res = wifiManager.updateNetwork(wfconf);
+                tvConsole.append("\n   ----->DISABLED result: " + res);
+            }
+
         }
     }
 }
