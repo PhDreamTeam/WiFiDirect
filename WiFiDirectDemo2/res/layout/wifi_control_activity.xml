@@ -20,7 +20,7 @@
                 android:id="@+id/textViewScanNetworksState"/>
     </LinearLayout>
     <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="match_parent"
-                  android:layout_weight="1">
+                  android:layout_weight="1" android:id="@+id/linearLayoutScanNetworks">
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                   android:text="Scanned networks" android:id="@+id/textViewScannedNetworks" android:gravity="center"
                   android:background="#ff86af86" android:textColor="#fffef5ff"/>
@@ -28,9 +28,17 @@
                             android:layout_width="match_parent" android:background="#ff4f6a4b"/>
     </LinearLayout>
     <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="match_parent"
-                  android:layout_weight="1">
+                  android:layout_weight="1" android:id="@+id/linearLayoutConfiguredNetworks">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:text="Configured networks" android:id="@+id/textViewConfiguredNetworks" android:gravity="center"
+                  android:background="#ffaeaf5e" android:textColor="#fffef5ff"/>
+        <ExpandableListView android:id="@+id/expListViewConfiguredNetworks" android:layout_height="match_parent"
+                            android:layout_width="match_parent" android:background="#ff877f3d"/>
+    </LinearLayout>
+    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="match_parent"
+                  android:layout_weight="1" android:id="@+id/linearLinearConsole">
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Console"
-                  android:id="@+id/textView42" android:gravity="center" android:background="#ff3b434a"/>
+                  android:id="@+id/textViewConsole" android:gravity="center" android:background="#ff3b434a"/>
         <ScrollView android:layout_width="match_parent" android:layout_height="match_parent"
                     android:id="@+id/scrollView5" android:fillViewport="false">
             <TextView android:layout_width="match_parent" android:layout_height="match_parent"
