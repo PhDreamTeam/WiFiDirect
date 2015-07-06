@@ -59,6 +59,18 @@ public class MyMainActivity extends Activity {
                     }
                 });
 
+        findViewById(R.id.btnScanNetworks).setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Toast.makeText(context, "Scan networks!!!!!", Toast.LENGTH_SHORT).show();
+
+                        Intent intent = new Intent(myThis, WiFiControlActivity.class);
+                        startActivity(intent);
+                    }
+                });
+
+
         findViewById(R.id.btnRelay).setOnClickListener(
                 new View.OnClickListener() {
                     @Override

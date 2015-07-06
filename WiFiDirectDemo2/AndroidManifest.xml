@@ -33,6 +33,7 @@
         <activity android:name="com.example.android.wifidirect.RelayActivity" android:label="Relay Activity"/>
         <activity android:name="com.example.android.wifidirect.ClientActivity" android:label="Client Activity"/>
         <activity android:name=".AutoClientActivity" android:label="AutoClientActivity"/>
+        <activity android:name=".WiFiControlActivity"/>
 
         <!-- Used for transferring files  after a successful connection -->
         <service android:enabled="true" android:name=".FileTransferService" />

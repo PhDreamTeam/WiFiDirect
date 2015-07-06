@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content">
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Scan Networks"
+                android:id="@+id/btnScanNetworks"/>
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="..."
+                android:id="@+id/textViewScanNetworksState"/>
+    </LinearLayout>
+    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="match_parent"
+                  android:layout_weight="1">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:text="Scanned networks" android:id="@+id/textViewScannedNetworks" android:gravity="center"
+                  android:background="#ff86af86" android:textColor="#fffef5ff"/>
+        <ExpandableListView android:id="@+id/expListViewScannedNetworks" android:layout_height="match_parent"
+                            android:layout_width="match_parent" android:background="#ff4f6a4b"/>
+    </LinearLayout>
+    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="match_parent"
+                  android:layout_weight="1">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Console"
+                  android:id="@+id/textView42" android:gravity="center" android:background="#ff3b434a"/>
+        <ScrollView android:layout_width="match_parent" android:layout_height="match_parent"
+                    android:id="@+id/scrollView5" android:fillViewport="false">
+            <TextView android:layout_width="match_parent" android:layout_height="match_parent"
+                      android:id="@+id/tvConsole"/>
+        </ScrollView>
+    </LinearLayout>
+</LinearLayout>

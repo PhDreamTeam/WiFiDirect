@@ -15,6 +15,8 @@
             android:id="@+id/btnWFDClient" android:layout_gravity="center_horizontal"/>
     <Button android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Wi-Fi Direct - Auto Client"
             android:id="@+id/btnWFDAutoClient" android:layout_gravity="center_horizontal"/>
+    <Button android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Scan Networks"
+            android:id="@+id/btnScanNetworks" android:layout_gravity="center_horizontal"/>
     <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

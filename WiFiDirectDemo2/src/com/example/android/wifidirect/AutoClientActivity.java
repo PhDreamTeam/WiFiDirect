@@ -20,6 +20,7 @@ import java.util.*;
 
 /**
  * Created by AT e DR on 23-06-2015.
+ *
  */
 public class AutoClientActivity extends Activity {
     Context context;
@@ -93,7 +94,7 @@ public class AutoClientActivity extends Activity {
         btnP2pOn = (Button) findViewById(R.id.buttonP2pOn);
         btnP2pOff = (Button) findViewById(R.id.buttonP2pOff);
 
-        wiFiButton = (Button)findViewById(R.id.buttonWiFiConnect);
+        wiFiButton = (Button) findViewById(R.id.buttonWiFiConnect);
         wiFiButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -454,6 +455,7 @@ public class AutoClientActivity extends Activity {
         //txtDeviceIsGO.setText(dev.isGroupOwner()?"is GO":"");
 
         // TODO HERE do it
+
     }
 
     @Override
@@ -568,7 +570,6 @@ public class AutoClientActivity extends Activity {
     }
 
 
-
     void connectToWifi(String ssid, String key) {
         WifiConfiguration wifiConfig = new WifiConfiguration();
         wifiConfig.SSID = String.format("\"%s\"", ssid);
@@ -589,8 +590,7 @@ public class AutoClientActivity extends Activity {
 
 //        wfc.preSharedKey = "\"".concat(password).concat("\"");
 
-
-        WifiManager wifiManager = (WifiManager)getSystemService(WIFI_SERVICE);
+        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
 
 
         tvConsole.append("\n-------------1----------------");
@@ -603,7 +603,9 @@ public class AutoClientActivity extends Activity {
         int netId = wifiManager.addNetwork(wifiConfig);
         tvConsole.append("Add network returned -> " + netId);
 
-        wifiManager.disconnect();
+        if (!wifiManager.disconnect()) {
+            tvConsole.append("Disconnect failed");
+        }
 
         boolean connected1 = wifiManager.enableNetwork(netId, true);
         tvConsole.append("Enabled networks returned -> " + connected1);
@@ -612,17 +614,21 @@ public class AutoClientActivity extends Activity {
         printNetworks(wifiManager);
         tvConsole.append("\n--------------2 end---------------");
 
-        wifiManager.saveConfiguration();
+        if (!wifiManager.saveConfiguration()) {
+            tvConsole.append("Save configuration failed");
+        }
         boolean connected2 = wifiManager.reconnect();
         tvConsole.append("Reconnect (network) returned -> " + connected2);
     }
 
-    void printNetworks (WifiManager wifiManager) {
+    void printNetworks(WifiManager wifiManager) {
         List<WifiConfiguration> nets = wifiManager.getConfiguredNetworks();
         tvConsole.append("\n Configured networks:");
         for (WifiConfiguration wfconf : nets) {
-            tvConsole.append("\n..." + wfconf.SSID + " priority " + wfconf.priority);
-            if(wfconf.SSID.equalsIgnoreCase("\"Vodafone-514A4E\"")){
+            if(wfconf.status == WifiConfiguration.Status.DISABLED)
+                continue;
+            tvConsole.append("\n..." + wfconf.SSID + " priority " + wfconf.priority + "\n     : " + wfconf.status);
+            if (wfconf.SSID.equalsIgnoreCase("\"Vodafone-514A4E\"")) {
                 wfconf.status = WifiConfiguration.Status.DISABLED;
                 int res = wifiManager.updateNetwork(wfconf);
                 tvConsole.append("\n   ----->DISABLED result: " + res);
