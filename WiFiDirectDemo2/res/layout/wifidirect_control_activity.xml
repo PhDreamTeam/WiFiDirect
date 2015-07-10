@@ -144,52 +144,59 @@
     <LinearLayout
             android:orientation="vertical"
             android:layout_width="fill_parent"
-            android:layout_height="fill_parent" android:layout_weight="1">
-        <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Discovered Peers"
-                android:id="@+id/textView26" android:gravity="center" android:background="#ff536aaf"
-                android:textColor="#fffaf9ff"/>
-        <ExpandableListView
-                android:id="@+id/expListViewDiscoveredPeers"
-                android:layout_height="match_parent"
-                android:layout_width="match_parent" android:background="#ff46445d"/>
-    </LinearLayout>
-    <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent" android:layout_weight="1">
-        <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Broadcast Peers"
-                android:id="@+id/textView21" android:gravity="center" android:background="#ff86af86"
-                android:textColor="#fffef5ff"/>
-        <ExpandableListView
-                android:id="@+id/expListViewBroadcastPeers"
-                android:layout_height="match_parent"
-                android:layout_width="match_parent" android:background="#ff4f6a4b"/>
-    </LinearLayout>
-    <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent" android:layout_weight="1">
-        <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Console"
-                android:id="@+id/textView27" android:gravity="center" android:background="#ff3b434a"/>
-        <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:id="@+id/scrollView3">
+            android:layout_height="fill_parent">
+        <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent" android:layout_weight="1"
+                android:id="@+id/WFDLinearLayoutDiscoveredPeers">
             <TextView
                     android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Discovered Peers"
+                    android:id="@+id/textViewWFDDiscoveredPeers" android:gravity="center" android:background="#ff536aaf"
+                    android:textColor="#fffaf9ff"/>
+            <ExpandableListView
+                    android:id="@+id/expListViewDiscoveredPeers"
                     android:layout_height="match_parent"
-                    android:id="@+id/textViewConsole"/>
-        </ScrollView>
+                    android:layout_width="match_parent" android:background="#ff46445d"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent" android:layout_weight="1"
+                android:id="@+id/WFDLinearLayoutBroadcastPeers">
+            <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Broadcast Peers"
+                    android:id="@+id/textViewWFDBroadcastPeers" android:gravity="center" android:background="#ff86af86"
+                    android:textColor="#fffef5ff"/>
+            <ExpandableListView
+                    android:id="@+id/expListViewBroadcastPeers"
+                    android:layout_height="match_parent"
+                    android:layout_width="match_parent" android:background="#ff4f6a4b"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent" android:layout_weight="1" android:id="@+id/WFDLinearLayoutConsole">
+            <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Console"
+                    android:id="@+id/textViewWFDConsole" android:gravity="center" android:background="#ff3b434a"/>
+            <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:id="@+id/scrollView3">
+                <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:id="@+id/textViewConsole"/>
+            </ScrollView>
 
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>

@@ -22,7 +22,9 @@ import java.util.*;
  * Created by AT e DR on 23-06-2015.
  *
  */
-public class AutoClientActivity extends Activity {
+
+// renomear para P2PControlActivity
+public class WiFiDirectControlActivity extends Activity {
     Context context;
 
     private WifiP2pManager manager;
@@ -72,7 +74,7 @@ public class AutoClientActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.auto_client_activity);
+        setContentView(R.layout.wifidirect_control_activity);
 
         context = getApplicationContext();
 
@@ -125,6 +127,35 @@ public class AutoClientActivity extends Activity {
         expListAdapterBroadcastPeers = new ExpandableListAdapter<>(this);
         expListViewBroadcastPeers.setAdapter(expListAdapterBroadcastPeers);
 
+        //allow the selected areas to grow
+        final LinearLayout llWFDDiscoveredPeers = (LinearLayout) findViewById(R.id.WFDLinearLayoutDiscoveredPeers);
+        final LinearLayout llWFDBroadcastPeers = (LinearLayout) findViewById(R.id.WFDLinearLayoutBroadcastPeers);
+        final LinearLayout llWFDConsole = (LinearLayout) findViewById(R.id.WFDLinearLayoutConsole);
+
+        TextView textViewWFDDiscoveredPeers = (TextView) findViewById(R.id.textViewWFDDiscoveredPeers);
+        textViewWFDDiscoveredPeers.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                toggleLinearLayoutsWeight(llWFDDiscoveredPeers, llWFDBroadcastPeers, llWFDConsole);
+            }
+        });
+
+        TextView textViewWFDBroadcastPeers = (TextView) findViewById(R.id.textViewWFDBroadcastPeers);
+        textViewWFDBroadcastPeers.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                toggleLinearLayoutsWeight(llWFDBroadcastPeers, llWFDDiscoveredPeers, llWFDConsole);
+            }
+        });
+
+        TextView textViewWFDConsole = (TextView) findViewById(R.id.textViewWFDConsole);
+        textViewWFDConsole.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                toggleLinearLayoutsWeight(llWFDConsole, llWFDBroadcastPeers, llWFDDiscoveredPeers);
+            }
+        });
+
 
         discoverNsdService();
     }
@@ -141,7 +172,7 @@ public class AutoClientActivity extends Activity {
 
             @SuppressWarnings("unchecked")
             public void onDnsSdTxtRecordAvailable(String fullDomain, Map record, WifiP2pDevice device) {
-                Toast.makeText(AutoClientActivity.this, "DnsSdTxtRecord available -" + record.toString(),
+                Toast.makeText(WiFiDirectControlActivity.this, "DnsSdTxtRecord available -" + record.toString(),
                         Toast.LENGTH_SHORT).show();
                 discoveredNodes.put(device.deviceAddress, (HashMap<String, String>) record);
             }
@@ -165,7 +196,7 @@ public class AutoClientActivity extends Activity {
                 expListAdapterDiscoverdPeers.addDataChild(resourceType.deviceName, resourceType.toString() + "\n  " + discoveryInfo);
 //                adapterDiscoveredPeers.add(resourceType.toString() + "\n  " + discoveryInfo);
 
-                Toast.makeText(AutoClientActivity.this, "serviceAvailable: " + instanceName + ", "
+                Toast.makeText(WiFiDirectControlActivity.this, "serviceAvailable: " + instanceName + ", "
                                 + registrationType + ", " + resourceType.deviceName,
                         Toast.LENGTH_SHORT).show();
 
@@ -173,7 +204,7 @@ public class AutoClientActivity extends Activity {
                     if (discoveredNodes.containsKey(resourceType.deviceAddress)) {
                         String role = discoveredNodes.get(resourceType.deviceAddress).get("role");
                         if ("GO".equals(role)) {
-                            Toast.makeText(AutoClientActivity.this, "GO Found: " + resourceType.deviceName,
+                            Toast.makeText(WiFiDirectControlActivity.this, "GO Found: " + resourceType.deviceName,
                                     Toast.LENGTH_SHORT).show();
                             tvConsole.append("\nGO Found: " + resourceType.deviceName);
 
@@ -196,14 +227,14 @@ public class AutoClientActivity extends Activity {
                     @Override
                     public void onSuccess() {
                         // Success!
-                        Toast.makeText(AutoClientActivity.this, "addServiceRequest: succeeded",
+                        Toast.makeText(WiFiDirectControlActivity.this, "addServiceRequest: succeeded",
                                 Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
                     public void onFailure(int code) {
                         // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
-                        Toast.makeText(AutoClientActivity.this, "addServiceRequest: failed with code: " + code,
+                        Toast.makeText(WiFiDirectControlActivity.this, "addServiceRequest: failed with code: " + code,
                                 Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -213,7 +244,7 @@ public class AutoClientActivity extends Activity {
             @Override
             public void onSuccess() {
                 // Success!
-                Toast.makeText(AutoClientActivity.this, "discoverServices: succeeded",
+                Toast.makeText(WiFiDirectControlActivity.this, "discoverServices: succeeded",
                         Toast.LENGTH_SHORT).show();
             }
 
@@ -221,10 +252,10 @@ public class AutoClientActivity extends Activity {
             public void onFailure(int code) {
                 // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
                 if (code == WifiP2pManager.P2P_UNSUPPORTED)
-                    Toast.makeText(AutoClientActivity.this,
+                    Toast.makeText(WiFiDirectControlActivity.this,
                             "discoverServices: failed, P2P isn't supported on this device.",
                             Toast.LENGTH_SHORT).show();
-                else Toast.makeText(AutoClientActivity.this, "discoverServices: failed, error: " + code,
+                else Toast.makeText(WiFiDirectControlActivity.this, "discoverServices: failed, error: " + code,
                         Toast.LENGTH_SHORT).show();
             }
         });
@@ -525,7 +556,7 @@ public class AutoClientActivity extends Activity {
                 manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
-                        Toast.makeText(AutoClientActivity.this, "Discovery Initiated",
+                        Toast.makeText(WiFiDirectControlActivity.this, "Discovery Initiated",
                                 Toast.LENGTH_SHORT).show();
                         txtPeerDiscoveryState.setText("Started");
 
@@ -536,7 +567,7 @@ public class AutoClientActivity extends Activity {
 
                     @Override
                     public void onFailure(int reasonCode) {
-                        Toast.makeText(AutoClientActivity.this, "Discovery Failed : " + reasonCode,
+                        Toast.makeText(WiFiDirectControlActivity.this, "Discovery Failed : " + reasonCode,
                                 Toast.LENGTH_SHORT).show();
                         // test
 //                        progressDialog.dismiss();
@@ -548,7 +579,7 @@ public class AutoClientActivity extends Activity {
                 manager.stopPeerDiscovery(channel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
-                        Toast.makeText(AutoClientActivity.this, "Stopping Peer Discovery",
+                        Toast.makeText(WiFiDirectControlActivity.this, "Stopping Peer Discovery",
                                 Toast.LENGTH_SHORT).show();
                         txtPeerDiscoveryState.setText("Stopping");
                         // test
@@ -557,7 +588,7 @@ public class AutoClientActivity extends Activity {
 
                     @Override
                     public void onFailure(int reasonCode) {
-                        Toast.makeText(AutoClientActivity.this, "Stopping Peer Discovery Failed: " + reasonCode,
+                        Toast.makeText(WiFiDirectControlActivity.this, "Stopping Peer Discovery Failed: " + reasonCode,
                                 Toast.LENGTH_SHORT).show();
                         // test
 //                        progressDialog.dismiss();
@@ -636,4 +667,17 @@ public class AutoClientActivity extends Activity {
 
         }
     }
+    private void toggleLinearLayoutsWeight(LinearLayout ll, LinearLayout ll2, LinearLayout ll3) {
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) ll.getLayoutParams();
+        lp.weight = lp.weight == 1 ? (0.3f) : 1;//(lp.weight == (1/3f) ? (1/3f) : 1);
+        ll.setLayoutParams(lp);
+        // set other layout weights to 1
+        LinearLayout.LayoutParams lp2 = (LinearLayout.LayoutParams) ll2.getLayoutParams();
+        lp2.weight = 1;
+        ll2.setLayoutParams(lp2);
+        LinearLayout.LayoutParams lp3 = (LinearLayout.LayoutParams) ll3.getLayoutParams();
+        lp3.weight = 1;
+        ll3.setLayoutParams(lp3);
+    }
+
 }

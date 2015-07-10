@@ -47,13 +47,13 @@ public class MyMainActivity extends Activity {
                     }
                 });
 
-        findViewById(R.id.btnWFDAutoClient).setOnClickListener(
+        findViewById(R.id.btnP2PWFDClient).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Toast.makeText(context, "Wi-Fi Direct Auto Client!!!!!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, "P2P/Wi-Fi Direct Client!!!!!", Toast.LENGTH_SHORT).show();
 
-                        Intent intent = new Intent(myThis, AutoClientActivity.class);
+                        Intent intent = new Intent(myThis, WiFiDirectControlActivity.class);
                         intent.putExtra("role", "Client");
                         startActivity(intent);
                     }
