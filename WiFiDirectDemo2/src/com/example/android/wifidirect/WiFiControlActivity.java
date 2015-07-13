@@ -75,7 +75,6 @@ public class WiFiControlActivity extends Activity {
             }
         });
 
-
         expListViewConfiguredNetworks = (ExpandableListView) findViewById(R.id.expListViewConfiguredNetworks);
         expListViewAdapterConfiguredNetworks = new ExpandableListAdapter<>(this);
         expListViewConfiguredNetworks.setAdapter(expListViewAdapterConfiguredNetworks);

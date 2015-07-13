@@ -4,10 +4,9 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.*;
 import android.net.NetworkInfo;
-import android.net.wifi.WifiConfiguration;
-import android.net.wifi.WifiManager;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.*;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.os.Bundle;
 import android.view.Menu;
@@ -23,20 +22,20 @@ import java.util.*;
  *
  */
 
-// renomear para P2PControlActivity
 public class WiFiDirectControlActivity extends Activity {
     Context context;
 
     private WifiP2pManager manager;
     private WifiP2pManager.Channel channel;
 
-    private HashMap<String, HashMap<String, String>> discoveredNodes = new HashMap<>();
+    private HashMap<String, HashMap<String, String>> discoveredNodesRecords = new HashMap<>();
+    private HashMap<String, WifiP2pDevice> discoveredNodesDevices = new HashMap<>();
 
     // visual controls
     TextView txtP2pOnOff;
     Button btnP2pOn;
     Button btnP2pOff;
-    Button wiFiButton;
+    Button wiFiDirectConnectButton;
 
     TextView txtDeviceName;
     TextView txtDeviceStatus;
@@ -70,6 +69,10 @@ public class WiFiDirectControlActivity extends Activity {
     Menu menu;
     private boolean isPeerDiscoveryActivated = false;
 
+    private WifiP2pDnsSdServiceInfo serviceInfo;
+    private WifiP2pManager.ActionListener ndsRegisteredListener;
+    private boolean isNDSRegisteredAsGO = false;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -96,16 +99,15 @@ public class WiFiDirectControlActivity extends Activity {
         btnP2pOn = (Button) findViewById(R.id.buttonP2pOn);
         btnP2pOff = (Button) findViewById(R.id.buttonP2pOff);
 
-        wiFiButton = (Button) findViewById(R.id.buttonWiFiConnect);
-        wiFiButton.setOnClickListener(new View.OnClickListener() {
+        wiFiDirectConnectButton = (Button) findViewById(R.id.buttonWiFiDirectConnect);
+        wiFiDirectConnectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String ssid = "DIRECT-Ds-3-XT1068_34c2";
-                String key = "qhHQaCLX";
-                tvConsole.append("\nConnecting to WiFi: " + ssid + ", " + key);
-                connectToWifi(ssid, key);
+                tvConsole.append("\nwiFiDirectConnectButton pressed...");
+                connectToSelectedGO();
             }
         });
+
 
         // info Controls
         txtDeviceName = (TextView) findViewById(R.id.textViewDeviceName);
@@ -160,6 +162,15 @@ public class WiFiDirectControlActivity extends Activity {
         discoverNsdService();
     }
 
+    void connectToSelectedGO() {
+        if (!expListViewDiscoverdPeers.isSelected()) {
+            // TODO ...
+        }
+        String devName = (String) expListViewDiscoverdPeers.getSelectedItem();
+        // TODO ...
+
+    }
+
 
     private void discoverNsdService() {
         WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
@@ -174,7 +185,8 @@ public class WiFiDirectControlActivity extends Activity {
             public void onDnsSdTxtRecordAvailable(String fullDomain, Map record, WifiP2pDevice device) {
                 Toast.makeText(WiFiDirectControlActivity.this, "DnsSdTxtRecord available -" + record.toString(),
                         Toast.LENGTH_SHORT).show();
-                discoveredNodes.put(device.deviceAddress, (HashMap<String, String>) record);
+                discoveredNodesRecords.put(device.deviceAddress, (HashMap<String, String>) record);
+                discoveredNodesDevices.put(device.deviceAddress, device);
             }
         };
 
@@ -185,14 +197,14 @@ public class WiFiDirectControlActivity extends Activity {
 
                 // Update the device name with the human-friendly version from
                 // the DnsTxtRecord, assuming one arrived.
-//                resourceType.deviceName = discoveredNodes
-//                        .containsKey(resourceType.deviceAddress) ? discoveredNodes
+//                resourceType.deviceName = discoveredNodesRecords
+//                        .containsKey(resourceType.deviceAddress) ? discoveredNodesRecords
 //                        .get(resourceType.deviceAddress).get() : resourceType.deviceName;
 
                 // Add to the custom adapter defined specifically for showing
                 // wifi devices.
-                String discoveryInfo = discoveredNodes.containsKey(resourceType.deviceAddress) ?
-                        discoveredNodes.get(resourceType.deviceAddress).toString() : "{no discovery info}";
+                String discoveryInfo = discoveredNodesRecords.containsKey(resourceType.deviceAddress) ?
+                        discoveredNodesRecords.get(resourceType.deviceAddress).toString() : "{no discovery info}";
                 expListAdapterDiscoverdPeers.addDataChild(resourceType.deviceName, resourceType.toString() + "\n  " + discoveryInfo);
 //                adapterDiscoveredPeers.add(resourceType.toString() + "\n  " + discoveryInfo);
 
@@ -201,16 +213,17 @@ public class WiFiDirectControlActivity extends Activity {
                         Toast.LENGTH_SHORT).show();
 
                 if (!alreadyConnecting) {
-                    if (discoveredNodes.containsKey(resourceType.deviceAddress)) {
-                        String role = discoveredNodes.get(resourceType.deviceAddress).get("role");
+                    if (discoveredNodesRecords.containsKey(resourceType.deviceAddress)) {
+                        String role = discoveredNodesRecords.get(resourceType.deviceAddress).get("role");
                         if ("GO".equals(role)) {
                             Toast.makeText(WiFiDirectControlActivity.this, "GO Found: " + resourceType.deviceName,
                                     Toast.LENGTH_SHORT).show();
                             tvConsole.append("\nGO Found: " + resourceType.deviceName);
 
                             // connect to GO
-                            connectToGO(resourceType);
-                            alreadyConnecting = true;
+//                            DEBUG DR AT commented to prevent autoconnect
+//                            connectToGO(resourceType);
+//                            alreadyConnecting = true;
                         }
                     }
                 }
@@ -479,14 +492,32 @@ public class WiFiDirectControlActivity extends Activity {
 
     private void update_P2P_this_device_changed(Intent intent) {
         WifiP2pDevice dev = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
+        tvConsole.append("\n-----------");
         tvConsole.append("\n  WifiP2pDevice:\n  " + dev.toString());
         tvConsole.append("\n   Status: " + DeviceListFragment.getDeviceStatus(dev.status));
         txtDeviceName.setText(dev.deviceName);
         txtDeviceStatus.setText(DeviceListFragment.getDeviceStatus(dev.status));
         //txtDeviceIsGO.setText(dev.isGroupOwner()?"is GO":"");
 
-        // TODO HERE do it
-
+        if (dev.isGroupOwner()) {
+            // register as GO if not registered yet
+            if (ndsRegisteredListener != null && !isNDSRegisteredAsGO) {
+                manager.removeLocalService(channel, serviceInfo, ndsRegisteredListener); // unregister
+                ndsRegisteredListener = null;
+            }
+            if(ndsRegisteredListener == null) // !isNDSRegisteredAsGO
+                registerNsdService(null, "GO"); /*deviceName null generates a random one*/
+            isNDSRegisteredAsGO = true;
+        } else {
+            // remove register as GO if already done
+            if (ndsRegisteredListener != null && isNDSRegisteredAsGO) {
+                manager.removeLocalService(channel, serviceInfo, ndsRegisteredListener);
+                ndsRegisteredListener = null;
+            }
+            if (ndsRegisteredListener == null)
+                registerNsdService(null, "Client"); /*deviceName null generates a random one*/
+            isNDSRegisteredAsGO = false;
+        }
     }
 
     @Override
@@ -601,72 +632,6 @@ public class WiFiDirectControlActivity extends Activity {
     }
 
 
-    void connectToWifi(String ssid, String key) {
-        WifiConfiguration wifiConfig = new WifiConfiguration();
-        wifiConfig.SSID = String.format("\"%s\"", ssid);
-        wifiConfig.preSharedKey = String.format("\"%s\"", key);
-
-        wifiConfig.status = WifiConfiguration.Status.ENABLED;
-        wifiConfig.priority = 10000;
-
-        wifiConfig.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
-        wifiConfig.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
-        wifiConfig.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-        wifiConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
-        wifiConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
-        wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP40);
-        wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP104);
-        wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
-        wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
-
-//        wfc.preSharedKey = "\"".concat(password).concat("\"");
-
-        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
-
-
-        tvConsole.append("\n-------------1----------------");
-        printNetworks(wifiManager);
-        tvConsole.append("\n--------------1 end---------------");
-
-
-        //remember id
-
-        int netId = wifiManager.addNetwork(wifiConfig);
-        tvConsole.append("Add network returned -> " + netId);
-
-        if (!wifiManager.disconnect()) {
-            tvConsole.append("Disconnect failed");
-        }
-
-        boolean connected1 = wifiManager.enableNetwork(netId, true);
-        tvConsole.append("Enabled networks returned -> " + connected1);
-
-        tvConsole.append("\n-------------2----------------");
-        printNetworks(wifiManager);
-        tvConsole.append("\n--------------2 end---------------");
-
-        if (!wifiManager.saveConfiguration()) {
-            tvConsole.append("Save configuration failed");
-        }
-        boolean connected2 = wifiManager.reconnect();
-        tvConsole.append("Reconnect (network) returned -> " + connected2);
-    }
-
-    void printNetworks(WifiManager wifiManager) {
-        List<WifiConfiguration> nets = wifiManager.getConfiguredNetworks();
-        tvConsole.append("\n Configured networks:");
-        for (WifiConfiguration wfconf : nets) {
-            if(wfconf.status == WifiConfiguration.Status.DISABLED)
-                continue;
-            tvConsole.append("\n..." + wfconf.SSID + " priority " + wfconf.priority + "\n     : " + wfconf.status);
-            if (wfconf.SSID.equalsIgnoreCase("\"Vodafone-514A4E\"")) {
-                wfconf.status = WifiConfiguration.Status.DISABLED;
-                int res = wifiManager.updateNetwork(wfconf);
-                tvConsole.append("\n   ----->DISABLED result: " + res);
-            }
-
-        }
-    }
     private void toggleLinearLayoutsWeight(LinearLayout ll, LinearLayout ll2, LinearLayout ll3) {
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) ll.getLayoutParams();
         lp.weight = lp.weight == 1 ? (0.3f) : 1;//(lp.weight == (1/3f) ? (1/3f) : 1);
@@ -679,5 +644,45 @@ public class WiFiDirectControlActivity extends Activity {
         lp3.weight = 1;
         ll3.setLayoutParams(lp3);
     }
+
+    public void registerNsdService(String devName, String role) {
+        //  Create a string map containing information about your service.
+        Map<String, String> record = new HashMap<>();
+        record.put("listenPort", String.valueOf(30000));
+        record.put("role", role);
+        record.put("busyLevel", String.valueOf(1));
+        record.put("deviceName", devName == null ? role + (int) (Math.random() * 10) : devName);
+
+
+        // Service information.  Pass it an instance name, service type
+        // _protocol._transportlayer , and the map containing
+        // information other devices will want once they connect to this one.
+
+        serviceInfo =
+                WifiP2pDnsSdServiceInfo.newInstance("GO", "_backbone1GO1CR._tcp", record);
+
+        // Add the local service, sending the service info, network channel,
+        // and listener that will be used to indicate success or failure of
+        // the request.
+        manager.addLocalService(channel, serviceInfo, ndsRegisteredListener = new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                // Command successful! Code isn't necessarily needed here,
+                // Unless you want to update the UI or add logging statements.
+//                Toast.makeText(WiFiDirectControlActivity.this, "Service Discovery registered successfully.",
+//                        Toast.LENGTH_SHORT).show();
+                tvConsole.append("\nService Discovery registered successfully.");
+            }
+
+            @Override
+            public void onFailure(int errorCode) {
+                // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
+//                Toast.makeText(WiFiDirectControlActivity.this, "Service Discovery register FAILED: " + errorCode,
+//                        Toast.LENGTH_SHORT).show();
+                tvConsole.append("\nService Discovery register FAILED: " + errorCode);
+            }
+        });
+    }
+
 
 }

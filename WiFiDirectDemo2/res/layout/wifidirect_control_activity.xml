@@ -48,8 +48,8 @@
             <Button
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="WFconnect"
-                    android:id="@+id/buttonWiFiConnect"/>
+                    android:text="WFD connect"
+                    android:id="@+id/buttonWiFiDirectConnect"/>
         </LinearLayout>
         <LinearLayout
                 android:orientation="horizontal"
