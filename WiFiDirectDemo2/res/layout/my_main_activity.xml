@@ -13,10 +13,15 @@
             android:layout_height="wrap_content"
             android:text="Wi-Fi Direct - Client"
             android:id="@+id/btnWFDClient" android:layout_gravity="center_horizontal"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+              android:id="@+id/textView21" android:gravity="center" android:background="#ff536aaf"
+              android:textColor="#fffaf9ff"/>
     <Button android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="P2P/WFD Control Client"
             android:id="@+id/btnP2PWFDClient" android:layout_gravity="center_horizontal"/>
     <Button android:layout_width="match_parent" android:layout_height="wrap_content" android:text="WiFi Control Client"
             android:id="@+id/btnWiFiClient" android:layout_gravity="center_horizontal"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView26"
+              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"/>
     <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

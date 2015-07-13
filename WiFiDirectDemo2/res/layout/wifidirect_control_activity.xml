@@ -45,11 +45,21 @@
                 android:orientation="horizontal"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Connect as:"
+                    android:id="@+id/textView27"/>
             <Button
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="WFD connect"
-                    android:id="@+id/buttonWiFiDirectConnect"/>
+                    android:text="GO"
+                    android:id="@+id/buttonWiFiDirectConnectAsGO"/>
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Client"
+                    android:id="@+id/buttonWiFiDirectConnectAsClient"/>
         </LinearLayout>
         <LinearLayout
                 android:orientation="horizontal"
@@ -149,31 +159,33 @@
                 android:orientation="vertical"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent" android:layout_weight="1"
-                android:id="@+id/WFDLinearLayoutDiscoveredPeers">
+                android:id="@+id/WFDLinearLayoutPeersWithServices">
             <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Discovered Peers"
-                    android:id="@+id/textViewWFDDiscoveredPeers" android:gravity="center" android:background="#ff536aaf"
+                    android:text="Peers with Services"
+                    android:id="@+id/textViewWFDPeersWithServices" android:gravity="center" android:background="#ff536aaf"
                     android:textColor="#fffaf9ff"/>
             <ExpandableListView
-                    android:id="@+id/expListViewDiscoveredPeers"
+                    android:id="@+id/expListViewPeersWithServices"
                     android:layout_height="match_parent"
-                    android:layout_width="match_parent" android:background="#ff46445d"/>
+                    android:layout_width="match_parent" android:background="#ff46445d"
+                    android:choiceMode="singleChoice" android:clickable="true" android:drawSelectorOnTop="true"
+                    android:listSelector = "@drawable/selector_list_item"/>
         </LinearLayout>
         <LinearLayout
                 android:orientation="vertical"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent" android:layout_weight="1"
-                android:id="@+id/WFDLinearLayoutBroadcastPeers">
+                android:id="@+id/WFDLinearLayoutPeers">
             <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Broadcast Peers"
-                    android:id="@+id/textViewWFDBroadcastPeers" android:gravity="center" android:background="#ff86af86"
+                    android:text="Peers"
+                    android:id="@+id/textViewWFDPeers" android:gravity="center" android:background="#ff86af86"
                     android:textColor="#fffef5ff"/>
             <ExpandableListView
-                    android:id="@+id/expListViewBroadcastPeers"
+                    android:id="@+id/expListViewPeers"
                     android:layout_height="match_parent"
                     android:layout_width="match_parent" android:background="#ff4f6a4b"/>
         </LinearLayout>

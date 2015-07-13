@@ -9,10 +9,7 @@ import android.net.wifi.p2p.*;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
+import android.view.*;
 import android.widget.*;
 
 import java.util.*;
@@ -35,7 +32,8 @@ public class WiFiDirectControlActivity extends Activity {
     TextView txtP2pOnOff;
     Button btnP2pOn;
     Button btnP2pOff;
-    Button wiFiDirectConnectButton;
+    Button btnWiFiDirectConnectAsGO;
+    Button btnWiFiDirectConnectAsClient;
 
     TextView txtDeviceName;
     TextView txtDeviceStatus;
@@ -61,10 +59,10 @@ public class WiFiDirectControlActivity extends Activity {
     BroadcastReceiver receiver;
 
     // ExpandableListView TEST
-    ExpandableListAdapter<String, String> expListAdapterDiscoverdPeers;
-    ExpandableListView expListViewDiscoverdPeers;
-    ExpandableListAdapter<String, WifiP2pDevice> expListAdapterBroadcastPeers;
-    ExpandableListView expListViewBroadcastPeers;
+    ExpandableListAdapter<String, String> expListAdapterPeersWithServices;
+    ExpandableListView expListViewPeersWithServices;
+    ExpandableListAdapter<String, WifiP2pDevice> expListAdapterPeers;
+    ExpandableListView expListViewPeers;
 
     Menu menu;
     private boolean isPeerDiscoveryActivated = false;
@@ -72,6 +70,7 @@ public class WiFiDirectControlActivity extends Activity {
     private WifiP2pDnsSdServiceInfo serviceInfo;
     private WifiP2pManager.ActionListener ndsRegisteredListener;
     private boolean isNDSRegisteredAsGO = false;
+
 
 
     @Override
@@ -99,14 +98,24 @@ public class WiFiDirectControlActivity extends Activity {
         btnP2pOn = (Button) findViewById(R.id.buttonP2pOn);
         btnP2pOff = (Button) findViewById(R.id.buttonP2pOff);
 
-        wiFiDirectConnectButton = (Button) findViewById(R.id.buttonWiFiDirectConnect);
-        wiFiDirectConnectButton.setOnClickListener(new View.OnClickListener() {
+        btnWiFiDirectConnectAsGO = (Button) findViewById(R.id.buttonWiFiDirectConnectAsGO);
+        btnWiFiDirectConnectAsGO.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                tvConsole.append("\nwiFiDirectConnectButton pressed...");
-                connectToSelectedGO();
+                tvConsole.append("\nbtnWiFiDirectConnectAsGO pressed...");
+                connectToSelectedPeer("GO");
             }
         });
+
+        btnWiFiDirectConnectAsClient = (Button) findViewById(R.id.buttonWiFiDirectConnectAsClient);
+        btnWiFiDirectConnectAsClient.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                tvConsole.append("\nbtnWiFiDirectConnectAsClient pressed...");
+                connectToSelectedPeer("Client");
+            }
+        });
+
 
 
         // info Controls
@@ -121,32 +130,32 @@ public class WiFiDirectControlActivity extends Activity {
         txtPeerDiscoveryState = (TextView) findViewById(R.id.textViewPeerDiscoveryState);
 
         // ExpandableListViews
-        expListViewDiscoverdPeers = (ExpandableListView) findViewById(R.id.expListViewDiscoveredPeers);
-        expListAdapterDiscoverdPeers = new ExpandableListAdapter<>(this);
-        expListViewDiscoverdPeers.setAdapter(expListAdapterDiscoverdPeers);
+        expListViewPeersWithServices = (ExpandableListView) findViewById(R.id.expListViewPeersWithServices);
+        expListAdapterPeersWithServices = new ExpandableListAdapter<>(this);
+        expListViewPeersWithServices.setAdapter(expListAdapterPeersWithServices);
 
-        expListViewBroadcastPeers = (ExpandableListView) findViewById(R.id.expListViewBroadcastPeers);
-        expListAdapterBroadcastPeers = new ExpandableListAdapter<>(this);
-        expListViewBroadcastPeers.setAdapter(expListAdapterBroadcastPeers);
+        expListViewPeers = (ExpandableListView) findViewById(R.id.expListViewPeers);
+        expListAdapterPeers = new ExpandableListAdapter<>(this);
+        expListViewPeers.setAdapter(expListAdapterPeers);
 
         //allow the selected areas to grow
-        final LinearLayout llWFDDiscoveredPeers = (LinearLayout) findViewById(R.id.WFDLinearLayoutDiscoveredPeers);
-        final LinearLayout llWFDBroadcastPeers = (LinearLayout) findViewById(R.id.WFDLinearLayoutBroadcastPeers);
+        final LinearLayout llWFDPeersWithServices = (LinearLayout) findViewById(R.id.WFDLinearLayoutPeersWithServices);
+        final LinearLayout llWFDPeers = (LinearLayout) findViewById(R.id.WFDLinearLayoutPeers);
         final LinearLayout llWFDConsole = (LinearLayout) findViewById(R.id.WFDLinearLayoutConsole);
 
-        TextView textViewWFDDiscoveredPeers = (TextView) findViewById(R.id.textViewWFDDiscoveredPeers);
-        textViewWFDDiscoveredPeers.setOnClickListener(new View.OnClickListener() {
+        TextView textViewWFDPeersWithServices = (TextView) findViewById(R.id.textViewWFDPeersWithServices);
+        textViewWFDPeersWithServices.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                toggleLinearLayoutsWeight(llWFDDiscoveredPeers, llWFDBroadcastPeers, llWFDConsole);
+                toggleLinearLayoutsWeight(llWFDPeersWithServices, llWFDPeers, llWFDConsole);
             }
         });
 
-        TextView textViewWFDBroadcastPeers = (TextView) findViewById(R.id.textViewWFDBroadcastPeers);
-        textViewWFDBroadcastPeers.setOnClickListener(new View.OnClickListener() {
+        TextView textViewWFDPeers = (TextView) findViewById(R.id.textViewWFDPeers);
+        textViewWFDPeers.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                toggleLinearLayoutsWeight(llWFDBroadcastPeers, llWFDDiscoveredPeers, llWFDConsole);
+                toggleLinearLayoutsWeight(llWFDPeers, llWFDPeersWithServices, llWFDConsole);
             }
         });
 
@@ -154,19 +163,48 @@ public class WiFiDirectControlActivity extends Activity {
         textViewWFDConsole.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                toggleLinearLayoutsWeight(llWFDConsole, llWFDBroadcastPeers, llWFDDiscoveredPeers);
+                toggleLinearLayoutsWeight(llWFDConsole, llWFDPeers, llWFDPeersWithServices);
             }
         });
 
+        expListViewPeersWithServices.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
+            @Override
+            public boolean onGroupClick(ExpandableListView expandableListView, View view, int groupPosition, long id) {
+
+
+                String elem = (String)discoveredNodesRecords.keySet().toArray()[groupPosition];
+
+                Toast.makeText(WiFiDirectControlActivity.this, "onGroupClick, selected pos: " + groupPosition
+                                + " id: " + id + " elem: " + elem + " group: " +
+                                expandableListView.getExpandableListAdapter().getGroup(groupPosition),
+                        Toast.LENGTH_SHORT).show();
+
+            // TODO colocar o group string numa label na GUI
+
+                return false;
+            }
+        });
 
         discoverNsdService();
     }
 
-    void connectToSelectedGO() {
-        if (!expListViewDiscoverdPeers.isSelected()) {
-            // TODO ...
+    /***
+     *
+     * @param intendedRole
+     * //@param listToGetDeviceToConnect
+     */
+    void connectToSelectedPeer(String intendedRole) {
+       // expListViewPeersWithServices.get
+        if (!expListViewPeersWithServices.isSelected()) {
+            Toast.makeText(WiFiDirectControlActivity.this, "expListViewPeersWithServices: Not selected...",
+                    Toast.LENGTH_SHORT).show();
+           // return;
         }
-        String devName = (String) expListViewDiscoverdPeers.getSelectedItem();
+        String devName = (String) expListViewPeersWithServices.getSelectedItem();
+        int devPosition = expListViewPeersWithServices.getSelectedItemPosition();
+        Toast.makeText(WiFiDirectControlActivity.this, "expListViewPeersWithServices: selected pos: " +devPosition
+                        + " devName: " + devName,
+                Toast.LENGTH_SHORT).show();
         // TODO ...
 
     }
@@ -205,7 +243,7 @@ public class WiFiDirectControlActivity extends Activity {
                 // wifi devices.
                 String discoveryInfo = discoveredNodesRecords.containsKey(resourceType.deviceAddress) ?
                         discoveredNodesRecords.get(resourceType.deviceAddress).toString() : "{no discovery info}";
-                expListAdapterDiscoverdPeers.addDataChild(resourceType.deviceName, resourceType.toString() + "\n  " + discoveryInfo);
+                expListAdapterPeersWithServices.addDataChild(resourceType.deviceName, resourceType.toString() + "\n  " + discoveryInfo);
 //                adapterDiscoveredPeers.add(resourceType.toString() + "\n  " + discoveryInfo);
 
                 Toast.makeText(WiFiDirectControlActivity.this, "serviceAvailable: " + instanceName + ", "
@@ -440,10 +478,10 @@ public class WiFiDirectControlActivity extends Activity {
     private void update_P2P_PeerList(Intent intent) {
         WifiP2pDeviceList peers = intent.getParcelableExtra(WifiP2pManager.EXTRA_P2P_DEVICE_LIST);
         if (peers != null) {
-            expListAdapterBroadcastPeers.clear();
+            expListAdapterPeers.clear();
             Collection<WifiP2pDevice> devList = peers.getDeviceList();
             for (WifiP2pDevice dev : devList)
-                expListAdapterBroadcastPeers.addDataChild(dev.deviceName, dev);
+                expListAdapterPeers.addDataChild(dev.deviceName, dev);
         } else {
             // API less than 18
             manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
@@ -452,10 +490,10 @@ public class WiFiDirectControlActivity extends Activity {
                     if (progressDialog != null && progressDialog.isShowing()) {
                         progressDialog.dismiss();
                     }
-                    expListAdapterBroadcastPeers.clear();
+                    expListAdapterPeers.clear();
                     Collection<WifiP2pDevice> devList = peers.getDeviceList();
                     for (WifiP2pDevice dev : devList)
-                        expListAdapterBroadcastPeers.addDataChild(dev.deviceName, dev);
+                        expListAdapterPeers.addDataChild(dev.deviceName, dev);
                 }
             });
         }
