@@ -60,6 +60,26 @@
                     android:layout_height="wrap_content"
                     android:text="Client"
                     android:id="@+id/buttonWiFiDirectConnectAsClient"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Not Selected"
+                    android:id="@+id/textViewSelectedPeer"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Search Services"
+                    android:id="@+id/WFDButtonSearchTESTE"/>
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Disconnect from Peer"
+                    android:id="@+id/WFDButtonDisconnect"/>
         </LinearLayout>
         <LinearLayout
                 android:orientation="horizontal"

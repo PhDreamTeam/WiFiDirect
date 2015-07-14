@@ -16,7 +16,6 @@ import java.util.*;
 
 /**
  * Created by AT e DR on 23-06-2015.
- *
  */
 
 public class WiFiDirectControlActivity extends Activity {
@@ -44,6 +43,7 @@ public class WiFiDirectControlActivity extends Activity {
     TextView txtNetworkName;
     TextView txtNetworkPassphrase;
     TextView txtPeerDiscoveryState;
+    TextView txtSelectedPeer;
 
     MenuItem discoverPeerView;
     MenuItem stopDiscoverPeerView;
@@ -70,7 +70,10 @@ public class WiFiDirectControlActivity extends Activity {
     private WifiP2pDnsSdServiceInfo serviceInfo;
     private WifiP2pManager.ActionListener ndsRegisteredListener;
     private boolean isNDSRegisteredAsGO = false;
-
+    private String selectedPeerName;
+    private String selectedPeerAddress;
+    private Button btnWiFiDirectSearchTESTE;
+    private Button btnWiFiDirectDisconnect;
 
 
     @Override
@@ -103,7 +106,7 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onClick(View v) {
                 tvConsole.append("\nbtnWiFiDirectConnectAsGO pressed...");
-                connectToSelectedPeer("GO");
+                connectToPeer("GO", selectedPeerAddress, selectedPeerName);
             }
         });
 
@@ -112,7 +115,26 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onClick(View v) {
                 tvConsole.append("\nbtnWiFiDirectConnectAsClient pressed...");
-                connectToSelectedPeer("Client");
+                connectToPeer("Client", selectedPeerAddress, selectedPeerName);
+            }
+        });
+
+
+        btnWiFiDirectDisconnect = (Button) findViewById(R.id.WFDButtonDisconnect);
+        btnWiFiDirectDisconnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                tvConsole.append("\nbtnWiFiDirectDisconnect pressed...");
+                //TODO...
+            }
+        });
+
+        btnWiFiDirectSearchTESTE = (Button) findViewById(R.id.WFDButtonSearchTESTE);
+        btnWiFiDirectSearchTESTE.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                tvConsole.append("\nbtnWiFiDirectSearchTESTE pressed...");
+                discoverNsdService();
             }
         });
 
@@ -128,6 +150,8 @@ public class WiFiDirectControlActivity extends Activity {
         txtNetworkName = (TextView) findViewById(R.id.textViewNetworkName);
         txtNetworkPassphrase = (TextView) findViewById(R.id.textViewNetworkPassphrase);
         txtPeerDiscoveryState = (TextView) findViewById(R.id.textViewPeerDiscoveryState);
+        txtSelectedPeer = (TextView) findViewById(R.id.textViewSelectedPeer);
+
 
         // ExpandableListViews
         expListViewPeersWithServices = (ExpandableListView) findViewById(R.id.expListViewPeersWithServices);
@@ -172,41 +196,22 @@ public class WiFiDirectControlActivity extends Activity {
             public boolean onGroupClick(ExpandableListView expandableListView, View view, int groupPosition, long id) {
 
 
-                String elem = (String)discoveredNodesRecords.keySet().toArray()[groupPosition];
+                String elem = (String) discoveredNodesRecords.keySet().toArray()[groupPosition];
 
                 Toast.makeText(WiFiDirectControlActivity.this, "onGroupClick, selected pos: " + groupPosition
                                 + " id: " + id + " elem: " + elem + " group: " +
                                 expandableListView.getExpandableListAdapter().getGroup(groupPosition),
                         Toast.LENGTH_SHORT).show();
 
-            // TODO colocar o group string numa label na GUI
+                selectedPeerName = "" + expandableListView.getExpandableListAdapter().getGroup(groupPosition);
+                selectedPeerAddress = elem;
 
+                txtSelectedPeer.setText(selectedPeerName);
                 return false;
             }
         });
 
         discoverNsdService();
-    }
-
-    /***
-     *
-     * @param intendedRole
-     * //@param listToGetDeviceToConnect
-     */
-    void connectToSelectedPeer(String intendedRole) {
-       // expListViewPeersWithServices.get
-        if (!expListViewPeersWithServices.isSelected()) {
-            Toast.makeText(WiFiDirectControlActivity.this, "expListViewPeersWithServices: Not selected...",
-                    Toast.LENGTH_SHORT).show();
-           // return;
-        }
-        String devName = (String) expListViewPeersWithServices.getSelectedItem();
-        int devPosition = expListViewPeersWithServices.getSelectedItemPosition();
-        Toast.makeText(WiFiDirectControlActivity.this, "expListViewPeersWithServices: selected pos: " +devPosition
-                        + " devName: " + devName,
-                Toast.LENGTH_SHORT).show();
-        // TODO ...
-
     }
 
 
@@ -218,7 +223,6 @@ public class WiFiDirectControlActivity extends Activity {
          * record: TXT record dta as a map of key/value pairs.
          * device: The device running the advertised service.
          */
-
             @SuppressWarnings("unchecked")
             public void onDnsSdTxtRecordAvailable(String fullDomain, Map record, WifiP2pDevice device) {
                 Toast.makeText(WiFiDirectControlActivity.this, "DnsSdTxtRecord available -" + record.toString(),
@@ -260,7 +264,7 @@ public class WiFiDirectControlActivity extends Activity {
 
                             // connect to GO
 //                            DEBUG DR AT commented to prevent autoconnect
-//                            connectToGO(resourceType);
+//                            connectToPeer(resourceType);
 //                            alreadyConnecting = true;
                         }
                     }
@@ -315,33 +319,20 @@ public class WiFiDirectControlActivity extends Activity {
     /**
      *
      */
-    void connectToGO(WifiP2pDevice deviceGO) {
+    void connectToPeer(String intendedRole, String peerAddressToConnect, String peerNameToConnect) {
+        tvConsole.append("\nconnecting to: " + peerAddressToConnect + " (" + peerNameToConnect + ") as "
+                + intendedRole);
+
+        if (peerAddressToConnect == null) {
+            tvConsole.append("\nNothing to do...");
+            return;
+        }
+
         WifiP2pConfig config = new WifiP2pConfig();
-        config.deviceAddress = deviceGO.deviceAddress;
+        config.deviceAddress = peerAddressToConnect;
         config.wps.setup = WpsInfo.PBC;
 
-        config.groupOwnerIntent = 0; // 15 max, 0 min
-
-        Toast.makeText(context, "client in auto connect to: " + deviceGO.deviceName,
-                Toast.LENGTH_SHORT).show();
-        tvConsole.append("\nAuto connecting to: " + deviceGO.deviceName);
-
-
-//        if (progressDialog != null && progressDialog.isShowing()) {
-//            progressDialog.dismiss();
-//        }
-//
-//
-//        progressDialog = ProgressDialog.show(getActivity(), "Press back to cancel",
-//                "Connecting to :" + deviceGO.deviceAddress, true, true
-////                        new DialogInterface.OnCancelListener() {
-////
-////                            @Override
-////                            public void onCancel(DialogInterface dialog) {
-////                                ((DeviceActionListener) getActivity()).cancelDisconnect();
-////                            }
-////                        }
-//        );
+        config.groupOwnerIntent = intendedRole.equalsIgnoreCase("GO") ? 14 : 1; // 15 max(GO), 0 min(Cliente)
 
         // connect to the GO
         manager.connect(channel, config, new WifiP2pManager.ActionListener() {
@@ -349,34 +340,16 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onSuccess() {
                 // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
-
                 Toast.makeText(context, "Connect: successfully", Toast.LENGTH_LONG).show();
                 tvConsole.append("\nConnected: success");
-
-//                // CHECK NEW CODE ========================================================
-//                manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
-//                    @Override
-//                    public void onGroupInfoAvailable(WifiP2pGroup group) {
-//                        if (group == null) {
-//                            Toast.makeText(context, "Group is Null On connect success",
-//                                    Toast.LENGTH_LONG).show();
-//                        } else {
-//                            String groupInfo = group.getNetworkName() + " " + group.getPassphrase();
-//                            Toast.makeText(context, groupInfo,
-//                                    Toast.LENGTH_LONG).show();
-//                        }
-//                    }
-//                });
-//                // CHECK END
             }
 
             @Override
             public void onFailure(int reason) {
-                Toast.makeText(context, "Connect failed. Retry.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Connect failed.", Toast.LENGTH_SHORT).show();
                 tvConsole.append("\nConnected: failed");
             }
         });
-
     }
 
     @Override
@@ -543,7 +516,7 @@ public class WiFiDirectControlActivity extends Activity {
                 manager.removeLocalService(channel, serviceInfo, ndsRegisteredListener); // unregister
                 ndsRegisteredListener = null;
             }
-            if(ndsRegisteredListener == null) // !isNDSRegisteredAsGO
+            if (ndsRegisteredListener == null) // !isNDSRegisteredAsGO
                 registerNsdService(null, "GO"); /*deviceName null generates a random one*/
             isNDSRegisteredAsGO = true;
         } else {
@@ -625,7 +598,7 @@ public class WiFiDirectControlActivity extends Activity {
                 manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
-                        Toast.makeText(WiFiDirectControlActivity.this, "Discovery Initiated",
+                        Toast.makeText(WiFiDirectControlActivity.this, "Discovery peers Initiated",
                                 Toast.LENGTH_SHORT).show();
                         txtPeerDiscoveryState.setText("Started");
 
@@ -636,7 +609,7 @@ public class WiFiDirectControlActivity extends Activity {
 
                     @Override
                     public void onFailure(int reasonCode) {
-                        Toast.makeText(WiFiDirectControlActivity.this, "Discovery Failed : " + reasonCode,
+                        Toast.makeText(WiFiDirectControlActivity.this, "Discovery peers Failed : " + reasonCode,
                                 Toast.LENGTH_SHORT).show();
                         // test
 //                        progressDialog.dismiss();
@@ -709,7 +682,7 @@ public class WiFiDirectControlActivity extends Activity {
                 // Unless you want to update the UI or add logging statements.
 //                Toast.makeText(WiFiDirectControlActivity.this, "Service Discovery registered successfully.",
 //                        Toast.LENGTH_SHORT).show();
-                tvConsole.append("\nService Discovery registered successfully.");
+                tvConsole.append("\n**********Service Discovery registered successfully.");
             }
 
             @Override
