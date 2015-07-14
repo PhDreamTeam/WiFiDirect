@@ -2,17 +2,27 @@ package com.example.android.wifidirect;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
-import android.content.*;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.FeatureInfo;
+import android.content.pm.PackageManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.*;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.os.Bundle;
-import android.view.*;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
 import android.widget.*;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by AT e DR on 23-06-2015.
@@ -72,7 +82,7 @@ public class WiFiDirectControlActivity extends Activity {
     private boolean isNDSRegisteredAsGO = false;
     private String selectedPeerName;
     private String selectedPeerAddress;
-    private Button btnWiFiDirectSearchTESTE;
+    private Button btnWiFiDirectSearchServices;
     private Button btnWiFiDirectDisconnect;
 
 
@@ -83,10 +93,13 @@ public class WiFiDirectControlActivity extends Activity {
 
         context = getApplicationContext();
 
+        tvConsole = ((TextView) findViewById(R.id.textViewConsole));
+
+        boolean wifiDirectSupported = isWifiDirectSupported(context);
+        tvConsole.append("WifiDirectSupported: " + wifiDirectSupported); // first message to console
+
         manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         channel = manager.initialize(this, getMainLooper(), null);
-
-        tvConsole = ((TextView) findViewById(R.id.textViewConsole));
 
         // add necessary intent values to be matched.
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -98,9 +111,28 @@ public class WiFiDirectControlActivity extends Activity {
 
         //Control state and buttons
         txtP2pOnOff = (TextView) findViewById(R.id.textViewP2pOnOff);
-        btnP2pOn = (Button) findViewById(R.id.buttonP2pOn);
-        btnP2pOff = (Button) findViewById(R.id.buttonP2pOff);
 
+        // P2P ON button
+        btnP2pOn = (Button) findViewById(R.id.buttonP2pOn);
+        btnP2pOn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                tvConsole.append("\n\nbtn P2P On pressed...");
+                // TODO
+            }
+        });
+
+        // P2P OFF button
+        btnP2pOff = (Button) findViewById(R.id.buttonP2pOff);
+        btnP2pOff.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                tvConsole.append("\n\nbtn P2P Off pressed...");
+                // TODO
+            }
+        });
+
+        // Connect as GO button
         btnWiFiDirectConnectAsGO = (Button) findViewById(R.id.buttonWiFiDirectConnectAsGO);
         btnWiFiDirectConnectAsGO.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -110,6 +142,7 @@ public class WiFiDirectControlActivity extends Activity {
             }
         });
 
+        // Connect as Client button
         btnWiFiDirectConnectAsClient = (Button) findViewById(R.id.buttonWiFiDirectConnectAsClient);
         btnWiFiDirectConnectAsClient.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -119,25 +152,24 @@ public class WiFiDirectControlActivity extends Activity {
             }
         });
 
-
+        // disconnect from group button
         btnWiFiDirectDisconnect = (Button) findViewById(R.id.WFDButtonDisconnect);
         btnWiFiDirectDisconnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                tvConsole.append("\nbtnWiFiDirectDisconnect pressed...");
-                //TODO...
+                tvConsole.append("\n\nbtnWiFiDirectDisconnect pressed...");
+                disconnectFromGroup();
             }
         });
 
-        btnWiFiDirectSearchTESTE = (Button) findViewById(R.id.WFDButtonSearchTESTE);
-        btnWiFiDirectSearchTESTE.setOnClickListener(new View.OnClickListener() {
+        btnWiFiDirectSearchServices = (Button) findViewById(R.id.WFDButtonSearchServices);
+        btnWiFiDirectSearchServices.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                tvConsole.append("\nbtnWiFiDirectSearchTESTE pressed...");
+                tvConsole.append("\n\nbtnWiFiDirectSearchServices pressed...");
                 discoverNsdService();
             }
         });
-
 
 
         // info Controls
@@ -167,6 +199,7 @@ public class WiFiDirectControlActivity extends Activity {
         final LinearLayout llWFDPeers = (LinearLayout) findViewById(R.id.WFDLinearLayoutPeers);
         final LinearLayout llWFDConsole = (LinearLayout) findViewById(R.id.WFDLinearLayoutConsole);
 
+        // textView Peer services listener - to change size of view
         TextView textViewWFDPeersWithServices = (TextView) findViewById(R.id.textViewWFDPeersWithServices);
         textViewWFDPeersWithServices.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -175,6 +208,7 @@ public class WiFiDirectControlActivity extends Activity {
             }
         });
 
+        // textView Peers listener - to change size of view
         TextView textViewWFDPeers = (TextView) findViewById(R.id.textViewWFDPeers);
         textViewWFDPeers.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -183,6 +217,7 @@ public class WiFiDirectControlActivity extends Activity {
             }
         });
 
+        // Console click listener - to change size of view
         TextView textViewWFDConsole = (TextView) findViewById(R.id.textViewWFDConsole);
         textViewWFDConsole.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -211,11 +246,17 @@ public class WiFiDirectControlActivity extends Activity {
             }
         });
 
+        // register this device as a service provider with rule: Client
+        registerNsdService(null, "Client"); /*deviceName null generates a random one*/
+
+        // starts listening to other devices
         discoverNsdService();
     }
 
 
     private void discoverNsdService() {
+
+        // listener for Bonjour TXT record
         WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
             @Override
         /* Callback includes:
@@ -232,10 +273,11 @@ public class WiFiDirectControlActivity extends Activity {
             }
         };
 
+        // listener for Bonjour service response
         WifiP2pManager.DnsSdServiceResponseListener servListener = new WifiP2pManager.DnsSdServiceResponseListener() {
             @Override
             public void onDnsSdServiceAvailable(String instanceName, String registrationType,
-                                                WifiP2pDevice resourceType) {
+                                                WifiP2pDevice srcDevice) {
 
                 // Update the device name with the human-friendly version from
                 // the DnsTxtRecord, assuming one arrived.
@@ -245,30 +287,33 @@ public class WiFiDirectControlActivity extends Activity {
 
                 // Add to the custom adapter defined specifically for showing
                 // wifi devices.
-                String discoveryInfo = discoveredNodesRecords.containsKey(resourceType.deviceAddress) ?
-                        discoveredNodesRecords.get(resourceType.deviceAddress).toString() : "{no discovery info}";
-                expListAdapterPeersWithServices.addDataChild(resourceType.deviceName, resourceType.toString() + "\n  " + discoveryInfo);
-//                adapterDiscoveredPeers.add(resourceType.toString() + "\n  " + discoveryInfo);
+                String discoveryInfo = discoveredNodesRecords.containsKey(srcDevice.deviceAddress) ?
+                        discoveredNodesRecords.get(srcDevice.deviceAddress).toString() : "{no discovery info}";
+
+                expListAdapterPeersWithServices.addDataChild(srcDevice.deviceName,
+                        srcDevice.toString() + "\n  Status: " +
+                                DeviceListFragment.getDeviceStatus(srcDevice.status) +
+                                "\n  " + discoveryInfo);
 
                 Toast.makeText(WiFiDirectControlActivity.this, "serviceAvailable: " + instanceName + ", "
-                                + registrationType + ", " + resourceType.deviceName,
+                                + registrationType + ", " + srcDevice.deviceName,
                         Toast.LENGTH_SHORT).show();
 
-                if (!alreadyConnecting) {
-                    if (discoveredNodesRecords.containsKey(resourceType.deviceAddress)) {
-                        String role = discoveredNodesRecords.get(resourceType.deviceAddress).get("role");
-                        if ("GO".equals(role)) {
-                            Toast.makeText(WiFiDirectControlActivity.this, "GO Found: " + resourceType.deviceName,
-                                    Toast.LENGTH_SHORT).show();
-                            tvConsole.append("\nGO Found: " + resourceType.deviceName);
-
-                            // connect to GO
-//                            DEBUG DR AT commented to prevent autoconnect
-//                            connectToPeer(resourceType);
-//                            alreadyConnecting = true;
-                        }
-                    }
-                }
+//                if (!alreadyConnecting) {
+//                    if (discoveredNodesRecords.containsKey(resourceType.deviceAddress)) {
+//                        String role = discoveredNodesRecords.get(resourceType.deviceAddress).get("role");
+//                        if ("GO".equals(role)) {
+//                            Toast.makeText(WiFiDirectControlActivity.this, "GO Found: " + resourceType.deviceName,
+//                                    Toast.LENGTH_SHORT).show();
+//                            tvConsole.append("\nGO Found: " + resourceType.deviceName);
+//
+//                            // connect to GO
+////                            DEBUG DR AT commented to prevent autoconnect
+////                            connectToPeer(resourceType);
+////                            alreadyConnecting = true;
+//                        }
+//                    }
+//                }
             }
         };
 
@@ -352,6 +397,34 @@ public class WiFiDirectControlActivity extends Activity {
         });
     }
 
+    public void disconnectFromGroup() {
+        tvConsole.append("\nDisconnecting...");
+
+        manager.removeGroup(channel, new WifiP2pManager.ActionListener() {
+
+            @Override
+            public void onFailure(int reasonCode) {
+                tvConsole.append("\n Disconnect failed. Reason :" + reasonCode);
+            }
+
+            @Override
+            public void onSuccess() {
+                tvConsole.append("\n Disconnect succeeded");
+            }
+        });
+    }
+
+    private boolean isWifiDirectSupported(Context ctx) {
+        PackageManager pm = (PackageManager) ctx.getPackageManager();
+        FeatureInfo[] features = pm.getSystemAvailableFeatures();
+        for (FeatureInfo info : features) {
+            if (info != null && info.name != null && info.name.equalsIgnoreCase("android.hardware.wifi.direct")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -369,31 +442,31 @@ public class WiFiDirectControlActivity extends Activity {
                 switch (action) {
 
                     case WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION:
-                        tvConsole.append("\nBDC: WIFI_P2P_STATE_CHANGED");
-                        update_P2P_state(intent);
+                        tvConsole.append("\n\nBDC: WIFI_P2P_STATE_CHANGED");
+                        update_P2P_state_changed(intent);
                         break;
 
                     case WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION:
-                        tvConsole.append("\nBDC: WIFI_P2P_PEERS_CHANGED");
-                        update_P2P_PeerList(intent);
+                        tvConsole.append("\n\nBDC: WIFI_P2P_PEERS_CHANGED");
+                        update_P2P_peers_changed(intent);
                         break;
 
                     case WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION:
-                        tvConsole.append("\nBDC: WIFI_P2P_CONNECTION_CHANGED");
-                        update_P2P_connection(intent);
+                        tvConsole.append("\n\nBDC: WIFI_P2P_CONNECTION_CHANGED");
+                        update_P2P_connection_changed(intent);
                         break;
 
                     case WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION:
-                        tvConsole.append("\nBDC: WIFI_P2P_THIS_DEVICE_CHANGED");
+                        tvConsole.append("\n\nBDC: WIFI_P2P_THIS_DEVICE_CHANGED");
                         update_P2P_this_device_changed(intent);
                         break;
 
                     case WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION:
-                        tvConsole.append("\nBDC: WIFI_P2P_DISCOVERY_CHANGED_ACTION");
+                        tvConsole.append("\n\nBDC: WIFI_P2P_DISCOVERY_CHANGED_ACTION");
                         update_P2P_Discovery_Peers_changed(intent);
                         break;
                     default:
-                        tvConsole.append("\nBroadcast receiver: " + action);
+                        tvConsole.append("\n\nBroadcast receiver: " + action);
                 }
 
             }
@@ -431,7 +504,7 @@ public class WiFiDirectControlActivity extends Activity {
     /**
      *
      */
-    private void update_P2P_state(Intent intent) {
+    private void update_P2P_state_changed(Intent intent) {
         // UI update to indicate wifi p2p status.
         int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
         if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
@@ -444,17 +517,17 @@ public class WiFiDirectControlActivity extends Activity {
             txtP2pOnOff.setText("P2P: OFF");
             btnP2pOn.setEnabled(true);
             btnP2pOff.setEnabled(false);
-            // TODO add listener to the buttons and enable/disable P2P...
         }
     }
 
-    private void update_P2P_PeerList(Intent intent) {
+    private void update_P2P_peers_changed(Intent intent) {
         WifiP2pDeviceList peers = intent.getParcelableExtra(WifiP2pManager.EXTRA_P2P_DEVICE_LIST);
         if (peers != null) {
             expListAdapterPeers.clear();
             Collection<WifiP2pDevice> devList = peers.getDeviceList();
             for (WifiP2pDevice dev : devList)
                 expListAdapterPeers.addDataChild(dev.deviceName, dev);
+            tvConsole.append("\n  devList with size: " + devList.size());
         } else {
             // API less than 18
             manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
@@ -467,12 +540,13 @@ public class WiFiDirectControlActivity extends Activity {
                     Collection<WifiP2pDevice> devList = peers.getDeviceList();
                     for (WifiP2pDevice dev : devList)
                         expListAdapterPeers.addDataChild(dev.deviceName, dev);
+                    tvConsole.append("\n  devList with size: " + devList.size());
                 }
             });
         }
     }
 
-    private void update_P2P_connection(Intent intent) {
+    private void update_P2P_connection_changed(Intent intent) {
         //Broadcast intent action indicating that the state of Wi-Fi p2p
         // connectivity has changed. One extra EXTRA_WIFI_P2P_INFO provides
         // the p2p connection info in the form of a WifiP2pInfo object.
@@ -490,20 +564,36 @@ public class WiFiDirectControlActivity extends Activity {
         //networkInfo.
 
         WifiP2pGroup wifiP2pGroup = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
-        tvConsole.append("\n  WifiP2pGroup:\n    " + (wifiP2pGroup == null ? "not available on this API" : wifiP2pGroup.toString()));
+        tvConsole.append(
+                "\n  WifiP2pGroup:\n    " + (wifiP2pGroup == null ? "not available on this API" : wifiP2pGroup.toString()));
         if (wifiP2pGroup != null) {
             txtNetworkName.setText(wifiP2pGroup.getNetworkName());
             txtNetworkPassphrase.setText(wifiP2pGroup.getPassphrase());
             txtGOName.setText(wifiP2pGroup.getOwner() != null ? wifiP2pGroup.getOwner().deviceName : "");
-            //            wifiP2pGroup.
-        }// TODO else try and get wifiP2pGroup in another way for API 16
+        } else {
+            // get wifiP2pGroup in another way for API 16
+            manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+                @Override
+                public void onGroupInfoAvailable(WifiP2pGroup group) {
+                    if (group != null) {
+                        txtNetworkName.setText(group.getNetworkName());
+                        txtNetworkPassphrase.setText(group.getPassphrase());
+                        txtGOName.setText(group.getOwner() != null ? group.getOwner().deviceName : "");
+                    } else {
+                        txtNetworkName.setText("");
+                        txtNetworkPassphrase.setText("");
+                        txtGOName.setText("");
+                    }
+                }
+            });
+        }
 
-        // TODO HERE do it
+        // update service
+        registerNsdService(null, wifiP2pInfo.groupFormed ? "GO" : "Client");
     }
 
     private void update_P2P_this_device_changed(Intent intent) {
         WifiP2pDevice dev = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
-        tvConsole.append("\n-----------");
         tvConsole.append("\n  WifiP2pDevice:\n  " + dev.toString());
         tvConsole.append("\n   Status: " + DeviceListFragment.getDeviceStatus(dev.status));
         txtDeviceName.setText(dev.deviceName);

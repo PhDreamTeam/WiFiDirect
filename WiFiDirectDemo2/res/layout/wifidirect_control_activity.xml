@@ -74,7 +74,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Search Services"
-                    android:id="@+id/WFDButtonSearchTESTE"/>
+                    android:id="@+id/WFDButtonSearchServices"/>
             <Button
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
