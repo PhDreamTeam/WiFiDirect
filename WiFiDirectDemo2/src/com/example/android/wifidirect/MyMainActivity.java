@@ -1,12 +1,15 @@
 package com.example.android.wifidirect;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.FeatureInfo;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -32,6 +35,11 @@ public class MyMainActivity extends Activity {
     private TextView tvMainWiFiState;
     private Button btnMainWiFiTurnOn;
     private Button btnMainWiFiTurnOff;
+    private boolean p2pSuported = false;
+    private WifiManager wifiManager;
+
+    private final IntentFilter intentFilter = new IntentFilter();
+    BroadcastReceiver receiver;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -40,9 +48,14 @@ public class MyMainActivity extends Activity {
         context = getApplicationContext();
         myThis = this;
 
-        // connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 
-        // WiFi State
+        wifiManager = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
+
+        intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+
+        //check if WiFIDirect is supported
+        p2pSuported = isWifiDirectSupported(context);
 
         tvMainWiFiState = (TextView) findViewById(R.id.textViewMainWiFiState);
         btnMainWiFiTurnOn = (Button) findViewById(R.id.buttonMainWiFiTurnOn);
@@ -57,44 +70,77 @@ public class MyMainActivity extends Activity {
         btnRelay = (Button) findViewById(R.id.buttonMainRelay);
         btnClient = (Button) findViewById(R.id.buttonMainClient);
 
-//        if(!isWifiOnDevice()) {
-//            tvMainWiFiState.setText("WiFI not supported");
-//            btnMainWiFiTurnOn.setVisibility(View.GONE);
-//            btnMainWiFiTurnOff.setVisibility(View.GONE);
-//            btnWFDGroupOwner.setEnabled(false);
-//            btnWFDClient.setEnabled(false);
-//            btnP2PWFDClient.setEnabled(false);
-//            btnWiFiClient.setEnabled(false);
-//            btnRelay.setEnabled(false);
-//            btnClient.setEnabled(false);
-//            return;
-//        }
+        if (!isWifiOnDevice()) {
+            tvMainWiFiState.setText("WiFI not supported");
+            btnMainWiFiTurnOn.setVisibility(View.GONE);
+            btnMainWiFiTurnOff.setVisibility(View.GONE);
+            enableAllWiFiActivityButtons(false, false);
+            return;
+        }
 
-//        setButtonsListeners();
+        if (!p2pSuported) {
+            enableAllWiFiActivityButtons(true, p2pSuported);
+            btnP2PWFDClient.setText("P2P not supported");
+        }
 
-        // TODO: falta testar isto num telemóvel e verificar se funciona
-//        if (!isWifiDirectSupported(context)) {
-//            btnP2PWFDClient.setEnabled(false);
-//            btnP2PWFDClient.setText("P2P not supported");
-//        }
+        setButtonsListeners();
     }
 
     @Override
     public void onResume() {
-        //adjustWifiStateButtons();
+        super.onResume();
+        adjustWifiStateButtons();
+
+        receiver = new BroadcastReceiver() {
+
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                switch (action) {
+                    case WifiManager.WIFI_STATE_CHANGED_ACTION:
+                        adjustWifiStateButtons();
+                        break;
+                }
+            }
+        };
+        registerReceiver(receiver, intentFilter);
     }
 
     private void adjustWifiStateButtons() {
-        if (isWifiActive()) {
-            btnMainWiFiTurnOn.setVisibility(View.VISIBLE);
-            btnMainWiFiTurnOff.setVisibility(View.GONE);
-        } else {
-            btnMainWiFiTurnOn.setVisibility(View.GONE);
+        boolean wifiActive = isWifiActive();
+        if (wifiActive) {
             btnMainWiFiTurnOff.setVisibility(View.VISIBLE);
+            btnMainWiFiTurnOn.setVisibility(View.GONE);
+            tvMainWiFiState.setText("WiFi state: ON");
+        } else {
+            btnMainWiFiTurnOff.setVisibility(View.GONE);
+            btnMainWiFiTurnOn.setVisibility(View.VISIBLE);
+            tvMainWiFiState.setText("WiFi state: OFF");
         }
+        enableAllWiFiActivityButtons(wifiActive, p2pSuported);
     }
 
     private void setButtonsListeners() {
+
+        btnMainWiFiTurnOn.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Toast.makeText(context, "Turning WiFi ON!!!!!", Toast.LENGTH_SHORT).show();
+                        wifiManager.setWifiEnabled(true);
+                    }
+                });
+
+        btnMainWiFiTurnOff.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Toast.makeText(context, "Turning WiFi OFF!!!!!", Toast.LENGTH_SHORT).show();
+                        wifiManager.setWifiEnabled(false);
+                    }
+                });
+
+
         btnWFDGroupOwner.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
@@ -196,6 +242,15 @@ public class MyMainActivity extends Activity {
     }
 
     private boolean isWifiActive() {
-        return wifiNetworkInfo.isAvailable();
+        return wifiManager.isWifiEnabled();
+    }
+
+    private void enableAllWiFiActivityButtons(boolean enable, boolean p2pSuported) {
+        btnWFDGroupOwner.setEnabled(enable && p2pSuported);
+        btnWFDClient.setEnabled(enable && p2pSuported);
+        btnP2PWFDClient.setEnabled(enable && p2pSuported);
+        btnWiFiClient.setEnabled(enable);
+        btnRelay.setEnabled(enable);
+        btnClient.setEnabled(enable);
     }
 }
