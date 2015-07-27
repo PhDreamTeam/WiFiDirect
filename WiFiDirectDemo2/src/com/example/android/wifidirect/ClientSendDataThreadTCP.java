@@ -72,7 +72,8 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
                 }
             }
             Log.d("dest address", destAddress + " -> " + Arrays.toString(destAddress.getBytes()));
-            Inet6Address dest = Inet6Address.getByAddress("123", destAddress.getBytes(), wifiInterface );
+//            Inet6Address dest = Inet6Address.getByAddress(null, destAddress.getBytes(), wifiInterface );
+            InetAddress dest = Inet6Address.getByName(destAddress);
             return dest;
 
         } catch (SocketException e) {
@@ -117,7 +118,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
                 dataLimit = 0; // send the complete image
             }
 
-            Socket cliSocket = new Socket(crIpAddress, crPortNumber);
+            Socket cliSocket = new Socket(getInetAddress(crIpAddress), crPortNumber);
             dos = new DataOutputStream(cliSocket.getOutputStream());
             DataInputStream dis = new DataInputStream(cliSocket.getInputStream());
 
