@@ -11,6 +11,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
+import java.net.*;
+import java.util.Arrays;
+import java.util.Enumeration;
 
 /**
  * Created by DR & AT on 20/05/2015.
@@ -56,6 +59,31 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         this.sourceUri = sourceUri;
     }
 
+    private InetAddress getInetAddress(String destAddress) {
+        Enumeration<NetworkInterface> networkInterfaces = null;
+        try {
+            networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            NetworkInterface wifiInterface = null;
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = networkInterfaces.nextElement();
+                if (networkInterface.getDisplayName().equals("wlan0")) { // || networkInterface.getDisplayName().equals("eth0")) {
+                    wifiInterface = networkInterface;
+                    break;
+                }
+            }
+            Log.d("dest address", destAddress + " -> " + Arrays.toString(destAddress.getBytes()));
+            Inet6Address dest = Inet6Address.getByAddress("123", destAddress.getBytes(), wifiInterface );
+            return dest;
+
+        } catch (SocketException e) {
+            e.printStackTrace();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     @Override
     public void run() {
         editTextSentData.post(new Runnable() {
@@ -82,7 +110,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         DataOutputStream dos = null;
 
         try {
-            // open source file
+
             if(sourceUri != null) {
                 cr = editTextSentData.getContext().getContentResolver();
                 is = cr.openInputStream(sourceUri);
@@ -93,7 +121,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
             dos = new DataOutputStream(cliSocket.getOutputStream());
             DataInputStream dis = new DataInputStream(cliSocket.getInputStream());
 
-            // receive replys from destination
+            // receive replies from destination
             rcvThread = createRcvThread(dis);
 
             // send destination information for the forward node
@@ -146,7 +174,6 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
 //                    Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
 //                }
         }
-
     }
 
     private Thread createRcvThread(final DataInputStream dis) {
