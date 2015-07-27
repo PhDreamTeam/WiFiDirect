@@ -83,11 +83,22 @@
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content">
             </LinearLayout>
-            <Button
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Start Transmitting"
-                    android:id="@+id/buttonStartStopTransmitting" android:layout_gravity="center_horizontal"/>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent">
+                <Button
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Start Transmitting"
+                        android:id="@+id/buttonStartStopTransmitting" android:layout_gravity="center_horizontal"
+                        android:layout_weight="1"/>
+                <Button
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Send Image"
+                        android:id="@+id/buttonSendImage" android:layout_weight="1"/>
+            </LinearLayout>
             <LinearLayout
                     android:orientation="horizontal"
                     android:layout_width="match_parent"

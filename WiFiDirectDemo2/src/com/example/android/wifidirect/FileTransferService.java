@@ -47,10 +47,11 @@ public class FileTransferService extends IntentService {
         if (intent.getAction().equals(ACTION_SEND_FILE)) {
             String fileUri = intent.getExtras().getString(EXTRAS_FILE_PATH);
             String host = intent.getExtras().getString(EXTRAS_GROUP_OWNER_ADDRESS);
-            Socket socket = new Socket();
+            Socket socket = null;
             int port = intent.getExtras().getInt(EXTRAS_GROUP_OWNER_PORT);
 
             try {
+                socket = new Socket();
                 Log.d(WiFiDirectActivity.TAG, "Opening client socket - ");
                 socket.bind(null);
                 socket.connect((new InetSocketAddress(host, port)), SOCKET_TIMEOUT);
@@ -58,14 +59,14 @@ public class FileTransferService extends IntentService {
                 Log.d(WiFiDirectActivity.TAG, "Client socket - " + socket.isConnected());
                 OutputStream stream = socket.getOutputStream();
                 ContentResolver cr = context.getContentResolver();
-                InputStream is = null;
-                try {
-                    is = cr.openInputStream(Uri.parse(fileUri));
-                } catch (FileNotFoundException e) {
-                    Log.d(WiFiDirectActivity.TAG, e.toString());
-                }
+
+                InputStream is = cr.openInputStream(Uri.parse(fileUri));
+
                 DeviceDetailFragment.copyFile(is, stream);
+
                 Log.d(WiFiDirectActivity.TAG, "Client: Data written");
+            }  catch (FileNotFoundException e) {
+                Log.d(WiFiDirectActivity.TAG, e.toString());
             } catch (IOException e) {
                 Log.e(WiFiDirectActivity.TAG, e.getMessage());
             } finally {

@@ -1,12 +1,12 @@
 package com.example.android.wifidirect;
 
+import android.net.Uri;
+import android.os.Environment;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -94,6 +94,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         @Override
         public void run() {
             System.out.println(" Receiver transfer thread started...");
+            OutputStream fos = null;
             try {
                 DataInputStream dis = new DataInputStream(originSocket.getInputStream());
                 DataOutputStream dos = new DataOutputStream(originSocket.getOutputStream());
@@ -104,6 +105,26 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 String addressInfo = new String(buffer, 0, addressLen);
                 Log.d(WiFiDirectActivity.TAG, "Received destination address: " + addressInfo);
 
+                // if received data is to store on file
+                String aia[] = addressInfo.split(";");
+                if(aia.length == 3){ // 3rd element is the file name
+                    String filename = aia[2];
+                    Uri fileUri = Uri.parse(filename);
+
+                    final File f = new File(Environment.getExternalStorageDirectory() + "/"
+                            + editTextRcvData.getContext().getPackageName() + "/wifip2pshared-" + System.currentTimeMillis()
+                            + "-" + fileUri.getLastPathSegment() + ".jpg"); // add filename
+                    File dirs = new File(f.getParent());
+                    if (!dirs.exists())
+                        dirs.mkdirs();
+                    f.createNewFile();
+                    Log.d(WiFiDirectActivity.TAG, "server: copying files " + f.toString());
+                    fos = new FileOutputStream(f);
+
+                    myToast("Receiving file on server: " + f.getAbsolutePath());
+
+                }
+
                 // Receive client data
                 initialNanoTime = System.nanoTime();
                 Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSize);
@@ -111,6 +132,9 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 while (run) {
                     // receive and count rcvData
                     int readDataLen = dis.read(buffer);
+                    if(fos != null){
+                        fos.write(buffer, 0, readDataLen);
+                    }
                     if (readDataLen != -1) {
                         rcvDataCounterTotal += readDataLen;
                         rcvDataCounterDelta += readDataLen;
@@ -120,15 +144,19 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                         updateVisualDeltaInformation(); // this may slow down reception. may want to get data only when necessary
                     } else {
                         // end of data
+                        myToast("File received successfully on server.");
                         run = false;
                         dis.close();
                         originSocket.close();
+                        if(fos != null)
+                            fos.close();
                     }
 
                 }
 
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(WiFiDirectActivity.TAG, "Error receiving file on server: " + e.getMessage());
+                myToast("Error receiving file on server: " + e.getMessage());
             }
         }
 
@@ -202,5 +230,14 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             run = false;
             this.interrupt();
         }
+    }
+
+    private void myToast(final String s) {
+        editTextRcvData.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(editTextRcvData.getContext(), s, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

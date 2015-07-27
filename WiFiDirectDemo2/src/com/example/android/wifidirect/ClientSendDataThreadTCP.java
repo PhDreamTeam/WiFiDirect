@@ -1,5 +1,7 @@
 package com.example.android.wifidirect;
 
+import android.content.ContentResolver;
+import android.net.Uri;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -7,6 +9,7 @@ import android.widget.Toast;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
 
 /**
@@ -29,13 +32,18 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
     boolean run = true;
     double lastUpdate;
 
+    Uri sourceUri;
+
     Thread rcvThread;
 
-    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, EditText editTextSentData, EditText editTextRcvData, int bufferSize) {
-        this(destIpAddress, destPortNumber, crIpAddress, crPortNumber, 0, 0, editTextSentData, editTextRcvData, bufferSize);
+    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
+            , EditText editTextSentData, EditText editTextRcvData, int bufferSize, Uri sourceUri) {
+        this(destIpAddress, destPortNumber, crIpAddress, crPortNumber, 0, 0, editTextSentData, editTextRcvData, bufferSize, sourceUri);
     }
 
-    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, long speed, long dataLimit, EditText editTextSentData, EditText editTextRcvData, int bufferSize) {
+    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
+            , long speed, long dataLimit, EditText editTextSentData, EditText editTextRcvData, int bufferSize
+            , Uri sourceUri) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
         this.crIpAddress = crIpAddress;
@@ -45,6 +53,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         this.editTextSentData = editTextSentData;
         this.editTextRcvData = editTextRcvData;
         this.bufferSize = bufferSize;
+        this.sourceUri = sourceUri;
     }
 
     @Override
@@ -60,13 +69,28 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         // Send data
         byte buffer[] = new byte[bufferSize];
         byte b = 0;
-        for (int i = 0; i < buffer.length; i++, b++) {
-            buffer[i] = b;
+
+        // if no inputstream, fill dummy data
+        if(sourceUri == null) {
+            for (int i = 0; i < buffer.length; i++, b++) {
+                buffer[i] = b;
+            }
         }
+
+        ContentResolver cr = null;
+        InputStream is = null;
+        DataOutputStream dos = null;
+
         try {
+            // open source file
+            if(sourceUri != null) {
+                cr = editTextSentData.getContext().getContentResolver();
+                is = cr.openInputStream(sourceUri);
+                dataLimit = 0; // send the complete image
+            }
 
             Socket cliSocket = new Socket(crIpAddress, crPortNumber);
-            DataOutputStream dos = new DataOutputStream(cliSocket.getOutputStream());
+            dos = new DataOutputStream(cliSocket.getOutputStream());
             DataInputStream dis = new DataInputStream(cliSocket.getInputStream());
 
             // receive replys from destination
@@ -74,14 +98,28 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
 
             // send destination information for the forward node
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
+            if(sourceUri != null){
+                addressData += ";" + sourceUri.toString();
+            }
+             //
             dos.writeInt(addressData.getBytes().length);
             dos.write(addressData.getBytes());
 
             Log.d( WiFiDirectActivity.TAG, "Using BufferSize: " + buffer.length);
 
+            int dataLen = buffer.length;
             while (run) {
-                dos.write(buffer);
-                sentData += buffer.length;
+
+                if(is != null){
+                    dataLen = is.read(buffer);
+                    if(dataLen == -1) {
+                        run = false;
+                        break;
+                    }
+                }
+
+                dos.write(buffer, 0, dataLen);
+                sentData += dataLen;
                 updateSentData(sentData);
                 if (dataLimit != 0 && sentData > dataLimit) {
                     run = false;
@@ -91,8 +129,24 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
                 }
             }
         } catch (Exception e) {
+            Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
             e.printStackTrace();
+        } finally {
+            if(is != null)
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    Log.e(WiFiDirectActivity.TAG, "Error closing input stream from source transmitting file.");
+                }
+            // DEBUG DR
+//            if(dos != null)
+//                try {
+//                    dos.close();
+//                } catch (IOException e) {
+//                    Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
+//                }
         }
+
     }
 
     private Thread createRcvThread(final DataInputStream dis) {
