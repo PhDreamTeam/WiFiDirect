@@ -10,9 +10,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Socket;
 import java.net.*;
-import java.util.Arrays;
 import java.util.Enumeration;
 
 /**
@@ -41,7 +39,8 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
 
     public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
             , EditText editTextSentData, EditText editTextRcvData, int bufferSize, Uri sourceUri) {
-        this(destIpAddress, destPortNumber, crIpAddress, crPortNumber, 0, 0, editTextSentData, editTextRcvData, bufferSize, sourceUri);
+        this(destIpAddress, destPortNumber, crIpAddress, crPortNumber, 0, 0, editTextSentData, editTextRcvData,
+                bufferSize, sourceUri);
     }
 
     public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
@@ -59,6 +58,11 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         this.sourceUri = sourceUri;
     }
 
+    /**
+     * This method gets the InetAddress for ths received address (trying to) using the wlan0 interface.
+     * This is a test, to verify if we can send a message throught one speicify interface
+     *
+     */
     private InetAddress getInetAddress(String destAddress) {
         Enumeration<NetworkInterface> networkInterfaces = null;
         try {
@@ -66,19 +70,23 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
             NetworkInterface wifiInterface = null;
             while (networkInterfaces.hasMoreElements()) {
                 NetworkInterface networkInterface = networkInterfaces.nextElement();
-                if (networkInterface.getDisplayName().equals("wlan0")) { // || networkInterface.getDisplayName().equals("eth0")) {
+                if (networkInterface.getDisplayName().equals(
+                        "wlan0")) { // || networkInterface.getDisplayName().equals("eth0")) {
                     wifiInterface = networkInterface;
                     break;
                 }
             }
-            Log.d("dest address", destAddress + " -> " + Arrays.toString(destAddress.getBytes()));
-//            Inet6Address dest = Inet6Address.getByAddress(null, destAddress.getBytes(), wifiInterface );
-            InetAddress dest = Inet6Address.getByName(destAddress);
+            //Log.d("dest address", destAddress + " -> " + Arrays.toString(destAddress.getBytes()));
+
+            // AT this code is working in ISEL
+            InetAddress dest1 = Inet6Address.getByName(destAddress);
+            Inet6Address dest = Inet6Address.getByAddress(destAddress, dest1.getAddress(), wifiInterface);
+
+            // AT this code worked in iSEL (with the ipv6 address)
+            //InetAddress dest = Inet6Address.getByName(destAddress);
             return dest;
 
-        } catch (SocketException e) {
-            e.printStackTrace();
-        } catch (UnknownHostException e) {
+        } catch (SocketException | UnknownHostException e) {
             e.printStackTrace();
         }
 
@@ -100,7 +108,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         byte b = 0;
 
         // if no inputstream, fill dummy data
-        if(sourceUri == null) {
+        if (sourceUri == null) {
             for (int i = 0; i < buffer.length; i++, b++) {
                 buffer[i] = b;
             }
@@ -112,7 +120,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
 
         try {
 
-            if(sourceUri != null) {
+            if (sourceUri != null) {
                 cr = editTextSentData.getContext().getContentResolver();
                 is = cr.openInputStream(sourceUri);
                 dataLimit = 0; // send the complete image
@@ -127,21 +135,21 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
 
             // send destination information for the forward node
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
-            if(sourceUri != null){
+            if (sourceUri != null) {
                 addressData += ";" + sourceUri.toString();
             }
-             //
+            //
             dos.writeInt(addressData.getBytes().length);
             dos.write(addressData.getBytes());
 
-            Log.d( WiFiDirectActivity.TAG, "Using BufferSize: " + buffer.length);
+            Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + buffer.length);
 
             int dataLen = buffer.length;
             while (run) {
 
-                if(is != null){
+                if (is != null) {
                     dataLen = is.read(buffer);
-                    if(dataLen == -1) {
+                    if (dataLen == -1) {
                         run = false;
                         break;
                     }
@@ -161,7 +169,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
             Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
             e.printStackTrace();
         } finally {
-            if(is != null)
+            if (is != null)
                 try {
                     is.close();
                 } catch (IOException e) {

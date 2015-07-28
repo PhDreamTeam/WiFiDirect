@@ -20,7 +20,6 @@ import android.widget.Toast;
  * Created by AT DR on 08-05-2015.
  * .
  */
-
 public class MyMainActivity extends Activity {
     MyMainActivity myThis;
     Context context;
@@ -44,6 +43,17 @@ public class MyMainActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // To catch exceptions and save them do file
+        if (!(Thread.getDefaultUncaughtExceptionHandler() instanceof CustomExceptionHandler)) {
+            Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler(
+                    "WiFiDirectApp", "/storage/sdcard0/logs"));
+        }
+
+        // to test previous code
+//        if(btnMainWiFiTurnOff == null)
+//            throw new RuntimeException("ehhhhhh");
+
         setContentView(R.layout.my_main_activity);
         context = getApplicationContext();
         myThis = this;

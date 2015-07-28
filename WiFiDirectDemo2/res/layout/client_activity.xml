@@ -23,7 +23,7 @@
                           android:text="CR Address:"
                           android:id="@+id/textView80" android:layout_weight="25"/>
                 <EditText android:layout_width="0dp" android:layout_height="wrap_content"
-                          android:id="@+id/editTextCrIpAddress" android:text="fe80::c2ee:fbff:fe21:cccc" android:layout_weight="50"/>
+                          android:id="@+id/editTextCrIpAddress" android:text="2001:690:2008:e1f4:a832:53d1:50ef:549c" android:layout_weight="50"/>
                 <EditText android:layout_width="0px" android:layout_height="wrap_content" android:inputType="number"
                           android:ems="10" android:id="@+id/editTextCrPortNumber" android:text="30000"
                           android:layout_weight="25"/>
