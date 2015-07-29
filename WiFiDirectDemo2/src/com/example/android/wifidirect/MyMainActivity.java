@@ -16,7 +16,10 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Created by AT DR on 08-05-2015.
@@ -47,23 +50,14 @@ public class MyMainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         // To catch exceptions and save them do file
-        if (!(Thread.getDefaultUncaughtExceptionHandler() instanceof CustomExceptionHandler)) {
-            Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler(
-                    "WiFiDirectApp", "/storage/sdcard0/logs"));
-        }
+//        if (!(Thread.getDefaultUncaughtExceptionHandler() instanceof CustomExceptionHandler)) {
+//            Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler(
+//                    "WiFiDirectApp", "/storage/sdcard0/logs"));
+//        }
 
-        // to test previous code
-//        if(btnMainWiFiTurnOff == null)
-//            throw new RuntimeException("ehhhhhh");
+        // set log also to file
+        setLogToFile();
 
-        String cmd = "logcat -v time -f " + "/storage/sdcard0/logs/log.txt";
-        try {
-            Runtime.getRuntime().exec(cmd);
-            if(btnMainWiFiTurnOff == null)
-                throw new RuntimeException("ehhhhhh");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         setContentView(R.layout.my_main_activity);
         context = getApplicationContext();
@@ -105,6 +99,28 @@ public class MyMainActivity extends Activity {
         }
 
         setButtonsListeners();
+    }
+
+    private void setLogToFile() {
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH_mm_ss");
+        String timestamp = sdf.format(new Date());
+
+        String appName = getResources().getString(R.string.app_name);
+        appName = appName.replace(' ', '-');
+        String cmd = "logcat -v time -f " + "/storage/sdcard0/logs/log_" + timestamp + "_" + appName + ".txt";
+
+        try {
+            File logDir = new File("/storage/sdcard0/logs");
+            if(!logDir.exists())
+                logDir.mkdir();
+
+            Runtime.getRuntime().exec(cmd);
+            if(btnMainWiFiTurnOff == null)
+                throw new RuntimeException("ehhhhhh");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
