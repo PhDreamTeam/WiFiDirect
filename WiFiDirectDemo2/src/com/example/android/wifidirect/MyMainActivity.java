@@ -16,6 +16,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
+
 /**
  * Created by AT DR on 08-05-2015.
  * .
@@ -53,6 +55,15 @@ public class MyMainActivity extends Activity {
         // to test previous code
 //        if(btnMainWiFiTurnOff == null)
 //            throw new RuntimeException("ehhhhhh");
+
+        String cmd = "logcat -v time -f " + "/storage/sdcard0/logs/log.txt";
+        try {
+            Runtime.getRuntime().exec(cmd);
+            if(btnMainWiFiTurnOff == null)
+                throw new RuntimeException("ehhhhhh");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         setContentView(R.layout.my_main_activity);
         context = getApplicationContext();
