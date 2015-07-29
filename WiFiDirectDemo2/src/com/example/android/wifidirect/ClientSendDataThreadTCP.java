@@ -1,15 +1,14 @@
 package com.example.android.wifidirect;
 
 import android.content.ContentResolver;
+import android.database.Cursor;
 import android.net.Uri;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.*;
 
 /**
@@ -29,7 +28,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
     EditText editTextSentData;
     EditText editTextRcvData;
 
-    boolean run = true;
+    boolean runSender = true, runReceiver = true;
     double lastUpdate;
 
     Uri sourceUri;
@@ -135,11 +134,21 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         DataOutputStream dos = null;
         Socket cliSocket = null;
 
+        long fileSize = 0, sentData = 0;
+        String fileName = null;
+
         try {
 
             if (sourceUri != null) {
                 cr = editTextSentData.getContext().getContentResolver();
                 is = cr.openInputStream(sourceUri);
+                // get file size
+                fileSize = cr.openTypedAssetFileDescriptor(sourceUri, "*/*", null).getLength();
+                fileName = getFileNameFromURI(sourceUri);
+
+                // Log.d(WiFiDirectActivity.TAG, "File URI: " + sourceUri.toString());
+                Log.d(WiFiDirectActivity.TAG, "File Size: " + fileSize);
+                Log.d(WiFiDirectActivity.TAG, "File Name: " + fileName);
                 dataLimit = 0; // send the complete image
             }
 
@@ -153,10 +162,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
             // send destination information for the forward node
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
             if (sourceUri != null) {
-                addressData += ";" + sourceUri.toString();
-                Log.d(WiFiDirectActivity.TAG, "File URI: " + sourceUri.toString());
-                Log.d(WiFiDirectActivity.TAG, "File URI path: " + sourceUri.getPath());
-                Log.d(WiFiDirectActivity.TAG, "File URI segments: " + sourceUri.getPathSegments());
+                addressData += ";" + fileName + ";" + fileSize;
             }
             //
             dos.writeInt(addressData.getBytes().length);
@@ -165,14 +171,11 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
             Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + buffer.length);
 
             int dataLen = buffer.length;
-            long sentData = 0;
 
-            while (run) {
-
+            while (runSender) {
                 if (is != null) {
                     dataLen = is.read(buffer);
                     if (dataLen == -1) {
-                        run = false;
                         break;
                     }
                 }
@@ -180,8 +183,9 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
                 dos.write(buffer, 0, dataLen);
                 sentData += dataLen;
                 updateSentData(sentData, false);
+
                 if (dataLimit != 0 && sentData > dataLimit) {
-                    run = false;
+                    break;
                 }
                 if (speed != 0) {
                     this.sleep(speed);
@@ -197,21 +201,36 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
             Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
             e.printStackTrace();
         } finally {
-            if (is != null)
-                try {
-                    is.close();
-                } catch (IOException e) {
-                    Log.e(WiFiDirectActivity.TAG, "Error closing input stream from source transmitting file.");
-                }
-            // DEBUG DR
-
-            if(dos != null)
-                try {
-                    dos.close();
-                } catch (IOException e) {
-                    Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
-                }
+            // close streams
+            close(is);
+            close(dos);
         }
+    }
+
+    private void close(Closeable closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private String getFileNameFromURI(Uri returnUri) {
+        Cursor returnCursor =
+                editTextSentData.getContext().getContentResolver().query(returnUri, null, null, null, null);
+
+        int nameIndex = returnCursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+        //int sizeIndex = returnCursor.getColumnIndex(OpenableColumns.SIZE);
+        returnCursor.moveToFirst();
+
+        String fileName = returnCursor.getString(nameIndex);
+        //sizeView.setText(Long.toString(returnCursor.getLong(sizeIndex)));
+
+        returnCursor.close();
+
+        return fileName;
     }
 
     private Thread createRcvThread(final DataInputStream dis) {
@@ -223,16 +242,25 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
                 int nBytesRead = 0;
 
                 try {
-                    while (run) {
+                    while (runReceiver) {
                         nBytesRead = dis.read(buffer);
+                        if (nBytesRead == -1)
+                            break;
 
-                        if (nBytesRead != -1) {
-                            rcvData += nBytesRead;
-                        } else
-                            run = false;
+                        rcvData += nBytesRead;
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    if (e.getMessage().equals("recvfrom failed: ECONNRESET (Connection reset by peer)")) {
+                        // terminated with success
+                        updateRcvData(true);
+                        Log.d(WiFiDirectActivity.TAG,
+                                "File received successfully on server, (end by exception), bytes received: " + rcvData);
+                    } else {
+                        Log.d(WiFiDirectActivity.TAG,"Error on File receive.");
+                        e.printStackTrace();
+                    }
+                } finally {
+                    close(dis);
                 }
             }
         });
@@ -243,7 +271,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
     private void updateSentData(final long sentData, boolean forceUpdate) {
         long currentNanoTime = System.nanoTime();
 
-        if ((currentNanoTime > lastUpdate + 1000000000 ) || forceUpdate) {
+        if ((currentNanoTime > lastUpdate + 1000000000) || forceUpdate) {
             lastUpdate = currentNanoTime;
             editTextSentData.post(new Runnable() {
                 @Override
@@ -251,18 +279,22 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
                     editTextSentData.setText("" + (sentData / 1024) + " KB");
                 }
             });
-            editTextRcvData.post(new Runnable() {
-                @Override
-                public void run() {
-                    editTextRcvData.setText("" + rcvData + " B");
-                }
-            });
+            updateRcvData(forceUpdate);
         }
+    }
+
+    private void updateRcvData(boolean forceUpdate) {
+        editTextRcvData.post(new Runnable() {
+            @Override
+            public void run() {
+                editTextRcvData.setText("" + rcvData + " B");
+            }
+        });
     }
 
     @Override
     public void stopThread() {
-        run = false;
+        runSender = runReceiver = false;
         this.interrupt();
         rcvThread.interrupt();
     }

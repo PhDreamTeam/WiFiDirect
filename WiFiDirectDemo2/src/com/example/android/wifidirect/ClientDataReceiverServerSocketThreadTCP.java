@@ -1,6 +1,5 @@
 package com.example.android.wifidirect;
 
-import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
 import android.widget.EditText;
@@ -9,7 +8,9 @@ import android.widget.Toast;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * Created by DR & AT on 20/05/2015.
@@ -95,9 +96,12 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         public void run() {
             System.out.println(" Receiver transfer thread started...");
             OutputStream fos = null;
+            DataInputStream dis = null;
+            DataOutputStream dos = null;
+
             try {
-                DataInputStream dis = new DataInputStream(originSocket.getInputStream());
-                DataOutputStream dos = new DataOutputStream(originSocket.getOutputStream());
+                dis = new DataInputStream(originSocket.getInputStream());
+                dos = new DataOutputStream(originSocket.getOutputStream());
 
                 int addressLen = dis.readInt();
                 dis.read(buffer, 0, addressLen);
@@ -107,18 +111,20 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 // if received data is to store on file
                 String aia[] = addressInfo.split(";");
-                if (aia.length == 3) { // 3rd element is the file name
+                if (aia.length == 4) { // 3rd element is the file name, 4th is the file size
                     String filename = aia[2];
-                    Uri fileUri = Uri.parse(filename);
+                    long fileSize = Long.parseLong(aia[3]);
+
+                    SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd_HH'h'mm'm'ss's'");
+                    String timestamp = sdf.format(new Date());
 
                     final File f = new File(Environment.getExternalStorageDirectory() + "/"
-                            + editTextRcvData.getContext().getPackageName() + "/wifip2pshared-" + System.currentTimeMillis()
-                            + "-" + fileUri.getLastPathSegment() + ".jpg"); // add filename
+                            + editTextRcvData.getContext().getPackageName() + "/" + timestamp + "_" + filename); // add filename
                     File dirs = new File(f.getParent());
                     if (!dirs.exists())
                         dirs.mkdirs();
-                    f.createNewFile();
-                    Log.d(WiFiDirectActivity.TAG, "server: copying files " + f.toString());
+                    //f.createNewFile();
+                    Log.d(WiFiDirectActivity.TAG, "Server: saving file: " + f.toString());
                     fos = new FileOutputStream(f);
 
                     myToast("Receiving file on server: " + f.getAbsolutePath());
@@ -133,7 +139,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     // receive and count rcvData
                     int readDataLen = dis.read(buffer);
 
-                    // check if end of data from socket
+                    // checking end of data from socket
                     if (readDataLen != -1) {
                         // write data to file
                         if (fos != null) {
@@ -156,17 +162,40 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     }
                 }
 
-                // final operations
-                updateVisualDeltaInformation(true);
-                dis.close();
-                originSocket.close();
-                if (fos != null)
-                    fos.close();
-
             } catch (IOException e) {
-                Log.e(WiFiDirectActivity.TAG, "Error receiving file on server: " + e.getMessage());
-                myToast("Error receiving file on server: " + e.getMessage());
-                e.printStackTrace();
+                Log.d(WiFiDirectActivity.TAG, "Exception message: " + e.getMessage());
+
+                if (e.getMessage().equals("recvfrom failed: ECONNRESET (Connection reset by peer)")) {
+                    // terminated with success
+                    updateVisualDeltaInformation(true);
+                    Log.d(WiFiDirectActivity.TAG,
+                            "File received successfully on server, (end by exception), bytes received: " + rcvDataCounterTotal);
+                } else {
+                    // terminated with error
+                    Log.e(WiFiDirectActivity.TAG, "Error receiving file on server: " + e.getMessage());
+                    myToast("Error receiving file on server: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            } finally {
+                // close operations
+                close(dis);
+                try {
+                    originSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                close(fos);
+                close(dos);
+            }
+        }
+
+        private void close(Closeable closeable) {
+            if (closeable != null) {
+                try {
+                    closeable.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
 
