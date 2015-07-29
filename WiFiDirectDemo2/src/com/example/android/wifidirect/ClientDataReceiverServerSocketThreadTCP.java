@@ -15,7 +15,7 @@ import java.util.ArrayList;
  * Created by DR & AT on 20/05/2015.
  * .
  */
-public class ClientDataReceiverServerSocketThreadTCP extends Thread implements IStopable{
+public class ClientDataReceiverServerSocketThreadTCP extends Thread implements IStopable {
     private int bufferSize;
     int portNumber;
     ServerSocket serverSocket;
@@ -68,7 +68,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             stopable.stopThread();
     }
 
-    private class ClientDataReceiverThreadTCP extends Thread implements IStopable{
+    private class ClientDataReceiverThreadTCP extends Thread implements IStopable {
         private int bufferSize;
         boolean run = true;
         Socket originSocket;
@@ -107,7 +107,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 // if received data is to store on file
                 String aia[] = addressInfo.split(";");
-                if(aia.length == 3){ // 3rd element is the file name
+                if (aia.length == 3) { // 3rd element is the file name
                     String filename = aia[2];
                     Uri fileUri = Uri.parse(filename);
 
@@ -132,27 +132,36 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 while (run) {
                     // receive and count rcvData
                     int readDataLen = dis.read(buffer);
-                    if(fos != null){
+
+                    // write data to file
+                    if (fos != null) {
                         fos.write(buffer, 0, readDataLen);
                     }
+
+                    // check if end of data from socket
                     if (readDataLen != -1) {
                         rcvDataCounterTotal += readDataLen;
                         rcvDataCounterDelta += readDataLen;
                         //send reply
                         dos.write("ok".getBytes()); // send reply to original client
                         sendDataCounterTotal += "ok".getBytes().length;
-                        updateVisualDeltaInformation(); // this may slow down reception. may want to get data only when necessary
+                        updateVisualDeltaInformation(false);
+                        // this may slow down reception. may want to get data only when necessary
                     } else {
                         // end of data
                         myToast("File received successfully on server.");
+                        Log.d(WiFiDirectActivity.TAG,
+                                "File received successfully on server, bytes received: " + rcvDataCounterTotal);
                         run = false;
-                        dis.close();
-                        originSocket.close();
-                        if(fos != null)
-                            fos.close();
                     }
-
                 }
+
+                // final operations
+                updateVisualDeltaInformation(true);
+                dis.close();
+                originSocket.close();
+                if (fos != null)
+                    fos.close();
 
             } catch (IOException e) {
                 Log.e(WiFiDirectActivity.TAG, "Error receiving file on server: " + e.getMessage());
@@ -160,18 +169,18 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             }
         }
 
-        void updateVisualDeltaInformation() {
+        void updateVisualDeltaInformation(boolean forcedUpdate) {
             // elapsed time
             long currentNanoTime = System.nanoTime();
 
-            if (currentNanoTime > lastUpdate + 1000000000) {
+            if ((currentNanoTime > lastUpdate + 1000000000) || forcedUpdate) {
 
                 long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
                 double elapsedDeltaRcvTimeSeconds = (double) elapsedDeltaRcvTimeNano / 1000000000.0;
                 // transfer speed B/s
                 double speed = (rcvDataCounterDelta / 1024) / elapsedDeltaRcvTimeSeconds;
-               // final String msg = (rcvDataCounterTotal / 1024) + " KBytes " + speed + " KBps";
-                final String msg = String.format("%d KB %4.2f KBps", rcvDataCounterTotal / 1024,  speed);
+                // final String msg = (rcvDataCounterTotal / 1024) + " KBytes " + speed + " KBps";
+                final String msg = String.format("%d KB %4.2f KBps", rcvDataCounterTotal / 1024, speed);
                 lastUpdate = currentNanoTime;
                 editTextRcvData.post(new Runnable() {
                     @Override
@@ -183,7 +192,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 editTextSendData.post(new Runnable() {
                     @Override
                     public void run() {
-                        editTextSendData.setText("" + sendDataCounterTotal + " Bytes" );
+                        editTextSendData.setText("" + sendDataCounterTotal + " Bytes");
                     }
                 });
             }

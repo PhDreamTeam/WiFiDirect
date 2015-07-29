@@ -23,6 +23,8 @@ public class ClientActivity extends Activity {
     Button btnStartStopServer, btnStartStopTransmitting, btnTcpUdp;
     boolean isTcp;
     protected int CHOOSE_FILE_RESULT_CODE = 20;
+    private EditText editTextRcvData;
+    private EditText editTextSendData;
 
 
     @Override
@@ -36,6 +38,9 @@ public class ClientActivity extends Activity {
         btnTcpUdp = (Button) findViewById(R.id.buttonTcpUdp);
 
         isTcp = btnTcpUdp.getText().toString().equals("TCP");
+
+        editTextRcvData = (EditText) findViewById(R.id.editTextRcvThrdRcvData);
+        editTextSendData = (EditText) findViewById(R.id.editTextRcvThrdSentData);
 
 
         findViewById(R.id.buttonStartStopTransmitting).setOnClickListener(
@@ -71,6 +76,10 @@ public class ClientActivity extends Activity {
                     @Override
                     public void onClick(View v) {
                         if (btnStartStopServer.getText().toString().equals("Start Receiving")) {
+                            // clear data counter textViewers
+                            editTextRcvData.setText("0 KBps");
+                            editTextSendData.setText("0 Bytes");
+
                             Context context = getApplicationContext();
                             String rcvPortNumber = ((EditText) findViewById(
                                     R.id.editTextServerPortNumber)).getText().toString();
