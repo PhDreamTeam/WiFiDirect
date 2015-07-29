@@ -9,11 +9,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 /**
  * Created by DR e AT on 20/05/2015.
+ *
  */
 public class ClientActivity extends Activity {
     ClientActivity myThis;
@@ -62,7 +62,6 @@ public class ClientActivity extends Activity {
                         intent.setType("image/*");
                         startActivityForResult(intent, CHOOSE_FILE_RESULT_CODE);
                         Toast.makeText(myThis, "Choose image!!", Toast.LENGTH_SHORT).show();
-
                     }
                 });
 
@@ -162,6 +161,7 @@ public class ClientActivity extends Activity {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CHOOSE_FILE_RESULT_CODE && resultCode == RESULT_OK && null != data) {
             Uri uriFileToSend = data.getData();
+            Log.d(WiFiDirectActivity.TAG,  "Start transmitting image: " + uriFileToSend.toString());
             Toast.makeText(this, "Start transmitting image: " + uriFileToSend.toString(), Toast.LENGTH_SHORT).show();
             transmitData(uriFileToSend); // send file
         }
