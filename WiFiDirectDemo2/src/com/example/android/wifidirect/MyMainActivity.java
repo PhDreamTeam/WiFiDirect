@@ -103,7 +103,7 @@ public class MyMainActivity extends Activity {
 
     private void setLogToFile() {
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd_HH_mm_ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd_HH'h'mm'm'ss's'");
         String timestamp = sdf.format(new Date());
 
         String appName = getResources().getString(R.string.app_name);
