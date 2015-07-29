@@ -103,12 +103,12 @@ public class MyMainActivity extends Activity {
 
     private void setLogToFile() {
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH_mm_ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd_HH_mm_ss");
         String timestamp = sdf.format(new Date());
 
         String appName = getResources().getString(R.string.app_name);
         appName = appName.replace(' ', '-');
-        String cmd = "logcat -v time -f " + "/storage/sdcard0/logs/log_" + timestamp + "_" + appName + ".txt";
+        String cmd = "logcat -v time -f " + "/storage/sdcard0/logs/" + timestamp + "_" + appName + ".txt";
 
         try {
             File logDir = new File("/storage/sdcard0/logs");
