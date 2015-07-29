@@ -133,6 +133,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         ContentResolver cr = null;
         InputStream is = null;
         DataOutputStream dos = null;
+        Socket cliSocket = null;
 
         try {
 
@@ -142,7 +143,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
                 dataLimit = 0; // send the complete image
             }
 
-            Socket cliSocket = new Socket(getInetAddress(crIpAddress), crPortNumber);
+            cliSocket = new Socket(getInetAddress(crIpAddress), crPortNumber);
             dos = new DataOutputStream(cliSocket.getOutputStream());
             DataInputStream dis = new DataInputStream(cliSocket.getInputStream());
 
@@ -190,6 +191,8 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
             updateSentData(sentData, true);
             Log.d(WiFiDirectActivity.TAG, "Data sent: " + sentData);
 
+            cliSocket.shutdownOutput();
+
         } catch (Exception e) {
             Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
             e.printStackTrace();
@@ -201,12 +204,13 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
                     Log.e(WiFiDirectActivity.TAG, "Error closing input stream from source transmitting file.");
                 }
             // DEBUG DR
-//            if(dos != null)
-//                try {
-//                    dos.close();
-//                } catch (IOException e) {
-//                    Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
-//                }
+
+            if(dos != null)
+                try {
+                    dos.close();
+                } catch (IOException e) {
+                    Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
+                }
         }
     }
 

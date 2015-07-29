@@ -133,13 +133,13 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     // receive and count rcvData
                     int readDataLen = dis.read(buffer);
 
-                    // write data to file
-                    if (fos != null) {
-                        fos.write(buffer, 0, readDataLen);
-                    }
-
                     // check if end of data from socket
                     if (readDataLen != -1) {
+                        // write data to file
+                        if (fos != null) {
+                            fos.write(buffer, 0, readDataLen);
+                        }
+
                         rcvDataCounterTotal += readDataLen;
                         rcvDataCounterDelta += readDataLen;
                         //send reply
@@ -166,6 +166,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             } catch (IOException e) {
                 Log.e(WiFiDirectActivity.TAG, "Error receiving file on server: " + e.getMessage());
                 myToast("Error receiving file on server: " + e.getMessage());
+                e.printStackTrace();
             }
         }
 
