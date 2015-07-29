@@ -49,15 +49,8 @@ public class MyMainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // To catch exceptions and save them do file
-//        if (!(Thread.getDefaultUncaughtExceptionHandler() instanceof CustomExceptionHandler)) {
-//            Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler(
-//                    "WiFiDirectApp", "/storage/sdcard0/logs"));
-//        }
-
         // set log also to file
         setLogToFile();
-
 
         setContentView(R.layout.my_main_activity);
         context = getApplicationContext();
@@ -101,8 +94,10 @@ public class MyMainActivity extends Activity {
         setButtonsListeners();
     }
 
+    /**
+     * Add log to file
+     */
     private void setLogToFile() {
-
         SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd_HH'h'mm'm'ss's'");
         String timestamp = sdf.format(new Date());
 
@@ -110,14 +105,14 @@ public class MyMainActivity extends Activity {
         appName = appName.replace(' ', '-');
         String cmd = "logcat -v time -f " + "/storage/sdcard0/logs/" + timestamp + "_" + appName + ".txt";
 
-        try {
-            File logDir = new File("/storage/sdcard0/logs");
-            if(!logDir.exists())
-                logDir.mkdir();
+        File logDir = new File("/storage/sdcard0/logs");
+        if(!logDir.exists())
+            logDir.mkdir();
 
+        try {
             Runtime.getRuntime().exec(cmd);
-            if(btnMainWiFiTurnOff == null)
-                throw new RuntimeException("ehhhhhh");
+//            if(btnMainWiFiTurnOff == null)
+//                throw new RuntimeException("ehhhhhh");
         } catch (IOException e) {
             e.printStackTrace();
         }
