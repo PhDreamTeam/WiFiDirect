@@ -24,7 +24,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
     int crPortNumber;
     long speed = 0; // number of millis to sleep between each 4096 of sent Bytes
     long dataLimit = 0;
-    long sentData = 0, rcvData = 0;
+    long rcvData = 0;
 
     EditText editTextSentData;
     EditText editTextRcvData;
@@ -164,6 +164,8 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
             Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + buffer.length);
 
             int dataLen = buffer.length;
+            long sentData = 0;
+
             while (run) {
 
                 if (is != null) {
@@ -176,7 +178,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
 
                 dos.write(buffer, 0, dataLen);
                 sentData += dataLen;
-                updateSentData(sentData);
+                updateSentData(sentData, false);
                 if (dataLimit != 0 && sentData > dataLimit) {
                     run = false;
                 }
@@ -184,6 +186,10 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
                     this.sleep(speed);
                 }
             }
+
+            updateSentData(sentData, true);
+            Log.d(WiFiDirectActivity.TAG, "Data sent: " + sentData);
+
         } catch (Exception e) {
             Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
             e.printStackTrace();
@@ -230,10 +236,10 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         return thread;
     }
 
-    private void updateSentData(final long sentData) {
+    private void updateSentData(final long sentData, boolean forceUpdate) {
         long currentNanoTime = System.nanoTime();
 
-        if (currentNanoTime > lastUpdate + 1000000000) {
+        if ((currentNanoTime > lastUpdate + 1000000000 ) || forceUpdate) {
             lastUpdate = currentNanoTime;
             editTextSentData.post(new Runnable() {
                 @Override

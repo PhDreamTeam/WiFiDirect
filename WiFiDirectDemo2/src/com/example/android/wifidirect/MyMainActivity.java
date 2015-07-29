@@ -123,19 +123,27 @@ public class MyMainActivity extends Activity {
         super.onResume();
         adjustWifiStateButtons();
 
-        receiver = new BroadcastReceiver() {
+        if(receiver == null) {
+            receiver = new BroadcastReceiver() {
 
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                String action = intent.getAction();
-                switch (action) {
-                    case WifiManager.WIFI_STATE_CHANGED_ACTION:
-                        adjustWifiStateButtons();
-                        break;
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    String action = intent.getAction();
+                    switch (action) {
+                        case WifiManager.WIFI_STATE_CHANGED_ACTION:
+                            adjustWifiStateButtons();
+                            break;
+                    }
                 }
-            }
-        };
+            };
+        }
         registerReceiver(receiver, intentFilter);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        unregisterReceiver(receiver);
     }
 
     private void adjustWifiStateButtons() {
