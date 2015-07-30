@@ -151,10 +151,11 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                         //send reply
                         dos.write("ok".getBytes()); // send reply to original client
                         sendDataCounterTotal += "ok".getBytes().length;
-                        updateVisualDeltaInformation(false);
+                        updateVisualDeltaInformation(false/*true*/); // DEBUG DR
                         // this may slow down reception. may want to get data only when necessary
                     } else {
                         // end of data
+                        updateVisualDeltaInformation(true);
                         myToast("File received successfully on server.");
                         Log.d(WiFiDirectActivity.TAG,
                                 "File received successfully on server, bytes received: " + rcvDataCounterTotal);
@@ -164,7 +165,6 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
             } catch (IOException e) {
                 Log.d(WiFiDirectActivity.TAG, "Exception message: " + e.getMessage());
-
                 if (e.getMessage().equals("recvfrom failed: ECONNRESET (Connection reset by peer)")) {
                     // terminated with success
                     updateVisualDeltaInformation(true);
