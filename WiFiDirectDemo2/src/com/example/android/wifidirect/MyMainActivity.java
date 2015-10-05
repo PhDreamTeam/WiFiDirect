@@ -15,6 +15,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.example.android.accesspoint.WiFiApActivity;
+import com.example.android.accesspoint.WifiApControl;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +46,7 @@ public class MyMainActivity extends Activity {
 
     private final IntentFilter intentFilter = new IntentFilter();
     BroadcastReceiver receiver;
+    private Button btnMainWiFiAP;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,6 +81,8 @@ public class MyMainActivity extends Activity {
         btnRelay = (Button) findViewById(R.id.buttonMainRelay);
         btnClient = (Button) findViewById(R.id.buttonMainClient);
 
+        btnMainWiFiAP = (Button) findViewById(R.id.buttonMainWiFiAP);
+
         if (!isWifiOnDevice()) {
             tvMainWiFiState.setText("WiFI not supported");
             btnMainWiFiTurnOn.setVisibility(View.GONE);
@@ -90,6 +95,8 @@ public class MyMainActivity extends Activity {
             enableAllWiFiActivityButtons(true, p2pSuported);
             btnP2PWFDClient.setText("P2P not supported");
         }
+
+        adjustWifiApControlButton();
 
         setButtonsListeners();
     }
@@ -158,6 +165,12 @@ public class MyMainActivity extends Activity {
             tvMainWiFiState.setText("WiFi state: OFF");
         }
         enableAllWiFiActivityButtons(wifiActive, p2pSuported);
+    }
+
+    private void adjustWifiApControlButton (){
+        if(!WifiApControl.isSupported()) {
+            btnMainWiFiTurnOff.setVisibility(View.GONE);
+        }
     }
 
     private void setButtonsListeners() {
@@ -261,6 +274,17 @@ public class MyMainActivity extends Activity {
                         startActivity(intent);
                     }
                 });
+
+
+        btnMainWiFiAP.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent intent = new Intent(myThis, WiFiApActivity.class);
+                        startActivity(intent);
+                    }
+                });
+
     }
 
     private boolean isWifiDirectSupported(Context ctx) {

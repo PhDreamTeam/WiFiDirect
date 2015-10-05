@@ -55,5 +55,10 @@
             android:layout_height="wrap_content"
             android:text="Client"
             android:id="@+id/buttonMainClient" android:layout_gravity="center_horizontal"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView46"
+              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"
+              android:layout_gravity="center_horizontal"/>
+    <Button android:layout_width="match_parent" android:layout_height="wrap_content" android:text="WiFi-AP"
+            android:id="@+id/buttonMainWiFiAP" android:layout_gravity="center_horizontal"/>
 
 </LinearLayout>
