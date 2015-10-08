@@ -41,7 +41,7 @@ public class MyMainActivity extends Activity {
     private TextView tvMainWiFiState;
     private Button btnMainWiFiTurnOn;
     private Button btnMainWiFiTurnOff;
-    private boolean p2pSuported = false;
+    private boolean p2pSupported = false;
     private WifiManager wifiManager;
 
     private final IntentFilter intentFilter = new IntentFilter();
@@ -66,7 +66,7 @@ public class MyMainActivity extends Activity {
         intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
 
         //check if WiFIDirect is supported
-        p2pSuported = isWifiDirectSupported(context);
+        p2pSupported = isWifiDirectSupported(context);
 
         tvMainWiFiState = (TextView) findViewById(R.id.textViewMainWiFiState);
         btnMainWiFiTurnOn = (Button) findViewById(R.id.buttonMainWiFiTurnOn);
@@ -91,8 +91,8 @@ public class MyMainActivity extends Activity {
             return;
         }
 
-        if (!p2pSuported) {
-            enableAllWiFiActivityButtons(true, p2pSuported);
+        if (!p2pSupported) {
+            enableAllWiFiActivityButtons(true, p2pSupported);
             btnP2PWFDClient.setText("P2P not supported");
         }
 
@@ -164,7 +164,7 @@ public class MyMainActivity extends Activity {
             btnMainWiFiTurnOn.setVisibility(View.VISIBLE);
             tvMainWiFiState.setText("WiFi state: OFF");
         }
-        enableAllWiFiActivityButtons(wifiActive, p2pSuported);
+        enableAllWiFiActivityButtons(wifiActive, p2pSupported);
     }
 
     private void adjustWifiApControlButton (){

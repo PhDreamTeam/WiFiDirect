@@ -38,6 +38,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 
+
+/**
+ * Our conclusions: AT & DR - AP can only be started if WIFI is disabled.
+ * One mobile only can be an AP, no WIFI or WIFI-DIRECT. The address of an AP is:
+ * 192.168.43.1
+ */
+
 // WifiApControl provides control over Wi-Fi APs using the singleton pattern.
 // Even though isSupported should be reliable, the underlying hidden APIs that
 // are obtained via reflection to provide the main features may not work as
@@ -78,11 +85,11 @@ final public class WifiApControl {
 
 
     HashMap<Integer, String> wifiAPStates = new HashMap();
+    private boolean wifiWasConnected;
 
     /**
      * wifiAPStates initializer
-     */
-    {
+     */ {
         wifiAPStates.put(WIFI_AP_STATE_DISABLING, "WIFI_AP_STATE_DISABLING");
         wifiAPStates.put(WIFI_AP_STATE_DISABLED, "WIFI_AP_STATE_DISABLED");
         wifiAPStates.put(WIFI_AP_STATE_ENABLING, "WIFI_AP_STATE_ENABLING");
@@ -116,7 +123,7 @@ final public class WifiApControl {
 
     private static final String FALLBACK_DEVICE = "wlan0";
 
-    private final WifiManager wm;
+    private final WifiManager wifiManager;
     private final String deviceName;
 
     private static WifiApControl instance = null;
@@ -125,8 +132,9 @@ final public class WifiApControl {
      *
      */
     private WifiApControl(Context context) {
-        wm = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        deviceName = getDeviceName(wm);
+        wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+
+        deviceName = getDeviceName(wifiManager);
     }
 
     /*
@@ -207,7 +215,7 @@ final public class WifiApControl {
      * If an error occured invoking the method via reflection, false is returned.
      */
     public boolean isWifiApEnabled() {
-        Object result = invokeQuietly(isWifiApEnabledMethod, wm);
+        Object result = invokeQuietly(isWifiApEnabledMethod, wifiManager);
         if (result == null) {
             return false;
         }
@@ -241,7 +249,7 @@ final public class WifiApControl {
     // If an error occured invoking the method via reflection, -1 is
     // returned.
     public int getWifiApState() {
-        Object result = invokeQuietly(getWifiApStateMethod, wm);
+        Object result = invokeQuietly(getWifiApStateMethod, wifiManager);
         if (result == null) {
             return -1;
         }
@@ -281,7 +289,7 @@ final public class WifiApControl {
      * returned.
      */
     public WifiConfiguration getWifiApConfiguration() {
-        Object result = invokeQuietly(getWifiApConfigurationMethod, wm);
+        Object result = invokeQuietly(getWifiApConfigurationMethod, wifiManager);
         if (result == null) {
             return null;
         }
@@ -304,11 +312,29 @@ final public class WifiApControl {
      * If an error occured invoking the method via reflection, false is
      * returned.
      */
-    public boolean setWifiApEnabled(WifiConfiguration config, boolean enabled) {
-        Object result = invokeQuietly(setWifiApEnabledMethod, wm, config, enabled);
+    public boolean setWifiApEnabled(WifiConfiguration config, boolean enable) {
+        if(enable) {
+            // enable AP
+            // keep actual wif state
+            wifiWasConnected = isWifiActive();
+
+            // if connected then disconnect
+            if (wifiWasConnected)
+                setWifiEnabled(false);
+        }
+
+        // enable or disable AP
+        Object result = invokeQuietly(setWifiApEnabledMethod, wifiManager, config, enable);
         if (result == null) {
             return false;
         }
+
+        if(!enable) {
+            // disable AP, activate wifi or not
+            if(wifiWasConnected)
+                setWifiEnabled(true);
+        }
+
         return (Boolean) result;
     }
 
@@ -414,19 +440,29 @@ final public class WifiApControl {
      *
      */
     public WifiConfiguration createWifiConfSecure() {
-        if(netConfigSecure == null) {
+        if (netConfigSecure == null) {
             netConfigSecure = new WifiConfiguration();
             netConfigSecure.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
             netConfigSecure.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
             netConfigSecure.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
-           // netConfigSecure.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+            netConfigSecure.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
             netConfigSecure.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
             netConfigSecure.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
             netConfigSecure.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
             netConfigSecure.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
+            netConfigSecure.SSID = "\"ANDROID-AP1\"";
+            netConfigSecure.preSharedKey = "01234";
         }
 
         return netConfigSecure;
+    }
+
+    public boolean isWifiActive() {
+        return wifiManager.isWifiEnabled();
+    }
+
+    public void setWifiEnabled(boolean enable) {
+        wifiManager.setWifiEnabled(enable);
     }
 
 

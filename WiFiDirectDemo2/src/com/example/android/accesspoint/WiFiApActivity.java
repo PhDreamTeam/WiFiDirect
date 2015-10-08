@@ -114,5 +114,4 @@ public class WiFiApActivity extends Activity {
             return wifiApControl.createWifiConfSecure();
         return wifiApControl.createWifiConfFromExistingConf();
     }
-
 }
