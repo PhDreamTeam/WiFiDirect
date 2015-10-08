@@ -1,6 +1,7 @@
 package com.example.android.accesspoint;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.net.wifi.WifiConfiguration;
 import android.os.Bundle;
 import android.os.Handler;
@@ -45,11 +46,10 @@ public class WiFiApActivity extends Activity {
         btnDisableAP = (Button) findViewById(R.id.buttonAPDisable);
         btnRefresh = (Button) findViewById(R.id.buttonRefresh);
 
-
         tvApState = (TextView) findViewById(R.id.tvWifiAPState);
         tvApConfiguration = (TextView) findViewById(R.id.tvAPConfiguration);
 
-        updateGuiWifiApState();
+        getStateAndUpdateGuiWifiApState();
         updateApConfiguration();
 
         btnEnableAP.setOnClickListener(
@@ -58,7 +58,7 @@ public class WiFiApActivity extends Activity {
                     public void onClick(View v) {
                         toast("Turning WiFi AP ON!!!!!");
                         wifiApControl.setEnabled(getWifiConfiguration(), true);
-                        updateGuiWifiApState();
+                        getStateAndUpdateGuiWifiApState();
                         updateGuiApPeriodically(true);
                     }
                 });
@@ -69,7 +69,7 @@ public class WiFiApActivity extends Activity {
                     public void onClick(View v) {
                         toast("Turning WiFi AP OFF!!!!!");
                         wifiApControl.disable();
-                        updateGuiWifiApState();
+                        getStateAndUpdateGuiWifiApState();
                         updateGuiApPeriodically(false);
                     }
                 });
@@ -79,7 +79,7 @@ public class WiFiApActivity extends Activity {
                     @Override
                     public void onClick(View v) {
                         toast("Refreshing state!!!!!");
-                        updateGuiWifiApState();
+                        getStateAndUpdateGuiWifiApState();
                         updateApConfiguration();
                         Log.e("WiFiApActivity", "refresh...");
                     }
@@ -103,10 +103,10 @@ public class WiFiApActivity extends Activity {
 
             public void run() {
                 // actions
-                updateGuiWifiApState();
+                String wifiApState = getStateAndUpdateGuiWifiApState();
                 updateApConfiguration();
                 // activated it one more time or not
-                if (n < 10 && !wifiApControl.getStateStr().equals(finalState))
+                if (n < 10 && !wifiApState.equals(finalState))
                     handler.postDelayed(this, 200);
             }
         };
@@ -117,14 +117,27 @@ public class WiFiApActivity extends Activity {
     /**
      * Update gui with wifi AP state
      */
-    public void updateGuiWifiApState() {
+    public String getStateAndUpdateGuiWifiApState() {
         // update main string state message
-        tvApState.setText("AP State: " + wifiApControl.getStateStr());
+        String wifiAPState = wifiApControl.getStateStr();
+        tvApState.setText("AP State: " + wifiAPState);
+
+        switch(wifiAPState) {
+            case "WIFI_AP_STATE_ENABLED":
+                tvApState.setBackgroundColor(Color.BLUE);
+                break;
+            case "WIFI_AP_STATE_DISABLED":
+                tvApState.setBackgroundColor(Color.RED);
+                break;
+            default:
+                tvApState.setBackgroundColor(Color.LTGRAY);
+        }
 
         // update buttons visibility
-        boolean wifiApEnabled = wifiApControl.isWifiApEnabled();
-        btnEnableAP.setVisibility(wifiApEnabled ? View.GONE : View.VISIBLE);
-        btnDisableAP.setVisibility(wifiApEnabled ? View.VISIBLE : View.GONE);
+        btnEnableAP.setVisibility(wifiAPState.equals("WIFI_AP_STATE_DISABLED") ? View.VISIBLE : View.GONE);
+        btnDisableAP.setVisibility(wifiAPState.equals("WIFI_AP_STATE_ENABLED") ? View.VISIBLE : View.GONE);
+
+        return wifiAPState;
     }
 
     public void updateApConfiguration() {
