@@ -13,6 +13,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.example.android.wifidirect.R;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.ArrayList;
+
 /**
  * Created by DR AT on 05/10/2015.
  */
@@ -28,6 +34,7 @@ public class WiFiApActivity extends Activity {
     private RadioButton radBtnOpenAP;
     private RadioButton radBtnSecureAP;
     private RadioButton radBtnInternalConfAP;
+    private TextView tvNumAPClients;
 
 
     @Override
@@ -47,6 +54,7 @@ public class WiFiApActivity extends Activity {
 
         tvApState = (TextView) findViewById(R.id.tvWifiAPState);
         tvApConfiguration = (TextView) findViewById(R.id.tvAPConfiguration);
+        tvNumAPClients = (TextView) findViewById(R.id.textViewNumAPClients);
 
         getStateAndUpdateGuiWifiApState();
         updateApConfiguration();
@@ -81,6 +89,18 @@ public class WiFiApActivity extends Activity {
                         getStateAndUpdateGuiWifiApState();
                         updateApConfiguration();
                         Log.e("WiFiApActivity", "refresh...");
+                        getClientList(true, new FinishScanListener() {
+                            @Override
+                            public void onFinishScan(final ArrayList<ClientScanResult> result) {
+                                tvNumAPClients.post(new Runnable() {
+                                    public void run() {
+                                        tvNumAPClients.setText("# AP Clients = " + result.size());
+                                    }
+                                });
+
+                                Log.e("WiFiApActivity", "AP Clients = " + result);
+                            }
+                        });
                     }
                 });
     }
@@ -139,6 +159,78 @@ public class WiFiApActivity extends Activity {
         return wifiAPState;
     }
 
+
+    /**
+     * Gets a list of the clients connected to the Hotspot, reachable timeout is 300
+     *
+     * @param onlyReachables  {@code false} if the list should contain unreachable (probably disconnected) clients, {@code true} otherwise
+     * @param finishListener, Interface called when the scan method finishes
+     */
+    public void getClientList(boolean onlyReachables, FinishScanListener finishListener) {
+        getClientList(onlyReachables, 300, finishListener);
+    }
+
+    /**
+     * Gets a list of the clients connected to the Hotspot
+     *
+     * @param onlyReachables   {@code false} if the list should contain unreachable (probably disconnected) clients, {@code true} otherwise
+     * @param reachableTimeout Reachable Timout in miliseconds
+     * @param finishListener,  Interface called when the scan method finishes
+     */
+    public void getClientList(final boolean onlyReachables, final int reachableTimeout, final FinishScanListener finishListener) {
+
+        Runnable runnable = new Runnable() {
+            public void run() {
+
+                BufferedReader br = null;
+                final ArrayList<ClientScanResult> result = new ArrayList<ClientScanResult>();
+
+                try {
+                    br = new BufferedReader(new FileReader("/proc/net/arp"));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        String[] splitted = line.split(" +");
+
+                        if ((splitted != null) && (splitted.length >= 4)) {
+                            // Basic sanity check
+                            String mac = splitted[3];
+
+                            if (mac.matches("..:..:..:..:..:..")) {
+                                boolean isReachable = InetAddress.getByName(splitted[0]).isReachable(reachableTimeout);
+
+                                if (!onlyReachables || isReachable) {
+                                    result.add(
+                                            new ClientScanResult(splitted[0], splitted[3], splitted[5], isReachable));
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(this.getClass().toString(), e.toString());
+                } finally {
+                    try {
+                        br.close();
+                    } catch (IOException e) {
+                        Log.e(this.getClass().toString(), e.getMessage());
+                    }
+                }
+
+                // Get a handler that can be used to post to the main thread
+                Handler mainHandler = new Handler(getApplicationContext().getMainLooper());
+                Runnable myRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        finishListener.onFinishScan(result);
+                    }
+                };
+                mainHandler.post(myRunnable);
+            }
+        };
+
+        Thread mythread = new Thread(runnable);
+        mythread.start();
+    }
+
     public void updateApConfiguration() {
         WifiConfiguration apConf = wifiApControl.getConfiguration();
         tvApConfiguration.setText("AP Configuration: " + apConf +
@@ -152,4 +244,43 @@ public class WiFiApActivity extends Activity {
             return wifiApControl.createWifiConfSecure();
         return wifiApControl.createWifiConfFromExistingConf();
     }
+
+    class ClientScanResult {
+        String ipAddress, hwAddress, deviceName;
+        boolean isReachable;
+
+        public ClientScanResult(String deviceName, String hwAddress, String ipAddress, boolean isReachable) {
+            this.deviceName = deviceName;
+            this.hwAddress = hwAddress;
+            this.ipAddress = ipAddress;
+            this.isReachable = isReachable;
+        }
+
+        public String toString() {
+            return deviceName + ", " + hwAddress + ", " + ipAddress + ", " + isReachable;
+        }
+
+
+        public String getDeviceName() {
+            return deviceName;
+        }
+
+        public String getHwAddress() {
+            return hwAddress;
+        }
+
+        public String getIpAddress() {
+            return ipAddress;
+        }
+
+        public boolean isReachable() {
+            return isReachable;
+        }
+    }
+
+    interface FinishScanListener {
+        void onFinishScan(ArrayList<ClientScanResult> result);
+    }
+
 }
+

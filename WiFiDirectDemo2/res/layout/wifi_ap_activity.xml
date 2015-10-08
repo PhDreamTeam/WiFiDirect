@@ -17,12 +17,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Open AP"
-                android:id="@+id/radioButtonOpenAP" android:layout_weight="1" android:checked="true"/>
+                android:id="@+id/radioButtonOpenAP" android:layout_weight="1" android:checked="false"/>
         <RadioButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Secure AP"
-                android:id="@+id/radioButtonSecureAP" android:layout_weight="1" android:checked="false"/>
+                android:id="@+id/radioButtonSecureAP" android:layout_weight="1" android:checked="true"/>
         <RadioButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -49,6 +49,12 @@
             android:layout_height="wrap_content"
             android:text="Refresh Info"
             android:id="@+id/buttonRefresh" android:layout_gravity="center_horizontal"/>
+    <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="# Ap Clients"
+            android:id="@+id/textViewNumAPClients" android:background="#ff2f5433" android:gravity="center"/>
     <ScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
