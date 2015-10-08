@@ -15,7 +15,6 @@ import com.example.android.wifidirect.R;
 
 /**
  * Created by DR AT on 05/10/2015.
- *
  */
 public class WiFiApActivity extends Activity {
 
@@ -106,12 +105,12 @@ public class WiFiApActivity extends Activity {
                 String wifiApState = getStateAndUpdateGuiWifiApState();
                 updateApConfiguration();
                 // activated it one more time or not
-                if (n < 10 && !wifiApState.equals(finalState))
-                    handler.postDelayed(this, 200);
+                if (n < 20 && !wifiApState.equals(finalState))
+                    handler.postDelayed(this, 100);
             }
         };
 
-        handler.postDelayed(runnable, 200);
+        handler.postDelayed(runnable, 100);
     }
 
     /**
@@ -122,7 +121,7 @@ public class WiFiApActivity extends Activity {
         String wifiAPState = wifiApControl.getStateStr();
         tvApState.setText("AP State: " + wifiAPState);
 
-        switch(wifiAPState) {
+        switch (wifiAPState) {
             case "WIFI_AP_STATE_ENABLED":
                 tvApState.setBackgroundColor(Color.BLUE);
                 break;
@@ -130,7 +129,7 @@ public class WiFiApActivity extends Activity {
                 tvApState.setBackgroundColor(Color.RED);
                 break;
             default:
-                tvApState.setBackgroundColor(Color.LTGRAY);
+                tvApState.setBackgroundColor(Color.DKGRAY);
         }
 
         // update buttons visibility
