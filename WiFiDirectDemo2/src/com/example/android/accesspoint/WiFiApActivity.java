@@ -3,6 +3,7 @@ package com.example.android.accesspoint;
 import android.app.Activity;
 import android.net.wifi.WifiConfiguration;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -58,6 +59,7 @@ public class WiFiApActivity extends Activity {
                         toast("Turning WiFi AP ON!!!!!");
                         wifiApControl.setEnabled(getWifiConfiguration(), true);
                         updateGuiWifiApState();
+                        updateGuiApPeriodically(true);
                     }
                 });
 
@@ -68,6 +70,7 @@ public class WiFiApActivity extends Activity {
                         toast("Turning WiFi AP OFF!!!!!");
                         wifiApControl.disable();
                         updateGuiWifiApState();
+                        updateGuiApPeriodically(false);
                     }
                 });
 
@@ -88,15 +91,38 @@ public class WiFiApActivity extends Activity {
     }
 
     /**
+     * should terminate when AP reaches final state, We can pass a callback to be called when termination
+     */
+    Handler handler = new Handler();
+
+    private void updateGuiApPeriodically(final boolean stopWhenAPEnabled) {
+
+        Runnable runnable = new Runnable() {
+            int n = 0;
+            String finalState = stopWhenAPEnabled ? "WIFI_AP_STATE_ENABLED" : "WIFI_AP_STATE_DISABLED";
+
+            public void run() {
+                // actions
+                updateGuiWifiApState();
+                updateApConfiguration();
+                // activated it one more time or not
+                if (n < 10 && !wifiApControl.getStateStr().equals(finalState))
+                    handler.postDelayed(this, 200);
+            }
+        };
+
+        handler.postDelayed(runnable, 200);
+    }
+
+    /**
      * Update gui with wifi AP state
      */
     public void updateGuiWifiApState() {
-        boolean wifiApEnabled = wifiApControl.isWifiApEnabled();
-
         // update main string state message
         tvApState.setText("AP State: " + wifiApControl.getStateStr());
 
         // update buttons visibility
+        boolean wifiApEnabled = wifiApControl.isWifiApEnabled();
         btnEnableAP.setVisibility(wifiApEnabled ? View.GONE : View.VISIBLE);
         btnDisableAP.setVisibility(wifiApEnabled ? View.VISIBLE : View.GONE);
     }
@@ -107,10 +133,10 @@ public class WiFiApActivity extends Activity {
                 "\n preSharedKey = " + apConf.preSharedKey);
     }
 
-    private WifiConfiguration getWifiConfiguration(){
-        if(radBtnOpenAP.isChecked())
+    private WifiConfiguration getWifiConfiguration() {
+        if (radBtnOpenAP.isChecked())
             return wifiApControl.createWifiConfOpen();
-        if(radBtnSecureAP.isChecked())
+        if (radBtnSecureAP.isChecked())
             return wifiApControl.createWifiConfSecure();
         return wifiApControl.createWifiConfFromExistingConf();
     }

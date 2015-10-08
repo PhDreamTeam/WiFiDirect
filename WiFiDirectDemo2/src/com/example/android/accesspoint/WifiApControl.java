@@ -313,7 +313,7 @@ final public class WifiApControl {
      * returned.
      */
     public boolean setWifiApEnabled(WifiConfiguration config, boolean enable) {
-        if(enable) {
+        if (enable) {
             // enable AP
             // keep actual wif state
             wifiWasConnected = isWifiActive();
@@ -329,9 +329,9 @@ final public class WifiApControl {
             return false;
         }
 
-        if(!enable) {
+        if (!enable) {
             // disable AP, activate wifi or not
-            if(wifiWasConnected)
+            if (wifiWasConnected)
                 setWifiEnabled(true);
         }
 
@@ -443,15 +443,15 @@ final public class WifiApControl {
         if (netConfigSecure == null) {
             netConfigSecure = new WifiConfiguration();
             netConfigSecure.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
-            netConfigSecure.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
-            netConfigSecure.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
+            // netConfigSecure.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+            // netConfigSecure.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
             netConfigSecure.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-            netConfigSecure.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
-            netConfigSecure.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
-            netConfigSecure.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
-            netConfigSecure.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
-            netConfigSecure.SSID = "\"ANDROID-AP1\"";
-            netConfigSecure.preSharedKey = "01234";
+            // netConfigSecure.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
+            // netConfigSecure.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
+            // netConfigSecure.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
+            // netConfigSecure.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
+            netConfigSecure.SSID = "ANDROID-AP1";
+            netConfigSecure.preSharedKey = "01234567";
         }
 
         return netConfigSecure;
