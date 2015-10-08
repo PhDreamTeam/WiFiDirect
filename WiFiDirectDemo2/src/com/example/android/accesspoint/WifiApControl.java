@@ -79,6 +79,9 @@ final public class WifiApControl {
 
     HashMap<Integer, String> wifiAPStates = new HashMap();
 
+    /**
+     * wifiAPStates initializer
+     */
     {
         wifiAPStates.put(WIFI_AP_STATE_DISABLING, "WIFI_AP_STATE_DISABLING");
         wifiAPStates.put(WIFI_AP_STATE_DISABLED, "WIFI_AP_STATE_DISABLED");
@@ -150,7 +153,8 @@ final public class WifiApControl {
 
         String macString = wifiManager.getConnectionInfo().getMacAddress();
         if (macString == null) {
-            Log.w(TAG, "MAC Address not found - Wi-Fi disabled? Falling back to the default device name: " + FALLBACK_DEVICE);
+            Log.w(TAG,
+                    "MAC Address not found - Wi-Fi disabled? Falling back to the default device name: " + FALLBACK_DEVICE);
             return FALLBACK_DEVICE;
         }
         byte[] macBytes = macAddressToByteArray(macString);
@@ -381,6 +385,51 @@ final public class WifiApControl {
         return null;
     }
 
+    WifiConfiguration netConfigOpen = null;
+
+    /**
+     *
+     */
+    public WifiConfiguration createWifiConfOpen() {
+        if (netConfigOpen == null) {
+            netConfigOpen = new WifiConfiguration();
+            netConfigOpen.SSID = "\"AccessPoint\"";
+            netConfigOpen.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
+        }
+        return netConfigOpen;
+    }
+
+    /**
+     *
+     */
+    public WifiConfiguration createWifiConfFromExistingConf() {
+        WifiConfiguration netConfig = getConfiguration();
+        return netConfig;
+    }
+
+
+    WifiConfiguration netConfigSecure = null;
+
+    /**
+     *
+     */
+    public WifiConfiguration createWifiConfSecure() {
+        if(netConfigSecure == null) {
+            netConfigSecure = new WifiConfiguration();
+            netConfigSecure.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
+            netConfigSecure.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+            netConfigSecure.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
+           // netConfigSecure.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+            netConfigSecure.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
+            netConfigSecure.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
+            netConfigSecure.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
+            netConfigSecure.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
+        }
+
+        return netConfigSecure;
+    }
+
+
     /**
      * Client describes a Wi-Fi AP device connected to the network.
      */
@@ -492,7 +541,7 @@ final public class WifiApControl {
                     try {
                         InetAddress ip = InetAddress.getByName(c.ipAddr);
                         if (ip.isReachable(timeout)) {
-                                listener.onReachableClient(c);
+                            listener.onReachableClient(c);
                         }
                     } catch (IOException e) {
                         Log.e(TAG, "", e);

@@ -9,7 +9,26 @@
             android:layout_height="wrap_content"
             android:text="Wifi AP State: "
             android:id="@+id/tvWifiAPState" android:background="#ff1e1cff" android:height="30dp"
-            android:textAlignment="center"/>
+            android:textAlignment="center" android:gravity="center"/>
+    <RadioGroup
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content" android:orientation="horizontal">
+        <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Open AP"
+                android:id="@+id/radioButtonOpenAP" android:layout_weight="1" android:checked="true"/>
+        <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Secure AP"
+                android:id="@+id/radioButtonSecureAP" android:layout_weight="1" android:checked="false"/>
+        <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Internal conf AP"
+                android:id="@+id/radioButtonInternalConfAP" android:layout_weight="1" android:checked="false"/>
+    </RadioGroup>
     <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"

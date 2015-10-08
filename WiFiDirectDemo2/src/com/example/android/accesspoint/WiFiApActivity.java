@@ -6,12 +6,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.example.android.wifidirect.R;
 
 /**
  * Created by DR AT on 05/10/2015.
+ *
  */
 public class WiFiApActivity extends Activity {
 
@@ -22,6 +24,9 @@ public class WiFiApActivity extends Activity {
     private TextView tvApConfiguration;
 
     private Button btnRefresh;
+    private RadioButton radBtnOpenAP;
+    private RadioButton radBtnSecureAP;
+    private RadioButton radBtnInternalConfAP;
 
 
     @Override
@@ -31,6 +36,10 @@ public class WiFiApActivity extends Activity {
 
         wifiApControl = WifiApControl.getInstance(getApplicationContext());
 
+        radBtnOpenAP = (RadioButton) findViewById(R.id.radioButtonOpenAP);
+        radBtnSecureAP = (RadioButton) findViewById(R.id.radioButtonSecureAP);
+        radBtnInternalConfAP = (RadioButton) findViewById(R.id.radioButtonInternalConfAP);
+
         btnEnableAP = (Button) findViewById(R.id.buttonAPEnable);
         btnDisableAP = (Button) findViewById(R.id.buttonAPDisable);
         btnRefresh = (Button) findViewById(R.id.buttonRefresh);
@@ -39,33 +48,26 @@ public class WiFiApActivity extends Activity {
         tvApState = (TextView) findViewById(R.id.tvWifiAPState);
         tvApConfiguration = (TextView) findViewById(R.id.tvAPConfiguration);
 
-        updateApState();
+        updateGuiWifiApState();
         updateApConfiguration();
-
-        boolean apEnabled = wifiApControl.isEnabled();
-        btnEnableAP.setVisibility(apEnabled ? View.GONE : View.VISIBLE);
-        btnDisableAP.setVisibility(apEnabled ? View.VISIBLE : View.GONE);
 
         btnEnableAP.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Toast.makeText(getApplicationContext(), "Turning WiFi AP ON!!!!!", Toast.LENGTH_SHORT).show();
-                        wifiApControl.setEnabled(wifiApControl.getConfiguration(), true);
-                        btnEnableAP.setVisibility(View.GONE);
-                        btnDisableAP.setVisibility(View.VISIBLE);
-                        updateApState();
+                        toast("Turning WiFi AP ON!!!!!");
+                        wifiApControl.setEnabled(getWifiConfiguration(), true);
+                        updateGuiWifiApState();
                     }
                 });
+
         btnDisableAP.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Toast.makeText(getApplicationContext(), "Turning WiFi AP OFF!!!!!", Toast.LENGTH_SHORT).show();
-                        wifiApControl.setEnabled(wifiApControl.getConfiguration(), false);
-                        btnDisableAP.setVisibility(View.GONE);
-                        btnEnableAP.setVisibility(View.VISIBLE);
-                        updateApState();
+                        toast("Turning WiFi AP OFF!!!!!");
+                        wifiApControl.disable();
+                        updateGuiWifiApState();
                     }
                 });
 
@@ -73,21 +75,44 @@ public class WiFiApActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Toast.makeText(getApplicationContext(), "Refreshing state!!!!!", Toast.LENGTH_SHORT).show();
-                        updateApState();
+                        toast("Refreshing state!!!!!");
+                        updateGuiWifiApState();
                         updateApConfiguration();
                         Log.e("WiFiApActivity", "refresh...");
                     }
                 });
     }
 
-    public void updateApState() {
+    private void toast(String str) {
+        Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Update gui with wifi AP state
+     */
+    public void updateGuiWifiApState() {
+        boolean wifiApEnabled = wifiApControl.isWifiApEnabled();
+
+        // update main string state message
         tvApState.setText("AP State: " + wifiApControl.getStateStr());
+
+        // update buttons visibility
+        btnEnableAP.setVisibility(wifiApEnabled ? View.GONE : View.VISIBLE);
+        btnDisableAP.setVisibility(wifiApEnabled ? View.VISIBLE : View.GONE);
     }
 
     public void updateApConfiguration() {
         WifiConfiguration apConf = wifiApControl.getConfiguration();
         tvApConfiguration.setText("AP Configuration: " + apConf +
-            "\n preSharedKey = " + apConf.preSharedKey);
+                "\n preSharedKey = " + apConf.preSharedKey);
     }
+
+    private WifiConfiguration getWifiConfiguration(){
+        if(radBtnOpenAP.isChecked())
+            return wifiApControl.createWifiConfOpen();
+        if(radBtnSecureAP.isChecked())
+            return wifiApControl.createWifiConfSecure();
+        return wifiApControl.createWifiConfFromExistingConf();
+    }
+
 }
