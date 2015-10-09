@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.LightingColorFilter;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -93,6 +94,17 @@ public class ClientActivity extends Activity {
             btnRegCrTdls.setVisibility(View.GONE);
             btnUnRegCrTdls.setVisibility(View.GONE);
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            // Build.VERSION_CODES.LOLLIPOP = API 21
+            int addColor = 0xFF006600; // supported color
+            if (!isTdlsSupported())
+                addColor = 0xFF880000;  // unsupported color
+            LightingColorFilter lcf = new LightingColorFilter(0xFFFFFFFF, addColor);
+            btnRegCrTdls.getBackground().setColorFilter(lcf);
+            btnUnRegCrTdls.getBackground().setColorFilter(lcf);
+        }
+
 
         // set listeners on buttons
 
@@ -188,11 +200,19 @@ public class ClientActivity extends Activity {
         });
     }
 
-    @TargetApi(Build.VERSION_CODES.KITKAT)
+    // API 21
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    boolean isTdlsSupported() {
+        boolean isTDLSSupported = wifiManager.isTdlsSupported();
+        toast("TDLS supported -> " + isTDLSSupported);
+        return isTDLSSupported;
+    }
+
+    // API 19
+   @TargetApi(Build.VERSION_CODES.KITKAT)
     void setTdlsEnabled(String crIpAddressStr, boolean enable) {
         InetAddress remoteIPAddress = null;
         try {
-
             remoteIPAddress = InetAddress.getByName(crIpAddressStr);
             wifiManager.setTdlsEnabled(remoteIPAddress, enable);
             toast("setTdlsEnabled " + enable + " on " + crIpAddressStr + " with success");
