@@ -16,13 +16,13 @@ import java.util.ArrayList;
  * Created by DR & AT on 20/05/2015.
  *
  */
-public class CrForwardServerTCP extends Thread implements IStopable{
+public class CrForwardServerTCP extends Thread implements IStoppable {
     private int bufferSize;
     int portNumber;
     ServerSocket serverSocket;
     boolean run = true;
     TextView textViewTransferedDataOrigDest, textViewTransferedDataDestOrig;
-    ArrayList<IStopable> workingThreads = new ArrayList<IStopable>();
+    ArrayList<IStoppable> workingThreads = new ArrayList<IStoppable>();
 
     public CrForwardServerTCP(int portNumber, TextView textViewTransferedDataOrigDest
             , TextView textViewTransferedDataDestOrig, int bufferSize) {
@@ -41,7 +41,7 @@ public class CrForwardServerTCP extends Thread implements IStopable{
 
             while (run) {
                 Socket cliSock = serverSocket.accept();
-                IStopable thd = new CrForwardThreadTCP(cliSock, bufferSize);
+                IStoppable thd = new CrForwardThreadTCP(cliSock, bufferSize);
                 workingThreads.add(thd);
                 thd.start();
             }
@@ -55,11 +55,11 @@ public class CrForwardServerTCP extends Thread implements IStopable{
     public void stopThread() {
         run = false;
         this.interrupt();
-        for (IStopable stopable : workingThreads)
+        for (IStoppable stopable : workingThreads)
             stopable.stopThread();
     }
 
-    private class CrForwardThreadTCP extends Thread implements IStopable{
+    private class CrForwardThreadTCP extends Thread implements IStoppable {
         private int bufferSize;
         Socket originSocket;
         Socket destSocket;

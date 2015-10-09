@@ -58,6 +58,7 @@ final public class WifiApControl {
     private static Method isWifiApEnabledMethod;
     private static Method setWifiApEnabledMethod;
 
+
     static {
         for (Method method : WifiManager.class.getDeclaredMethods()) {
             switch (method.getName()) {
@@ -84,7 +85,7 @@ final public class WifiApControl {
     public static final int WIFI_AP_STATE_FAILED = 14;
 
 
-    HashMap<Integer, String> wifiAPStates = new HashMap();
+    HashMap<Integer, String> wifiAPStates = new HashMap<>();
     private boolean wifiWasConnected;
 
     /**
@@ -282,6 +283,7 @@ final public class WifiApControl {
     public String getStateStr() {
         return getWifiApStateStr();
     }
+
 
     /**
      * getWifiApConfiguration returns the current Wi-Fi AP configuration.

@@ -22,7 +22,7 @@ import java.util.Enumeration;
  */
 public class RelayActivity extends Activity {
     RelayActivity myThis;
-    IStopable crForwarder;
+    IStoppable crForwarder;
     Button btnStartStop, btnTcpUdp;
     boolean isTcp;
 

@@ -15,7 +15,7 @@ import java.net.*;
  * Created by DR & AT on 20/05/2015.
  * .
  */
-public class ClientSendDataThreadTCP extends Thread implements IStopable {
+public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     private int bufferSize;
     String destIpAddress;
     int destPortNumber;
@@ -122,7 +122,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStopable {
         byte buffer[] = new byte[bufferSize];
         byte b = 0;
 
-        // if no inputstream, fill dummy data
+        // if no input stream, fill dummy data
         if (sourceUri == null) {
             for (int i = 0; i < buffer.length; i++, b++) {
                 buffer[i] = b;

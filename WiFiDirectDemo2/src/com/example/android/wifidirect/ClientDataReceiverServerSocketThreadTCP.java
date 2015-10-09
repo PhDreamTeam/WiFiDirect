@@ -16,7 +16,7 @@ import java.util.Date;
  * Created by DR & AT on 20/05/2015.
  * .
  */
-public class ClientDataReceiverServerSocketThreadTCP extends Thread implements IStopable {
+public class ClientDataReceiverServerSocketThreadTCP extends Thread implements IStoppable {
     private int bufferSize;
     int portNumber;
     ServerSocket serverSocket;
@@ -25,7 +25,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
     EditText editTextRcvData;
     EditText editTextSendData;
 
-    ArrayList<IStopable> workingThreads = new ArrayList<IStopable>();
+    ArrayList<IStoppable> workingThreads = new ArrayList<IStoppable>();
 
     public ClientDataReceiverServerSocketThreadTCP(int portNumber, EditText editTextRcvData, EditText editTextSendData, int bufferSize) {
         this.portNumber = portNumber;
@@ -51,7 +51,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 // wait connections
                 Socket cliSock = serverSocket.accept();
                 System.out.println(" Received a connection, starting transfer thread...");
-                IStopable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize);
+                IStoppable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize);
                 workingThreads.add(t);
                 t.start();
             }
@@ -65,11 +65,11 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
     public void stopThread() {
         run = false;
         this.interrupt();
-        for (IStopable stopable : workingThreads)
+        for (IStoppable stopable : workingThreads)
             stopable.stopThread();
     }
 
-    private class ClientDataReceiverThreadTCP extends Thread implements IStopable {
+    private class ClientDataReceiverThreadTCP extends Thread implements IStoppable {
         private int bufferSize;
         boolean run = true;
         Socket originSocket;

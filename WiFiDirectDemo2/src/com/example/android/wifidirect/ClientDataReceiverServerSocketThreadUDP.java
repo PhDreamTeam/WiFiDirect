@@ -1,23 +1,18 @@
 package com.example.android.wifidirect;
 
-import android.content.Context;
-import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 
 /**
  * Created by DR e AT on 27/05/2015.
  *
  */
-public class ClientDataReceiverServerSocketThreadUDP extends Thread implements IStopable {
+public class ClientDataReceiverServerSocketThreadUDP extends Thread implements IStoppable {
     private int bufferSize;
     int portNumber;
     DatagramSocket serverDatagramSocket;

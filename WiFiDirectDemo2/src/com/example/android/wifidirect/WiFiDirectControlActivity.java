@@ -26,6 +26,7 @@ import java.util.Map;
 
 /**
  * Created by AT e DR on 23-06-2015.
+ * .
  */
 
 public class WiFiDirectControlActivity extends Activity {

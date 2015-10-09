@@ -4,17 +4,15 @@ import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.io.DataOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 
 /**
  * Created by DR e AT on 27/05/2015.
  */
-public class ClientSendDataThreadUDP extends Thread implements IStopable {
+public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     private int bufferSize;
     String destIpAddress;
     int destPortNumber;

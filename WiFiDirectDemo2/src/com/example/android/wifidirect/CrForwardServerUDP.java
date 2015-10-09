@@ -11,7 +11,7 @@ import java.nio.ByteBuffer;
  *
  *
  */
-public class CrForwardServerUDP  extends Thread implements IStopable{
+public class CrForwardServerUDP  extends Thread implements IStoppable {
     private int bufferSize;
     int portNumber;
     DatagramSocket forwardRxSocket, forwardTxSocket ;
