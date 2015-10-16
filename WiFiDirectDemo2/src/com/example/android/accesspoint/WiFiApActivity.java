@@ -7,10 +7,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.RadioButton;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.view.WindowManager;
+import android.widget.*;
 import com.example.android.wifidirect.R;
 
 import java.io.BufferedReader;
@@ -21,6 +19,7 @@ import java.util.ArrayList;
 
 /**
  * Created by DR AT on 05/10/2015.
+ * .
  */
 public class WiFiApActivity extends Activity {
 
@@ -35,6 +34,8 @@ public class WiFiApActivity extends Activity {
     private RadioButton radBtnSecureAP;
     private RadioButton radBtnInternalConfAP;
     private TextView tvNumAPClients;
+    private EditText etApSSID;
+    private EditText etApPSK;
 
 
     @Override
@@ -56,17 +57,26 @@ public class WiFiApActivity extends Activity {
         tvApConfiguration = (TextView) findViewById(R.id.tvAPConfiguration);
         tvNumAPClients = (TextView) findViewById(R.id.textViewNumAPClients);
 
+        etApSSID = (EditText) findViewById(R.id.editTextAPSSID);
+        etApPSK = (EditText) findViewById(R.id.editTextAPPSK);
+
         getStateAndUpdateGuiWifiApState();
         updateApConfiguration();
+
+        // avoid keyboard popping up
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
         btnEnableAP.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        toast("Turning WiFi AP ON!!!!!");
-                        wifiApControl.setEnabled(getWifiConfiguration(), true);
-                        getStateAndUpdateGuiWifiApState();
-                        updateGuiApPeriodically(true);
+                        WifiConfiguration wc = getWifiConfiguration();
+                        if (wc != null) {
+                            toast("Turning WiFi AP ON!!!!!");
+                            wifiApControl.setEnabled(wc, true);
+                            getStateAndUpdateGuiWifiApState();
+                            updateGuiApPeriodically(true);
+                        }
                     }
                 });
 
@@ -156,6 +166,9 @@ public class WiFiApActivity extends Activity {
         btnEnableAP.setVisibility(wifiAPState.equals("WIFI_AP_STATE_DISABLED") ? View.VISIBLE : View.GONE);
         btnDisableAP.setVisibility(wifiAPState.equals("WIFI_AP_STATE_ENABLED") ? View.VISIBLE : View.GONE);
 
+        etApSSID.setEnabled(!wifiAPState.equals("WIFI_AP_STATE_ENABLED") /*&& radBtnSecureAP.isChecked()*/);
+        etApPSK.setEnabled(!wifiAPState.equals("WIFI_AP_STATE_ENABLED") /*&& radBtnSecureAP.isChecked()*/);
+
         return wifiAPState;
     }
 
@@ -237,11 +250,26 @@ public class WiFiApActivity extends Activity {
                 "\n preSharedKey = " + apConf.preSharedKey);
     }
 
+    /**
+     * @return configuration or null if invalid psk
+     */
     private WifiConfiguration getWifiConfiguration() {
+        // OPEN AP
         if (radBtnOpenAP.isChecked())
             return wifiApControl.createWifiConfOpen();
-        if (radBtnSecureAP.isChecked())
-            return wifiApControl.createWifiConfSecure();
+
+        // SECURE AP
+        if (radBtnSecureAP.isChecked()) {
+            String ssid = etApSSID.getText().toString().trim();
+            String psk = etApPSK.getText().toString().trim();
+            if (psk.length() < 8) {
+                toast("PreSharedKey must have 8 chars minimum");
+                return null;
+            }
+            return wifiApControl.createWifiConfSecure(ssid, psk);
+        }
+
+        // AP with current configuration
         return wifiApControl.createWifiConfFromExistingConf();
     }
 

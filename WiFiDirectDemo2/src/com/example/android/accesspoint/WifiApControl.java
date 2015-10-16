@@ -441,7 +441,7 @@ final public class WifiApControl {
     /**
      *
      */
-    public WifiConfiguration createWifiConfSecure() {
+    public WifiConfiguration createWifiConfSecure(String ssid, String psk) {
         if (netConfigSecure == null) {
             netConfigSecure = new WifiConfiguration();
             netConfigSecure.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
@@ -452,9 +452,10 @@ final public class WifiApControl {
             // netConfigSecure.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
             // netConfigSecure.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
             // netConfigSecure.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
-            netConfigSecure.SSID = "ANDROID-AP1";
-            netConfigSecure.preSharedKey = "01234567";
         }
+
+        netConfigSecure.SSID = ssid;
+        netConfigSecure.preSharedKey = psk;
 
         return netConfigSecure;
     }
