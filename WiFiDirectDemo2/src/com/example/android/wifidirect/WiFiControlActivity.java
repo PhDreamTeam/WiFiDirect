@@ -5,14 +5,20 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.*;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -26,9 +32,13 @@ import java.util.List;
  */
 public class WiFiControlActivity extends Activity {
 
+    private static final String TAG = "WifiControl";
+
     Context context;
 
     private WifiManager wiFiManager;
+
+    private static Method connectWithWifiConfigurationMethod;
 
     HashMap<String, ScanResult> scannedResults = new HashMap<>();
 
@@ -45,6 +55,24 @@ public class WiFiControlActivity extends Activity {
     EditText etSelectedNetworkPassword;
     Button wiFiConnectButton;
     private List<WifiConfiguration> listConfiguredNetworks;
+    private TextView tvWFLinkSpeedValue;
+    private Button btnWifiDisconnect;
+    private Button btnWifiGetStatus;
+    private Button btnWifiConnectDirectly;
+    private TextView tvWifiStatus;
+
+    static {
+        for (Method method : WifiManager.class.getDeclaredMethods()) {
+            switch (method.getName()) {
+                case "connect":
+                    Class<?>[] parTypes = method.getParameterTypes();
+                    if (parTypes.length == 2 && parTypes[0].getSimpleName().equals("WifiConfiguration")) {
+                        connectWithWifiConfigurationMethod = method;
+                    }
+                    break;
+            }
+        }
+    }
 
 
     @Override
@@ -90,7 +118,7 @@ public class WiFiControlActivity extends Activity {
             }
         });
 
-        wiFiGetConfiguredNetworksButton = (Button) findViewById(R.id.buttonGetConfiguredNetworks);
+        wiFiGetConfiguredNetworksButton = (Button) findViewById(R.id.btnGetConfiguredNetworks);
         wiFiGetConfiguredNetworksButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -98,12 +126,11 @@ public class WiFiControlActivity extends Activity {
             }
         });
 
-        wiFiConnectButton = (Button) findViewById(R.id.buttonConnectToSelectedNetwork);
+        wiFiConnectButton = (Button) findViewById(R.id.btnWifiConnectToSelectedNetwork);
         wiFiConnectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //connect
-                //todo ...
                 Toast.makeText(WiFiControlActivity.this, "Connecting... ", Toast.LENGTH_SHORT).show();
 
                 connectToWifi(tvSelectedNetwork.getText().toString(), etSelectedNetworkPassword.getText().toString());
@@ -138,8 +165,66 @@ public class WiFiControlActivity extends Activity {
             }
         });
 
+        tvWFLinkSpeedValue = (TextView) findViewById(R.id.textViewWFLinkSpeedValue);
+        tvWifiStatus = (TextView) findViewById(R.id.textViewWifiState);
+
+        btnWifiDisconnect = (Button) findViewById(R.id.btnWifiDisconnect);
+        btnWifiGetStatus = (Button) findViewById(R.id.btnWifiGetStatus);
+        btnWifiConnectDirectly = (Button) findViewById(R.id.btnWifiConnectDirectly);
+
+        btnWifiConnectDirectly.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Not working
+                connectDirectlyToWifi(tvSelectedNetwork.getText().toString(),
+                        etSelectedNetworkPassword.getText().toString());
+            }
+        });
+
+        btnWifiDisconnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                wifiDisconnect();
+            }
+        });
+
+        btnWifiGetStatus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // boolean wifiConn = isConnectedWifi();
+                boolean wifiConn2 = isConnectedWifi2();
+                // tvConsole.append("\nWifi Status by wiFiManager.getConnectionInfo: " + wifiConn);
+                tvConsole.append("\nWifi Status by connectivityManager TYPE_WIFI: " + wifiConn2);
+                tvConsole.append("\nConnectionInfo: " + wiFiManager.getConnectionInfo());
+            }
+        });
+
+
         // avoid keyboard popping up
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
+        // broadcast receiver to receive wifi state changed events
+        BroadcastReceiver wifiBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final String action = intent.getAction();
+
+                if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+                    NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+                    NetworkInfo.State wifiState = info.getState();
+                    String msg = "Wifi: " + wifiState.toString();
+                    if (wifiState == NetworkInfo.State.CONNECTING || wifiState == NetworkInfo.State.CONNECTED) {
+                        msg += " " + wiFiManager.getConnectionInfo().getSSID();
+                    }
+                    tvWifiStatus.setText(msg);
+                }
+            }
+        };
+
+        // register wifi state changed broadcast receiver
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        registerReceiver(wifiBroadcastReceiver, intentFilter);
     }
 
     private void toggleLinearLayoutsWeight(LinearLayout ll, LinearLayout ll2, LinearLayout ll3) {
@@ -222,7 +307,7 @@ public class WiFiControlActivity extends Activity {
         }
     }
 
-    void connectToWifi(String ssid, String key) {
+    WifiConfiguration buildWifiConfiguration(String ssid, String key) {
         WifiConfiguration wifiConfig = new WifiConfiguration();
         wifiConfig.SSID = String.format("\"%s\"", ssid);
         wifiConfig.preSharedKey = String.format("\"%s\"", key);
@@ -240,27 +325,87 @@ public class WiFiControlActivity extends Activity {
         wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
         wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
 
+        return wifiConfig;
+    }
+
+    void connectToWifi(String ssid, String key) {
+        WifiConfiguration wifiConfig = buildWifiConfiguration(ssid, key);
+
 //        wfc.preSharedKey = "\"".concat(password).concat("\"");
 
         //remember id
         int netId = wiFiManager.addNetwork(wifiConfig);
-        tvConsole.append("Add network returned -> " + netId);
+        tvConsole.append("\nAdd network returned -> " + netId);
 
         boolean connected1 = wiFiManager.enableNetwork(netId, true);
-        tvConsole.append("Enabled networks returned -> " + connected1);
+        tvConsole.append("\nEnabled networks returned -> " + connected1);
 
         if (!wiFiManager.saveConfiguration()) {
-            tvConsole.append("Save configuration failed");
+            tvConsole.append("\nSave configuration failed");
         }
 
         getConfiguredNetworks();
 
         if (!wiFiManager.disconnect()) {
-            tvConsole.append("Disconnect failed");
+            tvConsole.append("\nDisconnect failed");
         }
 
         boolean connected2 = wiFiManager.reconnect();
-        tvConsole.append("Reconnect (network) returned -> " + connected2);
+        tvConsole.append("\nReconnect (network) returned -> " + connected2);
+
+        if (connected2) {
+            WifiInfo wi = wiFiManager.getConnectionInfo();
+            tvWFLinkSpeedValue.setText(Integer.toString(wi.getLinkSpeed()));
+            tvConsole.append("\nWifiInfo = " + wi.toString());
+        }
+    }
+
+    void wifiDisconnect() {
+        wiFiManager.disconnect();
+    }
+
+    /*
+     * Not working
+     */
+    void connectDirectlyToWifi(String ssid, String key) {
+        WifiConfiguration wifiConfig = buildWifiConfiguration(ssid, key);
+        wifiConnectTo(wifiConfig);
+        tvConsole.append("\nConnect directly executed");
+    }
+
+    /*
+     *
+     */
+    private static Object invokeQuietly(Method method, Object receiver, Object... args) {
+        try {
+            return method.invoke(receiver, args);
+        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            Log.e(TAG, "", e);
+        }
+        return null;
+    }
+
+    /**
+     * Not working
+     * If an error occurred invoking the method via reflection, false is returned.
+     */
+    public void wifiConnectTo(WifiConfiguration wifiConfig) {
+        invokeQuietly(connectWithWifiConfigurationMethod, wiFiManager, wifiConfig, null);
+    }
+
+    boolean isConnectedWifi() {
+        WifiInfo ci = wiFiManager.getConnectionInfo();
+        return ci != null;
+    }
+
+    /*
+      * This method is more accurate to describe if wifi is connected or not
+     */
+    public boolean isConnectedWifi2() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(
+                Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        return networkInfo.isConnected();
     }
 
     // TODO: if the selected network is the network with maximum priority it should use its priority (not more than that)
