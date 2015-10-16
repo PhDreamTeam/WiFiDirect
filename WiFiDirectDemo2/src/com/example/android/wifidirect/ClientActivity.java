@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -198,6 +199,9 @@ public class ClientActivity extends Activity {
                 setTdlsEnabled(editTextCrIpAddress.getText().toString(), false);
             }
         });
+
+        // avoid keyboard popping up
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
 
     // API 21

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.net.*;
 import android.os.Bundle;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -84,6 +85,9 @@ public class RelayActivity extends Activity {
                         }
                     }
                 });
+
+        // avoid keyboard popping up
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
 
     @Override
