@@ -14,15 +14,19 @@ import android.net.wifi.p2p.*;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.*;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 
 /**
  * Created by AT e DR on 23-06-2015.
@@ -30,10 +34,14 @@ import java.util.Map;
  */
 
 public class WiFiDirectControlActivity extends Activity {
+    private static final String TAG = "WifiDirectControl";
+
     Context context;
 
-    private WifiP2pManager manager;
+    private WifiP2pManager p2pManager;
     private WifiP2pManager.Channel channel;
+
+    private static Method deletePersistentGroupMethod;
 
     private HashMap<String, HashMap<String, String>> discoveredNodesRecords = new HashMap<>();
     private HashMap<String, WifiP2pDevice> discoveredNodesDevices = new HashMap<>();
@@ -85,6 +93,17 @@ public class WiFiDirectControlActivity extends Activity {
     private String selectedPeerAddress;
     private Button btnWiFiDirectSearchServices;
     private Button btnWiFiDirectDisconnect;
+    private Button btnClearRegGroups;
+
+    static {
+        for (Method method : WifiP2pManager.class.getDeclaredMethods()) {
+            switch (method.getName()) {
+                case "deletePersistentGroup":
+                    deletePersistentGroupMethod = method;
+                    break;
+            }
+        }
+    }
 
 
     @Override
@@ -99,8 +118,8 @@ public class WiFiDirectControlActivity extends Activity {
         boolean wifiDirectSupported = isWifiDirectSupported(context);
         tvConsole.append("WifiDirectSupported: " + wifiDirectSupported); // first message to console
 
-        manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        channel = manager.initialize(this, getMainLooper(), null);
+        p2pManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        channel = p2pManager.initialize(this, getMainLooper(), null);
 
         // add necessary intent values to be matched.
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -247,6 +266,15 @@ public class WiFiDirectControlActivity extends Activity {
             }
         });
 
+        // button to clear wifi direct registered groups
+        btnClearRegGroups = (Button) findViewById(R.id.btnClearRegGroups);
+        btnClearRegGroups.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clearRegisteredGroups();
+            }
+        });
+
         // register this device as a service provider with rule: Client
         registerNsdService(null, "Client"); /*deviceName null generates a random one*/
 
@@ -318,11 +346,11 @@ public class WiFiDirectControlActivity extends Activity {
             }
         };
 
-        manager.setDnsSdResponseListeners(channel, servListener, txtListener);
+        p2pManager.setDnsSdResponseListeners(channel, servListener, txtListener);
 
 
         WifiP2pDnsSdServiceRequest serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
-        manager.addServiceRequest(channel,
+        p2pManager.addServiceRequest(channel,
                 serviceRequest,
                 new WifiP2pManager.ActionListener() {
                     @Override
@@ -340,7 +368,7 @@ public class WiFiDirectControlActivity extends Activity {
                     }
                 });
 
-        manager.discoverServices(channel, new WifiP2pManager.ActionListener() {
+        p2pManager.discoverServices(channel, new WifiP2pManager.ActionListener() {
 
             @Override
             public void onSuccess() {
@@ -381,7 +409,7 @@ public class WiFiDirectControlActivity extends Activity {
         config.groupOwnerIntent = intendedRole.equalsIgnoreCase("GO") ? 14 : 1; // 15 max(GO), 0 min(Cliente)
 
         // connect to the GO
-        manager.connect(channel, config, new WifiP2pManager.ActionListener() {
+        p2pManager.connect(channel, config, new WifiP2pManager.ActionListener() {
 
             @Override
             public void onSuccess() {
@@ -401,7 +429,7 @@ public class WiFiDirectControlActivity extends Activity {
     public void disconnectFromGroup() {
         tvConsole.append("\nDisconnecting...");
 
-        manager.removeGroup(channel, new WifiP2pManager.ActionListener() {
+        p2pManager.removeGroup(channel, new WifiP2pManager.ActionListener() {
 
             @Override
             public void onFailure(int reasonCode) {
@@ -531,7 +559,7 @@ public class WiFiDirectControlActivity extends Activity {
             tvConsole.append("\n  devList with size: " + devList.size());
         } else {
             // API less than 18
-            manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
+            p2pManager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
                 @Override
                 public void onPeersAvailable(WifiP2pDeviceList peers) {
                     if (progressDialog != null && progressDialog.isShowing()) {
@@ -566,14 +594,23 @@ public class WiFiDirectControlActivity extends Activity {
 
         WifiP2pGroup wifiP2pGroup = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
         tvConsole.append(
-                "\n  WifiP2pGroup:\n    " + (wifiP2pGroup == null ? "not available on this API" : wifiP2pGroup.toString()));
+                "\n  WifiP2pGroup:\n " + (wifiP2pGroup == null ? "not available on this API" : wifiP2pGroup.toString()));
+
         if (wifiP2pGroup != null) {
             txtNetworkName.setText(wifiP2pGroup.getNetworkName());
             txtNetworkPassphrase.setText(wifiP2pGroup.getPassphrase());
             txtGOName.setText(wifiP2pGroup.getOwner() != null ? wifiP2pGroup.getOwner().deviceName : "");
+
+            // get network id - is the p2p persistent group iD
+//            Parcel parcel = Parcel.obtain();
+//            wifiP2pGroup.writeToParcel(parcel, 0);
+//            String networkName = parcel.readString();
+            tvConsole.append(
+                    "\n-- persistent Group ID (networkID): " + getPersistentGroupIdFromWifiP2PGroup(wifiP2pGroup));
+
         } else {
             // get wifiP2pGroup in another way for API 16
-            manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+            p2pManager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
                 @Override
                 public void onGroupInfoAvailable(WifiP2pGroup group) {
                     if (group != null) {
@@ -604,7 +641,7 @@ public class WiFiDirectControlActivity extends Activity {
         if (dev.isGroupOwner()) {
             // register as GO if not registered yet
             if (ndsRegisteredListener != null && !isNDSRegisteredAsGO) {
-                manager.removeLocalService(channel, serviceInfo, ndsRegisteredListener); // unregister
+                p2pManager.removeLocalService(channel, serviceInfo, ndsRegisteredListener); // unregister
                 ndsRegisteredListener = null;
             }
             if (ndsRegisteredListener == null) // !isNDSRegisteredAsGO
@@ -613,7 +650,7 @@ public class WiFiDirectControlActivity extends Activity {
         } else {
             // remove register as GO if already done
             if (ndsRegisteredListener != null && isNDSRegisteredAsGO) {
-                manager.removeLocalService(channel, serviceInfo, ndsRegisteredListener);
+                p2pManager.removeLocalService(channel, serviceInfo, ndsRegisteredListener);
                 ndsRegisteredListener = null;
             }
             if (ndsRegisteredListener == null)
@@ -628,6 +665,20 @@ public class WiFiDirectControlActivity extends Activity {
         unregisterReceiver(receiver);
     }
 
+
+    int getPersistentGroupIdFromWifiP2PGroup(WifiP2pGroup group) {
+        Scanner scan = new Scanner(group.toString());
+        while (scan.hasNext()) {
+            String token = scan.next();
+            if (token.equals("networkId:")) {
+                int networkId = scan.nextInt();
+                scan.close();
+                return networkId;
+            }
+        }
+        scan.close();
+        throw new RuntimeException("getPersistentGroupIdFromWifiP2PGroup: not found networkId");
+    }
 
     // MENU TEST
     @Override
@@ -661,7 +712,7 @@ public class WiFiDirectControlActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
 //            case R.id.atn_direct_enable:
-//                if (manager != null && channel != null) {
+//                if (p2pManager != null && channel != null) {
 //
 //                    // Since this is the system wireless settings activity, it's
 //                    // not going to send us a result. We will be notified by
@@ -669,7 +720,7 @@ public class WiFiDirectControlActivity extends Activity {
 //
 //                    startActivity(new Intent(Settings.ACTION_WIRELESS_SETTINGS));
 //                } else {
-//                    Log.e("wifidirectdemo", "channel or manager is null");
+//                    Log.e("wifidirectdemo", "channel or p2pManager is null");
 //                }
 //                return true;
 
@@ -686,7 +737,7 @@ public class WiFiDirectControlActivity extends Activity {
 //                            }
 //                        });
 
-                manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
+                p2pManager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
                         Toast.makeText(WiFiDirectControlActivity.this, "Discovery peers Initiated",
@@ -709,7 +760,7 @@ public class WiFiDirectControlActivity extends Activity {
 
                 return true;
             case R.id.atn_direct_stop_discover:
-                manager.stopPeerDiscovery(channel, new WifiP2pManager.ActionListener() {
+                p2pManager.stopPeerDiscovery(channel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
                         Toast.makeText(WiFiDirectControlActivity.this, "Stopping Peer Discovery",
@@ -766,7 +817,7 @@ public class WiFiDirectControlActivity extends Activity {
         // Add the local service, sending the service info, network channel,
         // and listener that will be used to indicate success or failure of
         // the request.
-        manager.addLocalService(channel, serviceInfo, ndsRegisteredListener = new WifiP2pManager.ActionListener() {
+        p2pManager.addLocalService(channel, serviceInfo, ndsRegisteredListener = new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
                 // Command successful! Code isn't necessarily needed here,
@@ -786,5 +837,31 @@ public class WiFiDirectControlActivity extends Activity {
         });
     }
 
+    /*
+     * invokeQuietly - used to invoke mothods with HIDE annotation
+     */
+    private static Object invokeQuietly(Method method, Object receiver, Object... args) {
+        try {
+            return method.invoke(receiver, args);
+        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            Log.e(TAG, "", e);
+        }
+        return null;
+    }
 
+    /**
+     *
+     */
+    public void clearRegisteredGroup(int netId, WifiP2pManager.ActionListener listener) {
+        invokeQuietly(deletePersistentGroupMethod, p2pManager, channel, netId, listener);
+    }
+
+
+    /**
+     * Ugly hack, but getting the actual existing groups is an hidden property
+     */
+    public void clearRegisteredGroups() {
+        for (int i = 0; i < 100; ++i)
+            clearRegisteredGroup(i, null);
+    }
 }

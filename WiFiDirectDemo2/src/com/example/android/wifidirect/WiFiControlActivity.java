@@ -74,6 +74,9 @@ public class WiFiControlActivity extends Activity {
         }
     }
 
+    private ScrollView scrollViewConsole;
+    private WifiManager.WifiLock wlock;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -172,6 +175,8 @@ public class WiFiControlActivity extends Activity {
         btnWifiGetStatus = (Button) findViewById(R.id.btnWifiGetStatus);
         btnWifiConnectDirectly = (Button) findViewById(R.id.btnWifiConnectDirectly);
 
+        scrollViewConsole = (ScrollView) findViewById(R.id.scrollViewConsole);
+
         btnWifiConnectDirectly.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -194,8 +199,10 @@ public class WiFiControlActivity extends Activity {
                 // boolean wifiConn = isConnectedWifi();
                 boolean wifiConn2 = isConnectedWifi2();
                 // tvConsole.append("\nWifi Status by wiFiManager.getConnectionInfo: " + wifiConn);
-                tvConsole.append("\nWifi Status by connectivityManager TYPE_WIFI: " + wifiConn2);
-                tvConsole.append("\nConnectionInfo: " + wiFiManager.getConnectionInfo());
+                consoleAppend("Wifi Status by connectivityManager TYPE_WIFI: " + wifiConn2);
+                WifiInfo wi = wiFiManager.getConnectionInfo();
+                consoleAppend("ConnectionInfo: " + wi);
+                tvWFLinkSpeedValue.setText(Integer.toString(wi.getLinkSpeed()));
             }
         });
 
@@ -225,6 +232,10 @@ public class WiFiControlActivity extends Activity {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
         registerReceiver(wifiBroadcastReceiver, intentFilter);
+
+        // rescale the priority of wifi configure networks
+        adjustConfiguredWifiNetworkPriorities();
+
     }
 
     private void toggleLinearLayoutsWeight(LinearLayout ll, LinearLayout ll2, LinearLayout ll3) {
@@ -250,19 +261,36 @@ public class WiFiControlActivity extends Activity {
         }
     };
 
+    /*
+     * Reset the priority of wifi configured networks to start at V (70)
+     */
+    void adjustConfiguredWifiNetworkPriorities() {
+        // TODO
+    }
+
+    void consoleAppend(String msg) {
+        tvConsole.append("\n   " + msg);
+
+        // TODO do this - not done
+        scrollViewConsole.scrollTo(0, tvConsole.getLineCount() * tvConsole.getLineHeight());
+        scrollViewConsole.computeScroll();
+        scrollViewConsole.fullScroll(View.FOCUS_DOWN);
+    }
+
+
     public void scanComplete() {
         expListViewAdapterScannedNetworks.clear();
         scannedResults.clear();
         // get scan results
         List<ScanResult> networkList = wiFiManager.getScanResults();
-        tvConsole.append("\nScan Completed, with results:");
+        consoleAppend("Scan Completed, with results:");
         for (ScanResult network : networkList) {
-            tvConsole.append("\n   " + network.SSID);
+            consoleAppend("  " + network.SSID);
             expListViewAdapterScannedNetworks.addDataChild(network.SSID, network.toString());
             scannedResults.put(network.SSID, network);
         }
         wiFiScanNetworksButton.setEnabled(true);
-        tvConsole.append("\n   ");
+        consoleAppend("   ");
         stopScan();
     }
 
@@ -335,28 +363,28 @@ public class WiFiControlActivity extends Activity {
 
         //remember id
         int netId = wiFiManager.addNetwork(wifiConfig);
-        tvConsole.append("\nAdd network returned -> " + netId);
+        consoleAppend("Add network returned -> " + netId);
 
         boolean connected1 = wiFiManager.enableNetwork(netId, true);
-        tvConsole.append("\nEnabled networks returned -> " + connected1);
+        consoleAppend("Enabled networks returned -> " + connected1);
 
         if (!wiFiManager.saveConfiguration()) {
-            tvConsole.append("\nSave configuration failed");
+            consoleAppend("Save configuration failed");
         }
 
         getConfiguredNetworks();
 
         if (!wiFiManager.disconnect()) {
-            tvConsole.append("\nDisconnect failed");
+            consoleAppend("Disconnect failed");
         }
 
         boolean connected2 = wiFiManager.reconnect();
-        tvConsole.append("\nReconnect (network) returned -> " + connected2);
+        consoleAppend("Reconnect (network) returned -> " + connected2);
 
         if (connected2) {
             WifiInfo wi = wiFiManager.getConnectionInfo();
             tvWFLinkSpeedValue.setText(Integer.toString(wi.getLinkSpeed()));
-            tvConsole.append("\nWifiInfo = " + wi.toString());
+            consoleAppend("WifiInfo = " + wi.toString());
         }
     }
 
@@ -370,7 +398,7 @@ public class WiFiControlActivity extends Activity {
     void connectDirectlyToWifi(String ssid, String key) {
         WifiConfiguration wifiConfig = buildWifiConfiguration(ssid, key);
         wifiConnectTo(wifiConfig);
-        tvConsole.append("\nConnect directly executed");
+        consoleAppend("Connect directly executed");
     }
 
     /*
@@ -386,7 +414,7 @@ public class WiFiControlActivity extends Activity {
     }
 
     /**
-     * Not working
+     * Not working in Motorolas G
      * If an error occurred invoking the method via reflection, false is returned.
      */
     public void wifiConnectTo(WifiConfiguration wifiConfig) {
