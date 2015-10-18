@@ -1,6 +1,6 @@
 package com.example.android.wifidirect;
 
-import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -10,22 +10,22 @@ import java.nio.ByteBuffer;
 
 /**
  * Created by DR e AT on 27/05/2015.
- *
+ * .
  */
 public class ClientDataReceiverServerSocketThreadUDP extends Thread implements IStoppable {
     private int bufferSize;
     int portNumber;
     DatagramSocket serverDatagramSocket;
     boolean run = true;
-    EditText editTextRcvData;
+    TextView editTextRcvData;
     byte buffer[];
     long rcvDataCounterTotal, rcvDataCounterDelta;
     long initialNanoTime;
     long lastUpdate = 0;
 
 
-
-    public ClientDataReceiverServerSocketThreadUDP(int portNumber, EditText editTextRcvData, int bufferSize) {
+    public ClientDataReceiverServerSocketThreadUDP(int portNumber, TextView editTextRcvData,
+                                                   TextView tvMaxSpeed, TextView tvCurAvgSpeed, int bufferSize) {
         this.portNumber = portNumber;
         this.editTextRcvData = editTextRcvData;
         this.bufferSize = bufferSize;
@@ -55,10 +55,10 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
                 serverDatagramSocket.receive(packet);
 //                Log.d(WiFiDirectActivity.TAG, "Received a UDP datagram");
 
-                byte bufferRcv [] = packet.getData();
+                byte bufferRcv[] = packet.getData();
                 ByteBuffer bufferInt = ByteBuffer.wrap(bufferRcv, 0, 4);
                 int addressLen = bufferInt.getInt();
-                String addressInfo = new String(bufferRcv,4, addressLen);
+                String addressInfo = new String(bufferRcv, 4, addressLen);
 //                Log.d(WiFiDirectActivity.TAG, "Received packet with destination address: " + addressInfo);
 
 
@@ -127,7 +127,6 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
         }
 
     }
-
 
 
     @Override

@@ -838,7 +838,7 @@ public class WiFiDirectControlActivity extends Activity {
     }
 
     /*
-     * invokeQuietly - used to invoke mothods with HIDE annotation
+     * invokeQuietly - used to invoke methods with HIDE annotation
      */
     private static Object invokeQuietly(Method method, Object receiver, Object... args) {
         try {

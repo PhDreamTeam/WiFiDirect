@@ -2,7 +2,7 @@ package com.example.android.wifidirect;
 
 import android.os.Environment;
 import android.util.Log;
-import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.*;
@@ -22,16 +22,23 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
     ServerSocket serverSocket;
     boolean run = true;
 
-    EditText editTextRcvData;
-    EditText editTextSendData;
+    TextView editTextRcvData;
+    TextView editTextSendData;
+    TextView tvMaxSpeed;
+    TextView tvCurAvgSpeed;
 
     ArrayList<IStoppable> workingThreads = new ArrayList<IStoppable>();
 
-    public ClientDataReceiverServerSocketThreadTCP(int portNumber, EditText editTextRcvData, EditText editTextSendData, int bufferSize) {
+    public ClientDataReceiverServerSocketThreadTCP(int portNumber,
+                                                   TextView editTextRcvData, TextView editTextSendData,
+                                                   TextView tvMaxSpeed, TextView tvCurAvgSpeed,
+                                                   int bufferSize) {
         this.portNumber = portNumber;
         this.editTextRcvData = editTextRcvData;
         this.editTextSendData = editTextSendData;
         this.bufferSize = bufferSize;
+        this.tvMaxSpeed = tvMaxSpeed;
+        this.tvCurAvgSpeed = tvCurAvgSpeed;
     }
 
     @Override
@@ -77,6 +84,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         long rcvDataCounterTotal, rcvDataCounterDelta, sendDataCounterTotal;
         long initialNanoTime;
         long lastUpdate = 0;
+        double maxSpeed = 0;
 
         public ClientDataReceiverThreadTCP(Socket cliSock, int bufferSize) {
             originSocket = cliSock;
@@ -210,21 +218,26 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 // transfer speed B/s
                 double speed = (rcvDataCounterDelta / 1024) / elapsedDeltaRcvTimeSeconds;
                 // final String msg = (rcvDataCounterTotal / 1024) + " KBytes " + speed + " KBps";
-                final String msg = String.format("%d KB %4.2f KBps", rcvDataCounterTotal / 1024, speed);
+                final String msgBytesReceived = String.format("%d", rcvDataCounterTotal / 1024);
+                final String msgCurSpeed = String.format("%4.2f", speed);
                 lastUpdate = currentNanoTime;
+                rcvDataCounterDelta = 0;
+
+                if(speed > maxSpeed)
+                    maxSpeed = speed;
+
+                final String msgMaxSpeed = String.format("%4.2f", maxSpeed);
+
                 editTextRcvData.post(new Runnable() {
                     @Override
                     public void run() {
-                        editTextRcvData.setText(msg);
+                        editTextRcvData.setText(msgBytesReceived);
+                        editTextSendData.setText("" + sendDataCounterTotal);
+                        tvMaxSpeed.setText(msgMaxSpeed);
+                        tvCurAvgSpeed.setText(msgCurSpeed);
                     }
                 });
-                rcvDataCounterDelta = 0;
-                editTextSendData.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        editTextSendData.setText("" + sendDataCounterTotal + " Bytes");
-                    }
-                });
+
             }
 
         }

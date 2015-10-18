@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.net.InetAddress;
@@ -21,6 +22,16 @@ import java.net.UnknownHostException;
 
 /**
  * Created by DR e AT on 20/05/2015.
+ *
+ * TODO:
+ * 1- colocar a velocidade média como delta de inicio e fim, na recepção
+ * 2- duração da transmissão, na recepção
+ * 3- controlar os bytes recebidos (pode estar relacionado com o ponto seguinte)
+ *    porque os bytes recebidos não são iguais aos transmitidos
+ * 4- controlar o fim da recepção: por fim dos dados, ou detecção do fecho do canal
+ * 5- gravar resultados em ficheiro
+ * 6- UDP...
+ *
  * .
  */
 public class ClientActivity extends Activity {
@@ -35,8 +46,7 @@ public class ClientActivity extends Activity {
     protected int CHOOSE_FILE_RESULT_CODE = 20;
     boolean isTcp;
 
-    private EditText editTextRcvThrdRcvData;
-    private EditText editTextRcvThrdSentData;
+
     private EditText editTextCrIpAddress;
     private EditText editTextCrPortNumber;
     private EditText editTextDestIpAddress;
@@ -50,6 +60,10 @@ public class ClientActivity extends Activity {
 
     private Button btnStartStopServer, btnStartStopTransmitting, btnTcpUdp;
     private Button btnRegCrTdls, btnUnRegCrTdls, btnSendImage;
+    private TextView tvMaxSpeed;
+    private TextView tvCurAvgSpeed;
+    private TextView textViewRcvThrdRcvData;
+    private TextView textViewRcvThrdSentData;
 
 
     @Override
@@ -79,12 +93,14 @@ public class ClientActivity extends Activity {
 
         editTextServerPortNumber = (EditText) findViewById(R.id.editTextServerPortNumber);
 
-        editTextRcvThrdRcvData = (EditText) findViewById(R.id.editTextRcvThrdRcvData);
-        editTextRcvThrdSentData = (EditText) findViewById(R.id.editTextRcvThrdSentData);
+        textViewRcvThrdRcvData = (TextView) findViewById(R.id.textViewRcvThrdRcvData);
+        textViewRcvThrdSentData = (TextView) findViewById(R.id.textViewRcvThrdSentData);
 
         editTextTxThrdSentData = (EditText) findViewById(R.id.editTextTxThrdSentData);
         editTextTxThrdRcvData = ((EditText) findViewById(R.id.editTextTxThrdRcvData));
 
+        tvMaxSpeed = ((TextView) findViewById(R.id.textViewMaxRcvSpeed));
+        tvCurAvgSpeed = ((TextView) findViewById(R.id.textViewCurAvgRcvSpeed));
 
         btnRegCrTdls = (Button) findViewById(R.id.buttonRegCrTdls);
         btnUnRegCrTdls = (Button) findViewById(R.id.buttonUnRegCrTdls);
@@ -115,7 +131,7 @@ public class ClientActivity extends Activity {
                     public void onClick(View v) {
                         if (btnStartStopTransmitting.getText().toString().equals("Start Transmitting")) {
                             transmitData(null); // send dummy data for tests
-                            btnStartStopTransmitting.setText("Stop Transmitting!!!");
+                            btnStartStopTransmitting.setText("Stop Transmitting");
                         } else {
                             clientTransmitter.stopThread();
                             btnStartStopTransmitting.setText("Start Transmitting");
@@ -142,8 +158,8 @@ public class ClientActivity extends Activity {
                     public void onClick(View v) {
                         if (btnStartStopServer.getText().toString().equals("Start Receiving")) {
                             // clear data counter textViewers
-                            editTextRcvThrdRcvData.setText("0 KBps");
-                            editTextRcvThrdSentData.setText("0 Bytes");
+                            textViewRcvThrdRcvData.setText("0");
+                            textViewRcvThrdSentData.setText("0");
 
                             String rcvPortNumber = editTextServerPortNumber.getText().toString();
                             int bufferSize = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
@@ -153,12 +169,12 @@ public class ClientActivity extends Activity {
                             if (isTcp)
                                 clientReceiver = new ClientDataReceiverServerSocketThreadTCP(
                                         Integer.parseInt(rcvPortNumber)
-                                        , editTextRcvThrdRcvData
-                                        , editTextRcvThrdSentData, bufferSize);
+                                        , textViewRcvThrdRcvData
+                                        , textViewRcvThrdSentData, tvMaxSpeed, tvCurAvgSpeed, bufferSize);
                             else
                                 clientReceiver = new ClientDataReceiverServerSocketThreadUDP(
                                         Integer.parseInt(rcvPortNumber)
-                                        , editTextRcvThrdRcvData, bufferSize);
+                                        , textViewRcvThrdRcvData, tvMaxSpeed, tvCurAvgSpeed, bufferSize);
                             clientReceiver.start();
 
                             btnStartStopServer.setText("Stop Receiving!!!");
@@ -248,6 +264,7 @@ public class ClientActivity extends Activity {
                     , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
                     , editTextTxThrdSentData
                     , editTextTxThrdRcvData
+                    , fileToSend == null ? btnStartStopTransmitting : null
                     , bufferSize, fileToSend);
         else
             clientTransmitter = new ClientSendDataThreadUDP(destIpAddress,

@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -27,6 +28,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
 
     EditText editTextSentData;
     EditText editTextRcvData;
+    Button startStopButton;
 
     boolean runSender = true, runReceiver = true;
     double lastUpdate;
@@ -36,13 +38,13 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     Thread rcvThread;
 
     public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
-            , EditText editTextSentData, EditText editTextRcvData, int bufferSize, Uri sourceUri) {
+            , EditText editTextSentData, EditText editTextRcvData, Button startStopButton, int bufferSize, Uri sourceUri) {
         this(destIpAddress, destPortNumber, crIpAddress, crPortNumber, 0, 0, editTextSentData, editTextRcvData,
-                bufferSize, sourceUri);
+                startStopButton, bufferSize, sourceUri);
     }
 
     public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
-            , long speed, long dataLimit, EditText editTextSentData, EditText editTextRcvData, int bufferSize
+            , long speed, long dataLimit, EditText editTextSentData, EditText editTextRcvData, Button startStopButton, int bufferSize
             , Uri sourceUri) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
@@ -52,6 +54,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         this.dataLimit = dataLimit * 1024;
         this.editTextSentData = editTextSentData;
         this.editTextRcvData = editTextRcvData;
+        this.startStopButton = startStopButton;
         this.bufferSize = bufferSize;
         this.sourceUri = sourceUri;
     }
@@ -184,11 +187,11 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 sentData += dataLen;
                 updateSentData(sentData, false);
 
-                if (dataLimit != 0 && sentData > dataLimit) {
+                if (dataLimit != 0 && sentData >= dataLimit) {
                     break;
                 }
                 if (speed != 0) {
-                    this.sleep(speed);
+                    Thread.sleep(speed);
                 }
             }
 
@@ -204,6 +207,15 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             // close streams
             close(is);
             close(dos);
+        }
+
+        if(sourceUri == null) {
+            startStopButton.post(new Runnable() {
+                @Override
+                public void run() {
+                    startStopButton.setText("Start Transmitting");
+                }
+            });
         }
     }
 
@@ -256,7 +268,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                         Log.d(WiFiDirectActivity.TAG,
                                 "File received successfully on server, (end by exception), bytes received: " + rcvData);
                     } else {
-                        Log.d(WiFiDirectActivity.TAG,"Error on File receive.");
+                        Log.d(WiFiDirectActivity.TAG, "Error on File receive.");
                         e.printStackTrace();
                     }
                 } finally {
