@@ -60,7 +60,9 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 System.out.println(" Received a connection, starting transfer thread...");
                 IStoppable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize);
                 workingThreads.add(t);
-                t.start();
+                // for testing we want this server to be an iterative server not concurrent.
+                // t.start();
+                t.run();
             }
 
         } catch (IOException e) {
@@ -148,28 +150,35 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     int readDataLen = dis.read(buffer);
 
                     // checking end of data from socket
-                    if (readDataLen != -1) {
-                        // write data to file
-                        if (fos != null) {
-                            fos.write(buffer, 0, readDataLen);
-                        }
+                    if (readDataLen == -1)
+                        break;
 
-                        rcvDataCounterTotal += readDataLen;
-                        rcvDataCounterDelta += readDataLen;
-                        //send reply
-                        dos.write("ok".getBytes()); // send reply to original client
-                        sendDataCounterTotal += "ok".getBytes().length;
-                        updateVisualDeltaInformation(false/*true*/); // DEBUG DR
-                        // this may slow down reception. may want to get data only when necessary
-                    } else {
-                        // end of data
-                        updateVisualDeltaInformation(true);
-                        myToast("File received successfully on server.");
-                        Log.d(WiFiDirectActivity.TAG,
-                                "File received successfully on server, bytes received: " + rcvDataCounterTotal);
-                        run = false;
+                    // write data to file
+                    if (fos != null) {
+                        fos.write(buffer, 0, readDataLen);
                     }
+
+                    rcvDataCounterTotal += readDataLen;
+                    rcvDataCounterDelta += readDataLen;
+                    //send reply
+                    dos.write("ok".getBytes()); // send reply to original client
+                    sendDataCounterTotal += "ok".getBytes().length;
+                    updateVisualDeltaInformation(false/*true*/); // DEBUG DR
+                    // this may slow down reception. may want to get data only when necessary
                 }
+
+                // final actions
+                updateVisualDeltaInformation(true);
+                myToast("File received successfully on server.");
+                Log.d(WiFiDirectActivity.TAG,
+                        "File received successfully on server, bytes received: " + rcvDataCounterTotal);
+
+                // closing socket streams
+                originSocket.shutdownOutput();
+                originSocket.shutdownInput();
+
+                // signal GUI that this connection ended
+                // TODO ...
 
             } catch (IOException e) {
                 Log.d(WiFiDirectActivity.TAG, "Exception message: " + e.getMessage());
@@ -185,15 +194,13 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     e.printStackTrace();
                 }
             } finally {
-                // close operations
-                close(dis);
+                // close socket
                 try {
                     originSocket.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 close(fos);
-                close(dos);
             }
         }
 
@@ -223,7 +230,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 lastUpdate = currentNanoTime;
                 rcvDataCounterDelta = 0;
 
-                if(speed > maxSpeed)
+                if (speed > maxSpeed)
                     maxSpeed = speed;
 
                 final String msgMaxSpeed = String.format("%4.2f", maxSpeed);

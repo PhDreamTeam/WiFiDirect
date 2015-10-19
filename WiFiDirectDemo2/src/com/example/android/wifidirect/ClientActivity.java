@@ -24,6 +24,10 @@ import java.net.UnknownHostException;
  * Created by DR e AT on 20/05/2015.
  *
  * TODO:
+ * 1- adapt GUI to collapse transmission or receiving section
+ * 2- enable several receptions simultaneously
+ *
+ * 0- controlar o final da transmissão
  * 1- colocar a velocidade média como delta de inicio e fim, na recepção
  * 2- duração da transmissão, na recepção
  * 3- controlar os bytes recebidos (pode estar relacionado com o ponto seguinte)
@@ -64,6 +68,7 @@ public class ClientActivity extends Activity {
     private TextView tvCurAvgSpeed;
     private TextView textViewRcvThrdRcvData;
     private TextView textViewRcvThrdSentData;
+    private Button btnTdls;
 
 
     @Override
@@ -74,13 +79,17 @@ public class ClientActivity extends Activity {
         context = getApplicationContext();
         wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 
-        Toast.makeText(context, "onCreate", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(context, "onCreate", Toast.LENGTH_SHORT).show();
         setContentView(R.layout.client_activity);
 
         btnStartStopTransmitting = (Button) findViewById(R.id.buttonStartStopTransmitting);
         btnStartStopServer = (Button) findViewById(R.id.buttonStartStopServer);
         btnSendImage = (Button) findViewById(R.id.buttonSendImage);
         btnTcpUdp = (Button) findViewById(R.id.buttonTcpUdp);
+
+        btnTdls = (Button) findViewById(R.id.buttonTdls);
+        btnRegCrTdls = (Button) findViewById(R.id.buttonRegCrTdls);
+        btnUnRegCrTdls = (Button) findViewById(R.id.buttonUnRegCrTdls);
 
         isTcp = btnTcpUdp.getText().toString().equals("TCP");
         editTextCrIpAddress = (EditText) findViewById(R.id.editTextCrIpAddress);
@@ -102,14 +111,12 @@ public class ClientActivity extends Activity {
         tvMaxSpeed = ((TextView) findViewById(R.id.textViewMaxRcvSpeed));
         tvCurAvgSpeed = ((TextView) findViewById(R.id.textViewCurAvgRcvSpeed));
 
-        btnRegCrTdls = (Button) findViewById(R.id.buttonRegCrTdls);
-        btnUnRegCrTdls = (Button) findViewById(R.id.buttonUnRegCrTdls);
+
 
         // Remove TDLS buttons on devices that doesn't support it
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
             // Build.VERSION_CODES.KITKAT = API 19
-            btnRegCrTdls.setVisibility(View.GONE);
-            btnUnRegCrTdls.setVisibility(View.GONE);
+            btnTdls.setVisibility(View.GONE);
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -118,8 +125,7 @@ public class ClientActivity extends Activity {
             if (!isTdlsSupported())
                 addColor = 0xFF880000;  // unsupported color
             LightingColorFilter lcf = new LightingColorFilter(0xFFFFFFFF, addColor);
-            btnRegCrTdls.getBackground().setColorFilter(lcf);
-            btnUnRegCrTdls.getBackground().setColorFilter(lcf);
+            btnTdls.getBackground().setColorFilter(lcf);
         }
 
 
@@ -170,7 +176,9 @@ public class ClientActivity extends Activity {
                                 clientReceiver = new ClientDataReceiverServerSocketThreadTCP(
                                         Integer.parseInt(rcvPortNumber)
                                         , textViewRcvThrdRcvData
-                                        , textViewRcvThrdSentData, tvMaxSpeed, tvCurAvgSpeed, bufferSize);
+                                        , textViewRcvThrdSentData
+//                                        , btnStartStopServer
+                                        , tvMaxSpeed, tvCurAvgSpeed, bufferSize);
                             else
                                 clientReceiver = new ClientDataReceiverServerSocketThreadUDP(
                                         Integer.parseInt(rcvPortNumber)
@@ -202,6 +210,19 @@ public class ClientActivity extends Activity {
                 }
         );
 
+        btnTdls.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(btnRegCrTdls.getVisibility() == View.GONE) {
+                    btnRegCrTdls.setVisibility(View.VISIBLE);
+                    btnUnRegCrTdls.setVisibility(View.VISIBLE);
+                } else {
+                    btnRegCrTdls.setVisibility(View.GONE);
+                    btnUnRegCrTdls.setVisibility(View.GONE);
+                }
+            }
+        });
+
         btnRegCrTdls.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -224,7 +245,7 @@ public class ClientActivity extends Activity {
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     boolean isTdlsSupported() {
         boolean isTDLSSupported = wifiManager.isTdlsSupported();
-        toast("TDLS supported -> " + isTDLSSupported);
+        //toast("TDLS supported -> " + isTDLSSupported);
         return isTDLSSupported;
     }
 
@@ -235,7 +256,7 @@ public class ClientActivity extends Activity {
         try {
             remoteIPAddress = InetAddress.getByName(crIpAddressStr);
             wifiManager.setTdlsEnabled(remoteIPAddress, enable);
-            toast("setTdlsEnabled " + enable + " on " + crIpAddressStr + " with success");
+            //toast("setTdlsEnabled " + enable + " on " + crIpAddressStr + " with success");
 
         } catch (UnknownHostException e) {
             Log.e("ClientActivity", "setTdlsEnabled " + enable + " on " + crIpAddressStr, e);
@@ -290,7 +311,7 @@ public class ClientActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        toast("onDestroy");
+        //toast("onDestroy");
 
         if (clientTransmitter != null)
             clientTransmitter.stopThread();
@@ -303,31 +324,31 @@ public class ClientActivity extends Activity {
 
     public void onStop() {
         super.onStop();
-        toast("onStop");
+        //toast("onStop");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        toast("onPause");
+        //toast("onPause");
     }
 
     @Override
     protected void onRestart() {
         super.onRestart();
-        toast("onRestart");
+        //toast("onRestart");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        toast("onResume");
+        //toast("onResume");
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        toast("onStart");
+        //toast("onStart");
     }
 
     @Override

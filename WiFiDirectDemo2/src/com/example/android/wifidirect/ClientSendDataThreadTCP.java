@@ -206,7 +206,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         } finally {
             // close streams
             close(is);
-            close(dos);
+           // close(dos);
         }
 
         if(sourceUri == null) {
