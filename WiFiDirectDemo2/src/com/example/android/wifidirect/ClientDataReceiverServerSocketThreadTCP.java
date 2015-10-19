@@ -2,7 +2,7 @@ package com.example.android.wifidirect;
 
 import android.os.Environment;
 import android.util.Log;
-import android.widget.TextView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import java.io.*;
@@ -22,49 +22,29 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
     ServerSocket serverSocket;
     boolean run = true;
 
-    TextView editTextRcvData;
-    TextView editTextSendData;
-    TextView tvMaxSpeed;
-    TextView tvCurAvgSpeed;
-
+    LinearLayout llReceptionZone;
     ArrayList<IStoppable> workingThreads = new ArrayList<IStoppable>();
 
     public ClientDataReceiverServerSocketThreadTCP(int portNumber,
-                                                   TextView editTextRcvData, TextView editTextSendData,
-                                                   TextView tvMaxSpeed, TextView tvCurAvgSpeed,
-                                                   int bufferSize) {
+                                                   LinearLayout llReceptionZone, int bufferSize) {
         this.portNumber = portNumber;
-        this.editTextRcvData = editTextRcvData;
-        this.editTextSendData = editTextSendData;
         this.bufferSize = bufferSize;
-        this.tvMaxSpeed = tvMaxSpeed;
-        this.tvCurAvgSpeed = tvCurAvgSpeed;
+        this.llReceptionZone = llReceptionZone;
     }
 
     @Override
     public void run() {
-        editTextRcvData.post(new Runnable() {
-            @Override
-            public void run() {
-                CharSequence text = "" + bufferSize + "KB, ClientDataReceiverServerSocketThreadTCP";
-                Toast.makeText(editTextRcvData.getContext(), text, Toast.LENGTH_SHORT).show();
-            }
-        });
-
         // receive data from other clients...
         try {
             serverSocket = new ServerSocket(portNumber);
             while (run) {
                 // wait connections
                 Socket cliSock = serverSocket.accept();
-                System.out.println(" Received a connection, starting transfer thread...");
-                IStoppable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize);
+                myToast("Received a connection...");
+                IStoppable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize, llReceptionZone);
                 workingThreads.add(t);
-                // for testing we want this server to be an iterative server not concurrent.
-                // t.start();
-                t.run();
+                t.start();
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -73,9 +53,11 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
     @Override
     public void stopThread() {
         run = false;
+        // stop socket listening thread
         this.interrupt();
-        for (IStoppable stopable : workingThreads)
-            stopable.stopThread();
+        // stop all client handling threads
+        for (IStoppable stoppable : workingThreads)
+            stoppable.stopThread();
     }
 
     private class ClientDataReceiverThreadTCP extends Thread implements IStoppable {
@@ -83,15 +65,20 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         boolean run = true;
         Socket originSocket;
         byte buffer[];
-        long rcvDataCounterTotal, rcvDataCounterDelta, sendDataCounterTotal;
+        long rcvDataCounterTotal, rcvDataCounterLastValue, sentDataCounterTotal;
         long initialNanoTime;
         long lastUpdate = 0;
         double maxSpeed = 0;
 
-        public ClientDataReceiverThreadTCP(Socket cliSock, int bufferSize) {
+        ReceptionGuiInfo receptionGuiInfoGui;
+
+        public ClientDataReceiverThreadTCP(Socket cliSock, int bufferSize, LinearLayout llReceptionZone) {
             originSocket = cliSock;
             this.bufferSize = bufferSize;
             buffer = new byte[bufferSize];
+
+            receptionGuiInfoGui = new ReceptionGuiInfo(llReceptionZone, cliSock.getRemoteSocketAddress().toString(),
+                    cliSock.getLocalPort());
         }
 
         public long getRcvDataCounterTotal() {
@@ -113,6 +100,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 dis = new DataInputStream(originSocket.getInputStream());
                 dos = new DataOutputStream(originSocket.getOutputStream());
 
+                // read
                 int addressLen = dis.readInt();
                 dis.read(buffer, 0, addressLen);
 
@@ -129,7 +117,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     String timestamp = sdf.format(new Date());
 
                     final File f = new File(Environment.getExternalStorageDirectory() + "/"
-                            + editTextRcvData.getContext().getPackageName() + "/" + timestamp + "_" + filename); // add filename
+                            + llReceptionZone.getContext().getPackageName() + "/" + timestamp + "_" + filename); // add filename
                     File dirs = new File(f.getParent());
                     if (!dirs.exists())
                         dirs.mkdirs();
@@ -141,10 +129,10 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 }
 
-                // Receive client data
                 initialNanoTime = System.nanoTime();
                 Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSize);
 
+                // Receive client data
                 while (run) {
                     // receive and count rcvData
                     int readDataLen = dis.read(buffer);
@@ -159,13 +147,16 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     }
 
                     rcvDataCounterTotal += readDataLen;
-                    rcvDataCounterDelta += readDataLen;
+
                     //send reply
                     dos.write("ok".getBytes()); // send reply to original client
-                    sendDataCounterTotal += "ok".getBytes().length;
+                    sentDataCounterTotal += "ok".getBytes().length;
+
                     updateVisualDeltaInformation(false/*true*/); // DEBUG DR
                     // this may slow down reception. may want to get data only when necessary
                 }
+
+                long finalNanoTime = System.nanoTime();
 
                 // final actions
                 updateVisualDeltaInformation(true);
@@ -173,26 +164,35 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 Log.d(WiFiDirectActivity.TAG,
                         "File received successfully on server, bytes received: " + rcvDataCounterTotal);
 
+                // calculate avg speed  based on time
+                long deltaNanoTime = finalNanoTime - initialNanoTime;
+                receptionGuiInfoGui.setCurAvgRcvSpeed((rcvDataCounterTotal / 1024.0) /
+                        (deltaNanoTime / 1000000000.0));
+
+                // remove this thread from the container of threads
+                workingThreads.remove(this);
+
                 // closing socket streams
                 originSocket.shutdownOutput();
                 originSocket.shutdownInput();
 
                 // signal GUI that this connection ended
-                // TODO ...
+                // myToast("Received data(KB): " + receptionGui.getTvReceivedData());
+                receptionGuiInfoGui.setTerminatedState();
 
             } catch (IOException e) {
                 Log.d(WiFiDirectActivity.TAG, "Exception message: " + e.getMessage());
-                if (e.getMessage().equals("recvfrom failed: ECONNRESET (Connection reset by peer)")) {
-                    // terminated with success
-                    updateVisualDeltaInformation(true);
-                    Log.d(WiFiDirectActivity.TAG,
-                            "File received successfully on server, (end by exception), bytes received: " + rcvDataCounterTotal);
-                } else {
-                    // terminated with error
-                    Log.e(WiFiDirectActivity.TAG, "Error receiving file on server: " + e.getMessage());
-                    myToast("Error receiving file on server: " + e.getMessage());
-                    e.printStackTrace();
-                }
+//                if (e.getMessage().equals("recvfrom failed: ECONNRESET (Connection reset by peer)")) {
+//                    // terminated with success
+//                    updateVisualDeltaInformation(true);
+//                    Log.d(WiFiDirectActivity.TAG,
+//                            "File received successfully on server, (end by exception), bytes received: " + rcvDataCounterTotal);
+//                } else {
+                // terminated with error
+                Log.e(WiFiDirectActivity.TAG, "Error receiving file on server: " + e.getMessage());
+                myToast("Error receiving file on server: " + e.getMessage());
+                e.printStackTrace();
+//                }
             } finally {
                 // close socket
                 try {
@@ -204,6 +204,9 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             }
         }
 
+        /**
+         *
+         */
         private void close(Closeable closeable) {
             if (closeable != null) {
                 try {
@@ -214,75 +217,31 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             }
         }
 
+        /**
+         *
+         */
         void updateVisualDeltaInformation(boolean forcedUpdate) {
             // elapsed time
-            long currentNanoTime = System.nanoTime();
+            final long currentNanoTime = System.nanoTime();
 
             if ((currentNanoTime > lastUpdate + 1000000000) || forcedUpdate) {
 
                 long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
                 double elapsedDeltaRcvTimeSeconds = (double) elapsedDeltaRcvTimeNano / 1000000000.0;
                 // transfer speed B/s
-                double speed = (rcvDataCounterDelta / 1024) / elapsedDeltaRcvTimeSeconds;
-                // final String msg = (rcvDataCounterTotal / 1024) + " KBytes " + speed + " KBps";
-                final String msgBytesReceived = String.format("%d", rcvDataCounterTotal / 1024);
-                final String msgCurSpeed = String.format("%4.2f", speed);
+                final double speed = ((sentDataCounterTotal - rcvDataCounterLastValue) / 1024)
+                        / elapsedDeltaRcvTimeSeconds;
                 lastUpdate = currentNanoTime;
-                rcvDataCounterDelta = 0;
+                rcvDataCounterLastValue = sentDataCounterTotal;
 
                 if (speed > maxSpeed)
                     maxSpeed = speed;
 
-                final String msgMaxSpeed = String.format("%4.2f", maxSpeed);
-
-                editTextRcvData.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        editTextRcvData.setText(msgBytesReceived);
-                        editTextSendData.setText("" + sendDataCounterTotal);
-                        tvMaxSpeed.setText(msgMaxSpeed);
-                        tvCurAvgSpeed.setText(msgCurSpeed);
-                    }
-                });
-
+                receptionGuiInfoGui.setData(rcvDataCounterTotal / 1024,
+                        sentDataCounterTotal, maxSpeed, speed);
             }
-
         }
 
-        void updateVisualInformation() {
-            // print rcvDataCounterTotal
-            // print initialNanoTime
-
-            // elapsed time
-            long currentNanoTime = System.nanoTime();
-
-            if (currentNanoTime > lastUpdate + 1000000000) {
-                long elapsedRcvTimeNano = currentNanoTime - initialNanoTime; // div 10^-9 para ter em segundos
-                double elapsedRcvTimeSeconds = (double) elapsedRcvTimeNano / 1000000000.0;
-                // transfer speed B/s
-                double speed = (rcvDataCounterTotal / 1024) / elapsedRcvTimeSeconds;
-
-                //update in some kind of visual component on the screen
-//            System.out.println(" Total received data: " + rcvDataCounterTotal + " Bytes"
-//                            + " Total elapsed time: " + elapsedRcvTimeSeconds + " seconds"
-//                            + " Transfer average speed: " + speed + "Byte per second, " + speed / 8.0 + "bps"
-//            );
-                final String msg = (rcvDataCounterTotal / 1024) + " KBytes " + speed + " KBps";
-//                    "Total received data: " + (rcvDataCounterTotal / 1024) + " KBytes"
-//                            + " Total elapsed time: " + elapsedRcvTimeSeconds + " seconds"
-//                            + " Transfer average speed: " + speed + " KBps, " + speed * 8.0 + " Kbps";
-
-                lastUpdate = currentNanoTime;
-                editTextRcvData.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        editTextRcvData.setText(msg);
-                        ;
-                    }
-                });
-            }
-
-        }
 
         @Override
         public void stopThread() {
@@ -292,11 +251,13 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
     }
 
     private void myToast(final String s) {
-        editTextRcvData.post(new Runnable() {
+        llReceptionZone.post(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(editTextRcvData.getContext(), s, Toast.LENGTH_SHORT).show();
+                Toast.makeText(llReceptionZone.getContext(), s, Toast.LENGTH_SHORT).show();
             }
         });
     }
 }
+
+

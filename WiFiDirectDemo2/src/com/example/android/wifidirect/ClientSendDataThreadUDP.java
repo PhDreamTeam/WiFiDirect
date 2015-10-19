@@ -1,8 +1,8 @@
 package com.example.android.wifidirect;
 
 import android.util.Log;
+import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Created by DR e AT on 27/05/2015.
+ * .
  */
 public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     private int bufferSize;
@@ -24,12 +25,15 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     EditText editTextSentData;
     boolean run = true;
     double lastUpdate;
+    Button startStopTransmitting;
 
-    public ClientSendDataThreadUDP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, EditText editTextSentData, int bufferSize) {
-        this(destIpAddress, destPortNumber, crIpAddress, crPortNumber, 0, 0, editTextSentData, bufferSize);
-    }
-
-    public ClientSendDataThreadUDP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber, long speed, long dataLimit, EditText editTextSentData, int bufferSize) {
+    /**
+     *
+     */
+    public ClientSendDataThreadUDP(String destIpAddress, int destPortNumber, String crIpAddress,
+                                   int crPortNumber, long speed, long dataLimit,
+                                   EditText editTextSentData,
+                                   Button startStopTransmitting, int bufferSize) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
         this.crIpAddress = crIpAddress;
@@ -37,20 +41,13 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
         this.speed = speed;
         this.dataLimit = dataLimit * 1024;
         this.editTextSentData = editTextSentData;
+        this.startStopTransmitting = startStopTransmitting;
         this.bufferSize = bufferSize;
     }
 
 
     @Override
     public void run() {
-        editTextSentData.post(new Runnable() {
-            @Override
-            public void run() {
-                CharSequence text = "" + bufferSize + "KB, ClientSendDataThreadUDP";
-                Toast.makeText(editTextSentData.getContext(), text, Toast.LENGTH_SHORT).show();
-            }
-        });
-
         // Send data
         byte buffer[] = new byte[bufferSize];
         byte b = 0;
@@ -60,7 +57,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
         try {
 
             DatagramSocket cliSocket = new DatagramSocket();
-             // send destination information for the forward node
+            // send destination information for the forward node
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
 
             ByteBuffer buf = ByteBuffer.allocate(4);
@@ -68,30 +65,47 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             System.arraycopy(buf.array(), 0, buffer, 0, 4);
             System.arraycopy(addressData.getBytes(), 0, buffer, 4, addressData.getBytes().length);
 
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(crIpAddress), crPortNumber);
-
             Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSize);
+
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
+                    InetAddress.getByName(crIpAddress), crPortNumber);
 
             while (run) {
                 cliSocket.send(packet);
                 sentData += buffer.length;
-                updateSentData(sentData);
-                if (dataLimit != 0 && sentData > dataLimit) {
+
+                updateSentData(sentData, false);
+
+                if (dataLimit != 0 && sentData >= dataLimit) {
                     run = false;
                 }
+
                 if (speed != 0) {
-                    this.sleep(speed);
+                    Thread.sleep(speed);
                 }
             }
+
+            // update gui with last results and state button
+            updateSentData(sentData, true);
+
+            editTextSentData.post(new Runnable() {
+                public void run() {
+                    startStopTransmitting.setText("Start Transmitting");
+                }
+            });
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void updateSentData(final long sentData) {
+    /*
+     *
+     */
+    private void updateSentData(final long sentData, boolean forceUpdate) {
         long currentNanoTime = System.nanoTime();
 
-        if (currentNanoTime > lastUpdate + 1000000000) {
+        if (forceUpdate || currentNanoTime > lastUpdate + 1000000000) {
             lastUpdate = currentNanoTime;
             editTextSentData.post(new Runnable() {
                 @Override
@@ -101,7 +115,6 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             });
         }
     }
-
 
 
     @Override

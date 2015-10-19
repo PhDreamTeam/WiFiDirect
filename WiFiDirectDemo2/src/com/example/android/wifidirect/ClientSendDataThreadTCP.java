@@ -93,11 +93,11 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     private InetAddress getInetAddress(String destAddress) {
         try {
 
-            // AT this code is working in ISEL
+            // AT this code is working in ISEL - IPv6 experiments
 //            InetAddress dest1 = Inet6Address.getByName(destAddress);
 //            Inet6Address dest = Inet6Address.getByAddress(destAddress, dest1.getAddress(), getWLan0NetworkInterface());
 
-            // AT this code worked in iSEL (with the ipv6 address)
+            // AT this code worked in ISEL (with the ipv6 address)
 //            InetAddress dest = Inet6Address.getByName(destAddress);
 
             // to work with ipv4 and ipv6
@@ -261,16 +261,18 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
 
                         rcvData += nBytesRead;
                     }
+                    updateRcvData();
+
                 } catch (IOException e) {
-                    if (e.getMessage().equals("recvfrom failed: ECONNRESET (Connection reset by peer)")) {
-                        // terminated with success
-                        updateRcvData(true);
-                        Log.d(WiFiDirectActivity.TAG,
-                                "File received successfully on server, (end by exception), bytes received: " + rcvData);
-                    } else {
-                        Log.d(WiFiDirectActivity.TAG, "Error on File receive.");
+//                    if (e.getMessage().equals("recvfrom failed: ECONNRESET (Connection reset by peer)")) {
+//                        // terminated with success
+//                        updateRcvData(true);
+//                        Log.d(WiFiDirectActivity.TAG,
+//                                "File received successfully on server, (end by exception), bytes received: " + rcvData);
+//                    } else {
+                        Log.d(WiFiDirectActivity.TAG, "Error receiving responses...");
                         e.printStackTrace();
-                    }
+//                    }
                 } finally {
                     close(dis);
                 }
@@ -291,11 +293,11 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                     editTextSentData.setText("" + (sentData / 1024) + " KB");
                 }
             });
-            updateRcvData(forceUpdate);
+            updateRcvData();
         }
     }
 
-    private void updateRcvData(boolean forceUpdate) {
+    private void updateRcvData() {
         editTextRcvData.post(new Runnable() {
             @Override
             public void run() {

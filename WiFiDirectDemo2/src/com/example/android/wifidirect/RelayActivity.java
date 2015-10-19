@@ -49,7 +49,7 @@ public class RelayActivity extends Activity {
                             int bufferSize = 1024 * Integer.parseInt(
                                     ((EditText) findViewById(R.id.editTextCRMaxBufferSize)).getText().toString());
 
-                            CharSequence text = "Start Relaying at port: " + CRPort + "!!!!!";
+                            CharSequence text = "Start Relaying at localPort: " + CRPort + "!!!!!";
                             Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
                             toast.show();
 

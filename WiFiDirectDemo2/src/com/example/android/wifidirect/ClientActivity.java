@@ -12,31 +12,31 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
  * Created by DR e AT on 20/05/2015.
- *
- * TODO:
- * 1- adapt GUI to collapse transmission or receiving section
- * 2- enable several receptions simultaneously
- *
- * 0- controlar o final da transmissão
- * 1- colocar a velocidade média como delta de inicio e fim, na recepção
- * 2- duração da transmissão, na recepção
- * 3- controlar os bytes recebidos (pode estar relacionado com o ponto seguinte)
- *    porque os bytes recebidos não são iguais aos transmitidos
- * 4- controlar o fim da recepção: por fim dos dados, ou detecção do fecho do canal
- * 5- gravar resultados em ficheiro
- * 6- UDP...
- *
- * .
+ * <p/>
+ * <p/>
+ * DONE: adapt GUI to collapse transmission or receiving section
+ * DONE: enable several receptions simultaneously
+ * DONE: controlar o final da transmissão
+ * DONE: colocar a velocidade média como delta de inicio e fim, na recepção
+ * DONE: controlar os bytes recebidos (pode estar relacionado com o ponto seguinte)
+ * porque os bytes recebidos não são iguais aos transmitidos
+ * DONE: controlar o fim da recepção: por fim dos dados, ou detecção do fecho do canal
+ * DONE: duração da transmissão, na recepção
+ * Done: UDP
+ * <p/>
+ * - gravar resultados em ficheiro
+ * TODO:  .
+ * <p/>
+ * - send image: TCP
+ * -
+ * <p/>
  */
 public class ClientActivity extends Activity {
     ClientActivity myThis;
@@ -69,6 +69,13 @@ public class ClientActivity extends Activity {
     private TextView textViewRcvThrdRcvData;
     private TextView textViewRcvThrdSentData;
     private Button btnTdls;
+    private TextView tvTransmissionZone;
+    private TextView tvReceptionZone;
+    private LinearLayout llTransmissionZone;
+    private LinearLayout llReceptionZone;
+
+
+    // TODO - clear  gui elements that are no more necessary (wait for a while)
 
 
     @Override
@@ -106,11 +113,16 @@ public class ClientActivity extends Activity {
         textViewRcvThrdSentData = (TextView) findViewById(R.id.textViewRcvThrdSentData);
 
         editTextTxThrdSentData = (EditText) findViewById(R.id.editTextTxThrdSentData);
-        editTextTxThrdRcvData = ((EditText) findViewById(R.id.editTextTxThrdRcvData));
+        editTextTxThrdRcvData = (EditText) findViewById(R.id.editTextTxThrdRcvData);
 
-        tvMaxSpeed = ((TextView) findViewById(R.id.textViewMaxRcvSpeed));
-        tvCurAvgSpeed = ((TextView) findViewById(R.id.textViewCurAvgRcvSpeed));
+        tvMaxSpeed = (TextView) findViewById(R.id.textViewMaxRcvSpeed);
+        tvCurAvgSpeed = (TextView) findViewById(R.id.textViewCurAvgRcvSpeed);
 
+        tvTransmissionZone = (TextView) findViewById(R.id.textViewTransmissionZone);
+        tvReceptionZone = (TextView) findViewById(R.id.textViewReceptionZone);
+
+        llTransmissionZone = (LinearLayout) findViewById(R.id.LinearLayoutTransmission);
+        llReceptionZone = (LinearLayout) findViewById(R.id.LinearLayoutReception);
 
 
         // Remove TDLS buttons on devices that doesn't support it
@@ -130,6 +142,22 @@ public class ClientActivity extends Activity {
 
 
         // set listeners on buttons
+
+        tvTransmissionZone.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                llTransmissionZone.setVisibility(llTransmissionZone.getVisibility() == View.GONE ?
+                        View.VISIBLE : View.GONE);
+            }
+        });
+
+        tvReceptionZone.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                llReceptionZone.setVisibility(llReceptionZone.getVisibility() == View.GONE ?
+                        View.VISIBLE : View.GONE);
+            }
+        });
 
         btnStartStopTransmitting.setOnClickListener(
                 new View.OnClickListener() {
@@ -164,8 +192,8 @@ public class ClientActivity extends Activity {
                     public void onClick(View v) {
                         if (btnStartStopServer.getText().toString().equals("Start Receiving")) {
                             // clear data counter textViewers
-                            textViewRcvThrdRcvData.setText("0");
-                            textViewRcvThrdSentData.setText("0");
+//                            textViewRcvThrdRcvData.setText("0");
+//                            textViewRcvThrdSentData.setText("0");
 
                             String rcvPortNumber = editTextServerPortNumber.getText().toString();
                             int bufferSize = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
@@ -175,14 +203,12 @@ public class ClientActivity extends Activity {
                             if (isTcp)
                                 clientReceiver = new ClientDataReceiverServerSocketThreadTCP(
                                         Integer.parseInt(rcvPortNumber)
-                                        , textViewRcvThrdRcvData
-                                        , textViewRcvThrdSentData
-//                                        , btnStartStopServer
-                                        , tvMaxSpeed, tvCurAvgSpeed, bufferSize);
+                                        , llReceptionZone, bufferSize);
                             else
                                 clientReceiver = new ClientDataReceiverServerSocketThreadUDP(
                                         Integer.parseInt(rcvPortNumber)
-                                        , textViewRcvThrdRcvData, tvMaxSpeed, tvCurAvgSpeed, bufferSize);
+                                        , llReceptionZone, bufferSize);
+
                             clientReceiver.start();
 
                             btnStartStopServer.setText("Stop Receiving!!!");
@@ -213,7 +239,7 @@ public class ClientActivity extends Activity {
         btnTdls.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(btnRegCrTdls.getVisibility() == View.GONE) {
+                if (btnRegCrTdls.getVisibility() == View.GONE) {
                     btnRegCrTdls.setVisibility(View.VISIBLE);
                     btnUnRegCrTdls.setVisibility(View.VISIBLE);
                 } else {
@@ -250,7 +276,7 @@ public class ClientActivity extends Activity {
     }
 
     // API 19
-   @TargetApi(Build.VERSION_CODES.KITKAT)
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     void setTdlsEnabled(String crIpAddressStr, boolean enable) {
         InetAddress remoteIPAddress = null;
         try {
@@ -293,7 +319,8 @@ public class ClientActivity extends Activity {
                     , crIpAddress, Integer.parseInt(crPortNumber)
                     , Long.parseLong(delay), Long.parseLong(totalBytesToSend)
                     , editTextTxThrdSentData
-                    , bufferSize); // todo add fileToSend
+                    , btnStartStopTransmitting
+                    , bufferSize);
 
         clientTransmitter.start();
     }

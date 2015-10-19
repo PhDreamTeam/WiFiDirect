@@ -43,8 +43,9 @@
             <TextView
                     android:layout_width="match_parent"
                     android:layout_height="40dp"
-                    android:text="Sending Socket"
-                    android:id="@+id/textView47" android:gravity="center" android:background="#f7160a54"/>
+                    android:text="Transmission Zone"
+                    android:id="@+id/textViewTransmissionZone" android:gravity="center" android:background="#f7160a54"
+                    android:textAppearance="?android:attr/textAppearanceMedium"/>
             <LinearLayout
                     android:orientation="vertical"
                     android:layout_width="fill_parent"
@@ -149,13 +150,20 @@
                               android:editable="false"/>
                 </LinearLayout>
             </LinearLayout>
+            <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="5dp"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text=" "
+                    android:id="@+id/textView23"/>
             <TextView android:layout_width="match_parent" android:layout_height="40dp"
-                      android:text="Receiving Server Socket"
-                      android:id="@+id/textView23" android:gravity="center" android:background="#f7160a54"/>
+                      android:text="Reception Zone"
+                      android:id="@+id/textViewReceptionZone" android:gravity="center" android:background="#f7160a54"
+                      android:textAppearance="?android:attr/textAppearanceMedium"/>
             <LinearLayout
                     android:orientation="vertical"
                     android:layout_width="fill_parent"
-                    android:layout_height="fill_parent" android:id="@+id/LinearLayoutReception">
+                    android:layout_height="wrap_content" android:id="@+id/LinearLayoutReception">
                 <LinearLayout
                         android:orientation="horizontal"
                         android:layout_width="fill_parent"
@@ -177,49 +185,67 @@
                         android:layout_height="wrap_content"
                         android:text="Start Receiving"
                         android:id="@+id/buttonStartStopServer" android:layout_gravity="center_horizontal"/>
-                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
-                              android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                              android:text="Rcv Data (KB): " android:id="@+id/textView5"
-                              android:inputType="none"/>
-                    <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textAppearance="?android:attr/textAppearanceMedium"
-                            android:text="0000"
-                            android:id="@+id/textViewRcvThrdRcvData"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                              android:text=" /  Sent Data (B): " android:id="@+id/textView11" android:inputType="none"
-                            />
-                    <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textAppearance="?android:attr/textAppearanceMedium"
-                            android:text="0000"
-                            android:id="@+id/textViewRcvThrdSentData"/>
-                </LinearLayout>
                 <LinearLayout
-                        android:orientation="horizontal"
+                        android:orientation="vertical"
                         android:layout_width="fill_parent"
-                        android:layout_height="fill_parent">
+                        android:layout_height="fill_parent" android:visibility="gone">
                     <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="match_parent"
+                            android:layout_height="5dp"
                             android:textAppearance="?android:attr/textAppearanceSmall"
-                            android:text="Speed (KBps): Max: "
-                            android:id="@+id/textView41"/>
+                            android:id="@+id/textView47"/>
                     <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:textAppearance="?android:attr/textAppearanceMedium"
-                            android:text="0"
-                            android:id="@+id/textViewMaxRcvSpeed"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                              android:textAppearance="?android:attr/textAppearanceSmall" android:text=" /  Avg: "
-                              android:id="@+id/textView48"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                              android:textAppearance="?android:attr/textAppearanceMedium" android:text="0"
-                              android:id="@+id/textViewCurAvgRcvSpeed"/>
+                            android:text="Reception from IPAddress - localPort"
+                            android:id="@+id/textView42"
+                            android:gravity="center"
+                            android:background="#ff285523"/>
+                    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                                  android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:text="Rcv Data (KB): " android:id="@+id/textView5"
+                                  android:inputType="none"/>
+                        <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="?android:attr/textAppearanceMedium"
+                                android:text="0000"
+                                android:id="@+id/textViewRcvThrdRcvData"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:text=" /  Sent Data (B): " android:id="@+id/textView11" android:inputType="none"
+                                />
+                        <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="?android:attr/textAppearanceMedium"
+                                android:text="0000"
+                                android:id="@+id/textViewRcvThrdSentData"/>
+                    </LinearLayout>
+                    <LinearLayout
+                            android:orientation="horizontal"
+                            android:layout_width="fill_parent"
+                            android:layout_height="fill_parent">
+                        <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="?android:attr/textAppearanceSmall"
+                                android:text="Speed (KBps): Max: "
+                                android:id="@+id/textView41"/>
+                        <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="?android:attr/textAppearanceMedium"
+                                android:text="0"
+                                android:id="@+id/textViewMaxRcvSpeed"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:textAppearance="?android:attr/textAppearanceSmall" android:text=" /  Avg: "
+                                  android:id="@+id/textView48"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="0"
+                                  android:id="@+id/textViewCurAvgRcvSpeed"/>
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
