@@ -6,10 +6,10 @@
 
     <TextView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="30dp"
             android:textAppearance="?android:attr/textAppearanceMedium"
             android:text="Wifi:"
-            android:id="@+id/textViewWifiState" android:height="30dp" android:background="#ff1e1cff"
+            android:id="@+id/textViewWifiState" android:background="#ff1e1cff"
             android:gravity="center"/>
     <LinearLayout
             android:orientation="horizontal"

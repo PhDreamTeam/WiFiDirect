@@ -30,11 +30,12 @@ import java.net.UnknownHostException;
  * DONE: controlar o fim da recepção: por fim dos dados, ou detecção do fecho do canal
  * DONE: duração da transmissão, na recepção
  * Done: UDP
+ * DONE: send image TCP and UDP (not considered as an image)
  * <p/>
- * - gravar resultados em ficheiro
+ * - gravar resultados em ficheiro - talvez não seja necessário
  * TODO:  .
- * <p/>
- * - send image: TCP
+ * - place button to close reception result
+ *
  * -
  * <p/>
  */
@@ -64,10 +65,6 @@ public class ClientActivity extends Activity {
 
     private Button btnStartStopServer, btnStartStopTransmitting, btnTcpUdp;
     private Button btnRegCrTdls, btnUnRegCrTdls, btnSendImage;
-    private TextView tvMaxSpeed;
-    private TextView tvCurAvgSpeed;
-    private TextView textViewRcvThrdRcvData;
-    private TextView textViewRcvThrdSentData;
     private Button btnTdls;
     private TextView tvTransmissionZone;
     private TextView tvReceptionZone;
@@ -106,17 +103,9 @@ public class ClientActivity extends Activity {
         editTextTotalBytesToSend = (EditText) findViewById(R.id.editTextTotalBytesToSend);
         editTextDelay = (EditText) findViewById(R.id.editTextDelay);
         editTextMaxBufferSize = (EditText) findViewById(R.id.editTextMaxBufferSize);
-
         editTextServerPortNumber = (EditText) findViewById(R.id.editTextServerPortNumber);
-
-        textViewRcvThrdRcvData = (TextView) findViewById(R.id.textViewRcvThrdRcvData);
-        textViewRcvThrdSentData = (TextView) findViewById(R.id.textViewRcvThrdSentData);
-
         editTextTxThrdSentData = (EditText) findViewById(R.id.editTextTxThrdSentData);
         editTextTxThrdRcvData = (EditText) findViewById(R.id.editTextTxThrdRcvData);
-
-        tvMaxSpeed = (TextView) findViewById(R.id.textViewMaxRcvSpeed);
-        tvCurAvgSpeed = (TextView) findViewById(R.id.textViewCurAvgRcvSpeed);
 
         tvTransmissionZone = (TextView) findViewById(R.id.textViewTransmissionZone);
         tvReceptionZone = (TextView) findViewById(R.id.textViewReceptionZone);

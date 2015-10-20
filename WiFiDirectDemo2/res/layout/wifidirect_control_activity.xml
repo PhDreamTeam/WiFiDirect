@@ -8,9 +8,10 @@
             android:orientation="vertical"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content">
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                  android:text="Controls" android:id="@+id/textView28" android:gravity="center"
-                  android:background="#ffad1925" android:textColor="#fffaf9ff"/>
+        <TextView android:layout_width="match_parent" android:layout_height="30dp"
+                  android:text="WFD State: DISCONNECTED" android:id="@+id/textViewWifiDirectState" android:gravity="center"
+                  android:background="#ff1e1cff" android:textColor="#fffaf9ff"
+                  android:textAppearance="?android:attr/textAppearanceMedium"/>
         <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="fill_parent"
@@ -18,78 +19,112 @@
             <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="P2P: --"
-                    android:id="@+id/textViewP2pOnOff"/>
-            <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ON"
-                    android:id="@+id/buttonP2pOn"/>
-            <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="OFF"
-                    android:id="@+id/buttonP2pOff"/>
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text="P2P: ONF"
+                    android:id="@+id/textViewWifiDirectP2PONOFF"/>
             <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Peer Discovery: "
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text=" "
+                    android:id="@+id/textView50"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text=" "
+                    android:id="@+id/textView28" android:background="#ff3035af"/>
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Clear R Groups"
+                    android:id="@+id/buttonWiFiDirectClearRegGroups" android:layout_weight="1"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text="Search:"
+                    android:id="@+id/textView27" android:layout_gravity="center_vertical"/>
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Services"
+                    android:id="@+id/buttonWifiDirectSearchServices" android:layout_weight="1"/>
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Peers"
+                    android:id="@+id/buttonWifiDirectSearchPeers" android:layout_weight="1"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" android:layout_weight="1">
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:id="@+id/LinearLayoutWiFiDirectConnect"
+                    >
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceMedium"
+                        android:text="Connect as: "
+                        android:id="@+id/textViewConnectAs"/>
+                <RadioGroup
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:orientation="horizontal"
+                        android:layout_gravity="center_vertical">
+                    <RadioButton
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="GO"
+                            android:id="@+id/radioButtonConnectAsGO" android:checked="true"/>
+                    <RadioButton
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Client"
+                            android:id="@+id/radioButtonConnectAsClient" android:checked="false"
+                            />
+                </RadioGroup>
+                <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Connect"
+                        android:id="@+id/buttonWiFiDirectConnect" android:layout_weight="1"/>
+            </LinearLayout>
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Disconnect"
+                    android:id="@+id/buttonWiFiDirectDisconnect" android:visibility="gone"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text=" "
+                    android:id="@+id/textView49"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text="Connect to: "
                     android:id="@+id/textView39"/>
             <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="stopped"
-                    android:id="@+id/textViewPeerDiscoveryState"/>
-        </LinearLayout>
-        <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent">
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Connect as:"
-                    android:id="@+id/textView27"/>
-            <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="GO"
-                    android:id="@+id/buttonWiFiDirectConnectAsGO"/>
-            <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Client"
-                    android:id="@+id/buttonWiFiDirectConnectAsClient"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
                     android:text="Not Selected"
-                    android:id="@+id/textViewSelectedPeer"/>
-        </LinearLayout>
-        <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent">
-            <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Search Services"
-                    android:id="@+id/WFDButtonSearchServices"/>
-            <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Disconnect from Peer"
-                    android:id="@+id/WFDButtonDisconnect"/>
-        </LinearLayout>
-        <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent">
-            <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Clear reg groups"
-                    android:id="@+id/btnClearRegGroups"/>
+                    android:id="@+id/textViewWiFiDirectSelectedPeer" android:textAppearance="?android:attr/textAppearanceMedium"/>
         </LinearLayout>
         <LinearLayout
                 android:orientation="horizontal"
