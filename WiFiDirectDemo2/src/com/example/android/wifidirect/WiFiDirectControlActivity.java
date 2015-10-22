@@ -20,10 +20,7 @@ import android.widget.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 
 /**
  * Created by AT e DR on 23-06-2015.
@@ -38,7 +35,6 @@ import java.util.Scanner;
  * - connect and connect state
  * - fix bug in ViewLists (redes sem nomes), várias entradas na mesma posição
  * - segundo nível das listas , ser paresentado a pedido em dialogBox
- *
  */
 
 public class WiFiDirectControlActivity extends Activity {
@@ -86,10 +82,17 @@ public class WiFiDirectControlActivity extends Activity {
     BroadcastReceiver receiver;
 
     // ExpandableListView TEST
-    ExpandableListAdapter<String, String> expListAdapterPeersWithServices;
-    ExpandableListView expListViewPeersWithServices;
-    ExpandableListAdapter<String, WifiP2pDevice> expListAdapterPeers;
-    ExpandableListView expListViewPeers;
+//    ExpandableListAdapter<String, String> expListAdapterPeersWithServices;
+//    ExpandableListView expListViewPeersWithServices;
+
+    private ListView listViewPeers;
+    private ArrayAdapter<WifiP2PDeviceWrapper> listAdapterPeers;
+
+    private ListView listViewPeersWithServices;
+    private ArrayAdapter<WifiP2PDeviceWrapper> listAdapterPeersWithServices;
+
+//    ExpandableListAdapter<String, WifiP2pDevice> expListAdapterPeers;
+//    ExpandableListView expListViewPeers;
 
     Menu menu;
     private boolean isPeerDiscoveryActivated = false;
@@ -120,6 +123,9 @@ public class WiFiDirectControlActivity extends Activity {
     private RadioButton radioButtonConnectAsClient;
     private LinearLayout linearLayoutWiFiDirectConnect;
     private TextView textViewWifiDirectP2PONOFF;
+
+
+
 
     boolean hiddenMethodsAreSupported() {
         return deletePersistentGroupMethod != null;
@@ -171,6 +177,7 @@ public class WiFiDirectControlActivity extends Activity {
         btnWiFiDirectSearchServices = (Button) findViewById(R.id.buttonWifiDirectSearchServices);
         btnWiFiDirectSearchServices.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+                listAdapterPeersWithServices.clear();
                 discoverNsdService();
             }
         });
@@ -229,13 +236,24 @@ public class WiFiDirectControlActivity extends Activity {
 
 
         // ExpandableListViews
-        expListViewPeersWithServices = (ExpandableListView) findViewById(R.id.expListViewPeersWithServices);
-        expListAdapterPeersWithServices = new ExpandableListAdapter<>(this);
-        expListViewPeersWithServices.setAdapter(expListAdapterPeersWithServices);
+//        expListViewPeersWithServices = (ExpandableListView) findViewById(R.id.expListViewPeersWithServices);
+//        expListAdapterPeersWithServices = new ExpandableListAdapter<>(this);
+//        expListViewPeersWithServices.setAdapter(expListAdapterPeersWithServices);
 
-        expListViewPeers = (ExpandableListView) findViewById(R.id.expListViewPeers);
-        expListAdapterPeers = new ExpandableListAdapter<>(this);
-        expListViewPeers.setAdapter(expListAdapterPeers);
+        // TODO here ====================================================================
+        listViewPeersWithServices = (ListView) findViewById(R.id.listViewPeersWithServices);
+        listAdapterPeersWithServices = new ArrayAdapter<>(this, R.layout.list_item2,
+                R.id.textView_listView, new ArrayList<WifiP2PDeviceWrapper>());
+        listViewPeersWithServices.setAdapter(listAdapterPeersWithServices);
+
+        listViewPeers = (ListView) findViewById(R.id.listViewPeers);
+        listAdapterPeers = new ArrayAdapter<>(this, R.layout.list_item2,
+                R.id.textView_listView, new ArrayList<WifiP2PDeviceWrapper>());
+        listViewPeers.setAdapter(listAdapterPeers);
+
+//        expListViewPeers = (ExpandableListView) findViewById(R.id.expListViewPeers);
+//        expListAdapterPeers = new ExpandableListAdapter<>(this);
+//        expListViewPeers.setAdapter(expListAdapterPeers);
 
         //allow the selected areas to grow
         final LinearLayout llWFDPeersWithServices = (LinearLayout) findViewById(R.id.WFDLinearLayoutPeersWithServices);
@@ -269,25 +287,44 @@ public class WiFiDirectControlActivity extends Activity {
             }
         });
 
-        expListViewPeersWithServices.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
+        listViewPeers.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public boolean onGroupClick(ExpandableListView expandableListView, View view, int groupPosition, long id) {
-
-
-                String elem = (String) discoveredNodesRecords.keySet().toArray()[groupPosition];
-
-                Toast.makeText(WiFiDirectControlActivity.this, "onGroupClick, selected pos: " + groupPosition
-                                + " id: " + id + " elem: " + elem + " group: " +
-                                expandableListView.getExpandableListAdapter().getGroup(groupPosition),
-                        Toast.LENGTH_SHORT).show();
-
-                selectedPeerName = "" + expandableListView.getExpandableListAdapter().getGroup(groupPosition);
-                selectedPeerAddress = elem;
-
-                txtSelectedPeer.setText(selectedPeerName);
-                return false;
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                final WifiP2PDeviceWrapper item = (WifiP2PDeviceWrapper) parent.getItemAtPosition(position);
+                toast("" + item.getDevice());
             }
         });
+
+        listViewPeersWithServices.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                final WifiP2PDeviceWrapper item = (WifiP2PDeviceWrapper) parent.getItemAtPosition(position);
+                toast("" + item.getDevice());
+
+                selectedPeerName = "" + item;
+                selectedPeerAddress = item.getDevice().deviceAddress;
+                txtSelectedPeer.setText(selectedPeerName);
+            }
+        });
+
+//        expListViewPeersWithServices.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
+//            @Override
+//            public boolean onGroupClick(ExpandableListView expandableListView, View view, int groupPosition, long id) {
+//
+//
+//                String elem = (String) discoveredNodesRecords.keySet().toArray()[groupPosition];
+//
+//                toast("onGroupClick, selected pos: " + groupPosition
+//                        + " id: " + id + " elem: " + elem + " group: " +
+//                        expandableListView.getExpandableListAdapter().getGroup(groupPosition));
+//
+//                selectedPeerName = "" + expandableListView.getExpandableListAdapter().getGroup(groupPosition);
+//                selectedPeerAddress = elem;
+//
+//                txtSelectedPeer.setText(selectedPeerName);
+//                return false;
+//            }
+//        });
 
 
         // register this device as a service provider with rule: Client
@@ -333,10 +370,12 @@ public class WiFiDirectControlActivity extends Activity {
                 String discoveryInfo = discoveredNodesRecords.containsKey(srcDevice.deviceAddress) ?
                         discoveredNodesRecords.get(srcDevice.deviceAddress).toString() : "{no discovery info}";
 
-                expListAdapterPeersWithServices.addDataChild(srcDevice.deviceName,
-                        srcDevice.toString() + "\n  Status: " +
-                                DeviceListFragment.getDeviceStatus(srcDevice.status) +
-                                "\n  " + discoveryInfo);
+//                expListAdapterPeersWithServices.addDataChild(srcDevice.deviceName,
+//                        srcDevice.toString() + "\n  Status: " +
+//                                DeviceListFragment.getDeviceStatus(srcDevice.status) +
+//                                "\n  " + discoveryInfo);
+
+                listAdapterPeersWithServices.add(new WifiP2PDeviceWrapper(srcDevice));
 
                 toast("serviceAvailable: " + instanceName + ", " + registrationType + ", " + srcDevice.deviceName);
             }
@@ -546,10 +585,14 @@ public class WiFiDirectControlActivity extends Activity {
     private void update_P2P_peers_changed(Intent intent) {
         WifiP2pDeviceList peers = intent.getParcelableExtra(WifiP2pManager.EXTRA_P2P_DEVICE_LIST);
         if (peers != null) {
-            expListAdapterPeers.clear();
+//            expListAdapterPeers.clear();
+            listAdapterPeers.clear();
+
             Collection<WifiP2pDevice> devList = peers.getDeviceList();
-            for (WifiP2pDevice dev : devList)
-                expListAdapterPeers.addDataChild(dev.deviceName, dev);
+            for (WifiP2pDevice dev : devList) {
+//                expListAdapterPeers.addDataChild(dev.deviceName, dev);
+                listAdapterPeers.add(new WifiP2PDeviceWrapper(dev));
+            }
             tvConsole.append("\n  devList with size: " + devList.size());
         } else {
             // API less than 18
@@ -559,10 +602,13 @@ public class WiFiDirectControlActivity extends Activity {
                     if (progressDialog != null && progressDialog.isShowing()) {
                         progressDialog.dismiss();
                     }
-                    expListAdapterPeers.clear();
+//                    expListAdapterPeers.clear();
+                    listAdapterPeers.clear();
                     Collection<WifiP2pDevice> devList = peers.getDeviceList();
-                    for (WifiP2pDevice dev : devList)
-                        expListAdapterPeers.addDataChild(dev.deviceName, dev);
+                    for (WifiP2pDevice dev : devList) {
+//                        expListAdapterPeers.addDataChild(dev.deviceName, dev);
+                        listAdapterPeers.add(new WifiP2PDeviceWrapper(dev));
+                    }
                     tvConsole.append("\n  devList with size: " + devList.size());
                 }
             });
@@ -578,7 +624,7 @@ public class WiFiDirectControlActivity extends Activity {
         final WifiP2pInfo wifiP2pInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
         tvConsole.append("\n  WifiP2pInfo:\n  " + wifiP2pInfo.toString());
         txtGOAddress.setText(wifiP2pInfo.groupOwnerAddress == null ? "" : "" + wifiP2pInfo.groupOwnerAddress);
-        if(!wifiP2pInfo.groupFormed) {
+        if (!wifiP2pInfo.groupFormed) {
             textViewWifiDirectState.setText("WFD state: DISCONNECTED");
             // TODO
             return;
@@ -615,14 +661,15 @@ public class WiFiDirectControlActivity extends Activity {
                         String networkName = group.getNetworkName();
                         String networkPassphrase = group.getPassphrase();
                         String goAddress = group.getOwner() != null ? group.getOwner().deviceName : "";
-                        textViewWifiDirectState.setText("WFD state: " + networkName + (wifiP2pInfo.isGroupOwner ? " (GO)" : ""));
+                        textViewWifiDirectState.setText(
+                                "WFD state: " + networkName + (wifiP2pInfo.isGroupOwner ? " (GO)" : ""));
                     }
                 }
             });
-    }
+        }
 
 
-    // update service
+        // update service
         registerNsdService(null, wifiP2pInfo.groupFormed ? "GO" : "Client");
     }
 
@@ -755,5 +802,22 @@ public class WiFiDirectControlActivity extends Activity {
     public void clearRegisteredGroups() {
         for (int i = 0; i < 100; ++i)
             clearRegisteredGroup(i, null);
+    }
+
+    class WifiP2PDeviceWrapper {
+        WifiP2pDevice device;
+
+        WifiP2PDeviceWrapper(WifiP2pDevice device) {
+            this.device = device;
+        }
+
+        @Override
+        public String toString() {
+            return device.deviceName;
+        }
+
+        public WifiP2pDevice getDevice() {
+            return device;
+        }
     }
 }

@@ -231,12 +231,12 @@
                     android:text="Peers with Services"
                     android:id="@+id/textViewWFDPeersWithServices" android:gravity="center" android:background="#ff536aaf"
                     android:textColor="#fffaf9ff"/>
-            <ExpandableListView
-                    android:id="@+id/expListViewPeersWithServices"
+            <ListView
+                    android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_width="match_parent" android:background="#ff46445d"
-                    android:choiceMode="singleChoice" android:clickable="true" android:drawSelectorOnTop="true"
-                    android:listSelector = "@drawable/selector_list_item"/>
+                    android:id="@+id/listViewPeersWithServices"
+                    android:background="#ff46445d"/>
+
         </LinearLayout>
         <LinearLayout
                 android:orientation="vertical"
@@ -249,10 +249,11 @@
                     android:text="Peers"
                     android:id="@+id/textViewWFDPeers" android:gravity="center" android:background="#ff86af86"
                     android:textColor="#fffef5ff"/>
-            <ExpandableListView
-                    android:id="@+id/expListViewPeers"
+            <ListView
+                    android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_width="match_parent" android:background="#ff4f6a4b"/>
+                    android:id="@+id/listViewPeers"
+                    android:background="#ff4f6a4b"/>
         </LinearLayout>
         <LinearLayout
                 android:orientation="vertical"
