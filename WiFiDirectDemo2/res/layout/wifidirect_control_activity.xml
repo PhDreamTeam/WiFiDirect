@@ -15,6 +15,32 @@
         <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="fill_parent"
+                android:layout_height="25dp" android:id="@+id/linearLayoutMe" android:background="#ff1e1c95"
+                android:gravity="center">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Me: "
+                    android:id="@+id/textView29"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="deviceName"
+                    android:id="@+id/textViewDeviceName"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" "
+                    android:id="@+id/textView31"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Status"
+                    android:id="@+id/textViewDeviceStatus"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
                 android:layout_height="fill_parent">
             <TextView
                     android:layout_width="wrap_content"
@@ -62,9 +88,12 @@
                     android:id="@+id/buttonWifiDirectSearchPeers" android:layout_weight="1"/>
         </LinearLayout>
         <LinearLayout
-                android:orientation="horizontal"
+                android:orientation="vertical"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" android:layout_weight="1">
+                android:layout_height="match_parent" android:layout_weight="1" android:id="@+id/linearLayoutConnectTo">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:text="@string/p2pConnectToLabel" android:id="@+id/textView49" android:gravity="center"
+                      android:background="#ffafa333" android:textColor="#fffef5ff"/>
             <LinearLayout
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
@@ -92,138 +121,129 @@
                             android:id="@+id/radioButtonConnectAsClient" android:checked="false"
                             />
                 </RadioGroup>
-                <Button
+            </LinearLayout>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent">
+                <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Connect"
-                        android:id="@+id/buttonWiFiDirectConnect" android:layout_weight="1"/>
+                        android:textAppearance="?android:attr/textAppearanceMedium"
+                        android:text="Connect to: "
+                        android:id="@+id/textView39"/>
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Not Selected"
+                        android:id="@+id/textViewP2PSelectedPeer" android:textAppearance="?android:attr/textAppearanceMedium"/>
             </LinearLayout>
             <Button
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Disconnect"
-                    android:id="@+id/buttonWiFiDirectDisconnect" android:visibility="gone"/>
-            <TextView
+                    android:layout_height="40dp"
+                    android:text="Connect"
+                    android:id="@+id/buttonP2PConnect" android:layout_gravity="center_horizontal"
+                    android:elegantTextHeight="false"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent" android:id="@+id/linearLayoutConnectedAsClient">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:text="@string/p2pConnectedAsClient" android:id="@+id/textView51" android:gravity="center"
+                      android:background="#ffafa333" android:textColor="#fffef5ff"/>
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
+                          android:layout_height="fill_parent">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:text="Group name: " android:id="@+id/textView36"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="name"
+                          android:id="@+id/textViewP2PCCGroupName"/>
+            </LinearLayout>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:text="GO name / IP: " android:id="@+id/textView53"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:id="@+id/textViewP2PCCGOName"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" / "
+                          android:id="@+id/textView38"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:id="@+id/textViewP2PCCGOIPAddress"/>
+            </LinearLayout>
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
+                          android:layout_height="wrap_content">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:text="@string/MyAddress" android:id="@+id/textView54"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:id="@+id/textViewP2PCCMyAddress"/>
+            </LinearLayout>
+            <Button android:layout_width="wrap_content" android:layout_height="40dp" android:text="Disconnect"
+                    android:visibility="visible" android:id="@+id/buttonP2PDisconnectAsClient"
+                    android:layout_gravity="center_horizontal"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent" android:id="@+id/linearLayoutConnectedAsGO">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:text="@string/p2pConnectedAsGo" android:id="@+id/textView52" android:gravity="center"
+                      android:background="#ffafa333" android:textColor="#fffef5ff"/>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent">
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Group name: "
+                        android:id="@+id/textView30"/>
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="name"
+                        android:id="@+id/textViewP2PCGOGroupName"/>
+            </LinearLayout>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:text="Password:  " android:id="@+id/textView32"/>
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="passphrase"
+                        android:id="@+id/textViewP2PCGOPassword"/>
+            </LinearLayout>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/MyAddress"
+                          android:id="@+id/textView35"/>
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/textViewP2PCGOMyAddress"/>
+            </LinearLayout>
+            <Button
                     android:layout_width="wrap_content"
                     android:layout_height="40dp"
-                    android:textAppearance="?android:attr/textAppearanceMedium"
-                    android:text=" "
-                    android:id="@+id/textView49"/>
-        </LinearLayout>
-        <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent">
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?android:attr/textAppearanceMedium"
-                    android:text="Connect to: "
-                    android:id="@+id/textView39"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Not Selected"
-                    android:id="@+id/textViewWiFiDirectSelectedPeer" android:textAppearance="?android:attr/textAppearanceMedium"/>
-        </LinearLayout>
-        <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent">
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="me:"
-                    android:id="@+id/textView29"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" "
-                      android:id="@+id/textView34"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="deviceName"
-                    android:id="@+id/textViewDeviceName"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text=" "
-                    android:id="@+id/textView31"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Status"
-                    android:id="@+id/textViewDeviceStatus"/>
-        </LinearLayout>
-        <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent">
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Group:"
-                    android:id="@+id/textView30"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" "
-                      android:id="@+id/textView32"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Group_Formed"
-                    android:id="@+id/textViewGroupFormed"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" "
-                      android:id="@+id/textView33"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text=" is_GO"
-                    android:id="@+id/textViewIsGroupOwner"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" "
-                      android:id="@+id/textView36"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="GO_name"
-                    android:id="@+id/textViewGOName"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" "
-                      android:id="@+id/textView40"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="GO_address"
-                    android:id="@+id/textViewGOAddress"/>
-        </LinearLayout>
-        <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content">
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Network:"
-                    android:id="@+id/textView37"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" "
-                      android:id="@+id/textView38"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="name"
-                    android:id="@+id/textViewNetworkName"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" "
-                      android:id="@+id/textView35"/>
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="passphrase"
-                    android:id="@+id/textViewNetworkPassphrase"/>
+                    android:text="Disconnect"
+                    android:visibility="visible" android:id="@+id/buttonP2PDisconnectAsGO"
+                    android:layout_gravity="center_horizontal"/>
         </LinearLayout>
     </LinearLayout>
     <LinearLayout
             android:orientation="vertical"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent">
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" android:id="@+id/lienarLayoutPeersServicesConsole">
         <LinearLayout
                 android:orientation="vertical"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent" android:layout_weight="1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" android:layout_weight="1"
                 android:id="@+id/WFDLinearLayoutPeersWithServices">
             <TextView
                     android:layout_width="match_parent"
@@ -240,13 +260,13 @@
         </LinearLayout>
         <LinearLayout
                 android:orientation="vertical"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent" android:layout_weight="1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" android:layout_weight="1"
                 android:id="@+id/WFDLinearLayoutPeers">
             <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Peers"
+                    android:text="@string/p2pPeersLabel"
                     android:id="@+id/textViewWFDPeers" android:gravity="center" android:background="#ff86af86"
                     android:textColor="#fffef5ff"/>
             <ListView
@@ -257,12 +277,12 @@
         </LinearLayout>
         <LinearLayout
                 android:orientation="vertical"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent" android:layout_weight="1" android:id="@+id/WFDLinearLayoutConsole">
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" android:layout_weight="1" android:id="@+id/WFDLinearLayoutConsole">
             <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Console"
+                    android:text="@string/consoleLabel"
                     android:id="@+id/textViewWFDConsole" android:gravity="center" android:background="#ff3b434a"/>
             <ScrollView
                     android:layout_width="match_parent"

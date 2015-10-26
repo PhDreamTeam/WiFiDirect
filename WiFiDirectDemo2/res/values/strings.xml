@@ -16,4 +16,13 @@
     <string name="group_owner_text">"Am I the Group Owner? "</string>
     <string name="label_me">ME</string>
     <string name="label_peers">PEERS</string>
+    <string name="p2pPeersLabel">Peers</string>
+    <string name="consoleLabel">Console</string>
+    <string name="p2pConnectToLabel">Connect to</string>
+    <string name="p2pDisconnect">Disconnect</string>
+    <string name="p2pConnectedAsGo">Connected as GO</string>
+    <string name="p2pConnectedAsClient">Connected as Client</string>
+    <string name="MyAddress">My address:</string>
+    <string name="GOIPAddress">GO IP Address</string>
+    <string name="GONameIpLabel">GO name / IP:</string>
 </resources>
