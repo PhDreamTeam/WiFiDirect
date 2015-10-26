@@ -210,7 +210,7 @@ public class WiFiControlActivity extends Activity {
         // avoid keyboard popping up
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
-        // broadcast receiver to receive wifi state changed events
+        // broadcast broadcastReceiver to receive wifi state changed events
         BroadcastReceiver wifiBroadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -228,7 +228,7 @@ public class WiFiControlActivity extends Activity {
             }
         };
 
-        // register wifi state changed broadcast receiver
+        // register wifi state changed broadcast broadcastReceiver
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
         registerReceiver(wifiBroadcastReceiver, intentFilter);

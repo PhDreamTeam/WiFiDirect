@@ -36,13 +36,14 @@ import java.util.*;
  * <p/>
  * TODO:
  * - discover services
- * - connect and connect state
  * - fix bug in ViewLists (redes sem nomes), várias entradas na mesma posição
- * - segundo nível das listas , ser paresentado a pedido em dialogBox
  */
 
 public class WiFiDirectControlActivity extends Activity {
     private static final String TAG = "WifiDirectControl";
+
+    private final String discoveryServiceCurrentInstanceName = "2015-11";
+    private final String discoveryServiceServiceType = "_backboneHyrax._tcp";
 
     Context context;
 
@@ -61,8 +62,8 @@ public class WiFiDirectControlActivity extends Activity {
     Button btnWiFiDirectConnectAsGO;
     Button btnWiFiDirectConnectAsClient;
 
-    TextView txtDeviceName;
-    TextView txtDeviceStatus;
+    TextView tvP2PDeviceName;
+    TextView tvP2PDeviceStatus;
     TextView txtDeviceGroupFormed;
     TextView txtDeviceIsGO;
     TextView tvCGOGOName;
@@ -83,7 +84,7 @@ public class WiFiDirectControlActivity extends Activity {
 
     private final IntentFilter intentFilter = new IntentFilter();
 
-    BroadcastReceiver receiver;
+    BroadcastReceiver broadcastReceiver;
 
     private ListView listViewPeers;
     private ArrayAdapter<WifiP2PDeviceWrapper> listAdapterPeers;
@@ -129,6 +130,9 @@ public class WiFiDirectControlActivity extends Activity {
     private LinearLayout linearLayoutConnectTo;
     private LinearLayout linearLayoutConnectedAsClient;
     private LinearLayout linearLayoutConnectedAsGO;
+    private TextView tvP2PDeviceIPAddress;
+    private TextView tvP2PCGONumberOfClients;
+    private Button btnP2PCreateGroup;
 
 
     boolean hiddenMethodsAreSupported() {
@@ -144,7 +148,6 @@ public class WiFiDirectControlActivity extends Activity {
         setContentView(R.layout.wifidirect_control_activity);
 
         context = getApplicationContext();
-
         // place code below this line
 
         tvConsole = ((TextView) findViewById(R.id.textViewConsole));
@@ -166,8 +169,9 @@ public class WiFiDirectControlActivity extends Activity {
         // getting gui elements and implementing listeners on buttons
 
         textViewWifiDirectState = (TextView) findViewById(R.id.textViewWifiDirectState);
-        txtDeviceName = (TextView) findViewById(R.id.textViewDeviceName);
-        txtDeviceStatus = (TextView) findViewById(R.id.textViewDeviceStatus);
+        tvP2PDeviceName = (TextView) findViewById(R.id.textViewP2PDeviceName);
+        tvP2PDeviceIPAddress = (TextView) findViewById(R.id.textViewP2PDeviceIPAddress);
+        tvP2PDeviceStatus = (TextView) findViewById(R.id.textViewP2PDeviceStatus);
 
         textViewWifiDirectP2PONOFF = (TextView) findViewById(R.id.textViewWifiDirectP2PONOFF);
 
@@ -193,7 +197,7 @@ public class WiFiDirectControlActivity extends Activity {
         btnWiFiDirectSearchServices.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 listAdapterPeersWithServices.clear();
-                discoverNsdService();
+                discoverServices();
             }
         });
 
@@ -220,6 +224,23 @@ public class WiFiDirectControlActivity extends Activity {
             }
         });
 
+        btnP2PCreateGroup = (Button) findViewById(R.id.buttonP2PCreateGroup);
+        btnP2PCreateGroup.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                p2pManager.createGroup(channel, new WifiP2pManager.ActionListener() {
+                            public void onSuccess() {
+                                tvConsole.append("P2P CreateGroup started");
+                            }
+
+                            public void onFailure(int reason) {
+                                tvConsole.append("P2P CreateGroup failed. Reason: " + reason);
+                            }
+                        }
+                );
+            }
+        });
+
+
         // =====================================================================
         // Connected as Client
         linearLayoutConnectedAsClient = (LinearLayout) findViewById(R.id.linearLayoutConnectedAsClient);
@@ -241,6 +262,7 @@ public class WiFiDirectControlActivity extends Activity {
         tvP2PCGOGroupName = (TextView) findViewById(R.id.textViewP2PCGOGroupName);
         tvP2PCGOGroupPassword = (TextView) findViewById(R.id.textViewP2PCGOPassword);
         tvP2PCGOGOAddress = (TextView) findViewById(R.id.textViewP2PCGOMyAddress);
+        tvP2PCGONumberOfClients = (TextView) findViewById(R.id.textViewP2PCGONumberOfClients);
 
         btnP2PCGODisconnect = (Button) findViewById(R.id.buttonP2PDisconnectAsGO);
         btnP2PCGODisconnect.setOnClickListener(new View.OnClickListener() {
@@ -297,7 +319,6 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 final WifiP2PDeviceWrapper item = (WifiP2PDeviceWrapper) parent.getItemAtPosition(position);
-                //toast("" + item.getDevice());
                 showDialog("P2P Peer details", "" + item.getDevice(), null);
             }
         });
@@ -306,8 +327,6 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 final WifiP2PDeviceWrapper item = (WifiP2PDeviceWrapper) parent.getItemAtPosition(position);
-                //toast("" + item.getDevice());
-                // TODO here ======================================================
                 showDialog("P2P Peer with Services details", "" + item.getDevice(), null);
 
                 selectedPeerName = "" + item;
@@ -316,49 +335,120 @@ public class WiFiDirectControlActivity extends Activity {
             }
         });
 
-//        expListViewPeersWithServices.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
-//            @Override
-//            public boolean onGroupClick(ExpandableListView expandableListView, View view, int groupPosition, long id) {
-//
-//
-//                String elem = (String) discoveredNodesRecords.keySet().toArray()[groupPosition];
-//
-//                toast("onGroupClick, selected pos: " + groupPosition
-//                        + " id: " + id + " elem: " + elem + " group: " +
-//                        expandableListView.getExpandableListAdapter().getGroup(groupPosition));
-//
-//                selectedPeerName = "" + expandableListView.getExpandableListAdapter().getGroup(groupPosition);
-//                selectedPeerAddress = elem;
-//
-//                tvSelectedPeer.setText(selectedPeerName);
-//                return false;
-//            }
-//        });
 
-
-        // register this device as a service provider with rule: Client
-        registerNsdService(null, "Client"); /*deviceName null generates a random one*/
+        // register this device as a service provider with rule: Available
+        registerNsdService(null, "Available"); // deviceName null generates a random one
 
         // starts listening to other devices
-        discoverNsdService();
+        //discoverServices();
     }
 
     /*
-     *
+     * singleton for broadcast receiver
      */
-    private void discoverNsdService() {
+    private BroadcastReceiver getBroadcastReceiver() {
+        if (broadcastReceiver == null) {
+
+            broadcastReceiver = new BroadcastReceiver() {
+
+                public void onReceive(Context context, Intent intent) {
+
+                    String action = intent.getAction();
+                    switch (action) {
+
+                        // indicate whether Wi-Fi p2p is enabled or disabled
+                        case WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION:
+                            tvConsole.append("\n\nBDC: WIFI_P2P_STATE_CHANGED");
+                            update_P2P_state_changed(intent);
+                            break;
+
+                        // indicate that the state of Wi-Fi p2p connectivity has changed
+                        case WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION:
+                            tvConsole.append("\n\nBDC: WIFI_P2P_CONNECTION_CHANGED");
+                            update_P2P_connection_changed(intent);
+                            break;
+
+                        // indicate that this device details have changed
+                        case WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION:
+                            tvConsole.append("\n\nBDC: WIFI_P2P_THIS_DEVICE_CHANGED");
+                            update_P2P_this_device_changed(intent);
+                            break;
+
+                        // indicating that the available peer list has changed
+                        case WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION:
+                            tvConsole.append("\n\nBDC: WIFI_P2P_PEERS_CHANGED");
+                            update_P2P_peers_changed(intent);
+                            break;
+
+                        // indicate that peer discovery has either started or stopped
+                        case WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION:
+                            tvConsole.append("\n\nBDC: WIFI_P2P_DISCOVERY_CHANGED_ACTION");
+                            update_P2P_Discovery_Peers_changed(intent);
+                            break;
+
+                        default:
+                            tvConsole.append("\n\nBroadcast broadcastReceiver: " + action);
+                    }
+                }
+            };
+        }
+        return broadcastReceiver;
+    }
+
+    /*
+     * register discovery Service
+     * TODO: colocar o devName como o device name
+     */
+    public void registerNsdService(String devName, final String role) {
+        //  Create a string map containing information about the service.
+        final String devName2 = devName == null ? role + (int) (Math.random() * 10) : devName;
+        Map<String, String> record = new HashMap<>();
+        record.put("listenPort", String.valueOf(30000));
+        record.put("role", role);
+        record.put("busyLevel", String.valueOf(1));
+        record.put("deviceName", devName2);
+
+        serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(discoveryServiceCurrentInstanceName,
+                discoveryServiceServiceType, record);
+
+        // Add the local service, sending the service info, network channel,
+        // and listener that will be used to indicate success or failure of
+        // the request.
+        p2pManager.addLocalService(channel, serviceInfo, ndsRegisteredListener = new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                // Command successful! Code isn't necessarily needed here,
+                // Unless you want to update the UI or add logging statements.
+                tvConsole.append("\nService registered successfully: " + devName2 + ", " + role);
+            }
+
+            @Override
+            public void onFailure(int errorCode) {
+                // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
+                tvConsole.append(
+                        "\nService Discovery register FAILED: " + errorCode + " for: " + devName2 + ", " + role);
+            }
+        });
+    }
+
+    /*
+     * discover services
+     */
+    private void discoverServices() {
 
         // listener for Bonjour TXT record
         WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
+            /**
+             * Callback includes:
+             * @param fullDomain full domain name: e.g "printer._ipp._tcp.local."
+             * @param record TXT record dta as a map of key/value pairs.
+             * @param device The device running the advertised service.
+             */
             @Override
-        /* Callback includes:
-         * fullDomain: full domain name: e.g "printer._ipp._tcp.local."
-         * record: TXT record dta as a map of key/value pairs.
-         * device: The device running the advertised service.
-         */
             @SuppressWarnings("unchecked")
             public void onDnsSdTxtRecordAvailable(String fullDomain, Map record, WifiP2pDevice device) {
-                //toast("DnsSdTxtRecord available -" + record.toString());
+                tvConsole.append("\n Discover services txtRecord available: " + fullDomain + ", " + record.toString() +
+                        ", " + device);
                 discoveredNodesRecords.put(device.deviceAddress, (HashMap<String, String>) record);
                 discoveredNodesDevices.put(device.deviceAddress, device);
             }
@@ -369,6 +459,9 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onDnsSdServiceAvailable(String instanceName, String registrationType,
                                                 WifiP2pDevice srcDevice) {
+
+                tvConsole.append("\n Discover services available: " + instanceName + ", " +
+                        registrationType + ", " + srcDevice);
 
                 // Update the device name with the human-friendly version from
                 // the DnsTxtRecord, assuming one arrived.
@@ -387,28 +480,27 @@ public class WiFiDirectControlActivity extends Activity {
 //                                "\n  " + discoveryInfo);
 
                 listAdapterPeersWithServices.add(new WifiP2PDeviceWrapper(srcDevice));
-
-                toast("serviceAvailable: " + instanceName + ", " + registrationType + ", " + srcDevice.deviceName);
-
             }
         };
-
         p2pManager.setDnsSdResponseListeners(channel, servListener, txtListener);
 
-
+        // add service request
         WifiP2pDnsSdServiceRequest serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
         p2pManager.addServiceRequest(channel,
                 serviceRequest,
                 new WifiP2pManager.ActionListener() {
                     public void onSuccess() {
-                        toast("addServiceRequest: succeeded");
+                        tvConsole.append("addServiceRequest: succeeded");
                     }
 
                     public void onFailure(int code) {
                         // Command failed.  Checking for P2P_UNSUPPORTED, ERROR, or BUSY
-                        toast("addServiceRequest: failed with code: " + code);
+                        tvConsole.append("addServiceRequest: failed with code: " + code);
                     }
                 });
+
+        // clear discovered peers list contents
+        listAdapterPeersWithServices.clear();
 
         // launch services discovery
         p2pManager.discoverServices(channel, new WifiP2pManager.ActionListener() {
@@ -446,18 +538,13 @@ public class WiFiDirectControlActivity extends Activity {
 
         // connect to the GO
         p2pManager.connect(channel, config, new WifiP2pManager.ActionListener() {
-
-            @Override
             public void onSuccess() {
                 // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
-                Toast.makeText(context, "Connect: successfully", Toast.LENGTH_LONG).show();
-                tvConsole.append("\nConnected: success");
+                tvConsole.append("\nP2P Connect started.");
             }
 
-            @Override
             public void onFailure(int reason) {
-                Toast.makeText(context, "Connect failed.", Toast.LENGTH_SHORT).show();
-                tvConsole.append("\nConnected: failed");
+                tvConsole.append("\nP2P Connected failed. Reason: " + reason);
             }
         });
     }
@@ -553,52 +640,8 @@ public class WiFiDirectControlActivity extends Activity {
     @Override
     public void onResume() {
         super.onResume();
-
-        receiver = new BroadcastReceiver() {
-
-            @Override
-            public void onReceive(Context context, Intent intent) {
-
-                String action = intent.getAction();
-                switch (action) {
-
-                    // indicate whether Wi-Fi p2p is enabled or disabled
-                    case WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION:
-                        tvConsole.append("\n\nBDC: WIFI_P2P_STATE_CHANGED");
-                        update_P2P_state_changed(intent);
-                        break;
-
-                    // indicate that the state of Wi-Fi p2p connectivity has changed
-                    case WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION:
-                        tvConsole.append("\n\nBDC: WIFI_P2P_CONNECTION_CHANGED");
-                        update_P2P_connection_changed(intent);
-                        break;
-
-                    // indicate that this device details have changed
-                    case WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION:
-                        tvConsole.append("\n\nBDC: WIFI_P2P_THIS_DEVICE_CHANGED");
-                        update_P2P_this_device_changed(intent);
-                        break;
-
-                    // indicating that the available peer list has changed
-                    case WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION:
-                        tvConsole.append("\n\nBDC: WIFI_P2P_PEERS_CHANGED");
-                        update_P2P_peers_changed(intent);
-                        break;
-
-                    // indicate that peer discovery has either started or stopped
-                    case WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION:
-                        tvConsole.append("\n\nBDC: WIFI_P2P_DISCOVERY_CHANGED_ACTION");
-                        update_P2P_Discovery_Peers_changed(intent);
-                        break;
-
-                    default:
-                        tvConsole.append("\n\nBroadcast receiver: " + action);
-                }
-
-            }
-        };
-        registerReceiver(receiver, intentFilter);
+        //toast("Registering broadcast receiver");
+        registerReceiver(getBroadcastReceiver(), intentFilter);
     }
 
     /*
@@ -698,6 +741,7 @@ public class WiFiDirectControlActivity extends Activity {
             // device is disconnect
             textViewWifiDirectState.setText("WFD state: DISCONNECTED");
             showDisconnectedActions();
+            return;
         }
 
         // EXTRA_NETWORK_INFO provides the network info in the form of a NetworkInfo.
@@ -738,25 +782,15 @@ public class WiFiDirectControlActivity extends Activity {
                 tvP2PCGOGroupName.setText(networkName);
                 tvP2PCGOGroupPassword.setText(group.getPassphrase());
                 tvP2PCGOGOAddress.setText(wifiP2pInfo.groupOwnerAddress.toString().substring(1));
+                tvP2PDeviceIPAddress.setText(wifiP2pInfo.groupOwnerAddress.toString().substring(1));
+                tvP2PCGONumberOfClients.setText(Integer.toString(group.getClientList().size()));
             } else {
                 // Client: show group name, GO name, GO IP, my address
                 tvP2PCCGroupName.setText(networkName);
                 tvP2PCCGOName.setText(group.getOwner().deviceName);
                 tvP2PCCGOIPAddress.setText(wifiP2pInfo.groupOwnerAddress.toString().substring(1));
                 tvP2PCCMyAddress.setText(getLocalIpAddress(group.getInterface()));
-
-//                p2pManager.requestConnectionInfo(channel, new WifiP2pManager.ConnectionInfoListener() {
-//                    @Override
-//                    public void onConnectionInfoAvailable(WifiP2pInfo info) {
-//                        info.
-//                    }
-//                });
-//
-//                WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-//                int numberOfLevels = 5;
-//                WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-//                int level = WifiManager.calculateSignalLevel(wifiInfo.getRssi(), numberOfLevels);
-
+                tvP2PDeviceIPAddress.setText(getLocalIpAddress(group.getInterface()));
             }
         }
     }
@@ -767,7 +801,7 @@ public class WiFiDirectControlActivity extends Activity {
             for (Enumeration<InetAddress> enumIpAddr = netInterface.getInetAddresses(); enumIpAddr.hasMoreElements(); ) {
                 InetAddress inetAddress = enumIpAddr.nextElement();
                 Log.i(TAG, "***** IP = " + inetAddress);
-                if(inetAddress instanceof Inet4Address)
+                if (inetAddress instanceof Inet4Address)
                     return inetAddress.toString().substring(1);
 
             }
@@ -785,14 +819,13 @@ public class WiFiDirectControlActivity extends Activity {
         tvConsole.append("\n  WifiP2pDevice:\n  " + dev.toString());
         tvConsole.append("\n   Status: " + DeviceListFragment.getDeviceStatus(dev.status));
 
-        txtDeviceName.setText(dev.deviceName + " " + dev.deviceAddress);
-        txtDeviceStatus.setText(DeviceListFragment.getDeviceStatus(dev.status));
+        tvP2PDeviceName.setText(dev.deviceName);
+        tvP2PDeviceStatus.setText(DeviceListFragment.getDeviceStatus(dev.status));
 
-        // dev.isGroupOwner() always show false
+        // NOTE: dev.isGroupOwner() always show false
 
-        //txtDeviceIsGO.setText(dev.isGroupOwner()?"is GO":"");
 
-        // TODO do not use isGroupOwner
+        // TODO HERE: do not use isGroupOwner
         if (dev.isGroupOwner()) {
 
             // register as GO if not registered yet
@@ -821,7 +854,7 @@ public class WiFiDirectControlActivity extends Activity {
     @Override
     public void onPause() {
         super.onPause();
-        unregisterReceiver(receiver);
+        unregisterReceiver(getBroadcastReceiver());
     }
 
 
@@ -839,7 +872,8 @@ public class WiFiDirectControlActivity extends Activity {
             }
         }
         scan.close();
-        throw new RuntimeException("getPersistentGroupIdFromWifiP2PGroup: not found networkId");
+        Log.e(TAG, "getPersistentGroupIdFromWifiP2PGroup: not found networkId in WifiP2pGroup: " + group);
+        return -1;
     }
 
 
@@ -859,47 +893,6 @@ public class WiFiDirectControlActivity extends Activity {
         ll3.setLayoutParams(lp3);
     }
 
-    /*
-     *
-     */
-    public void registerNsdService(String devName, String role) {
-        //  Create a string map containing information about your service.
-        Map<String, String> record = new HashMap<>();
-        record.put("listenPort", String.valueOf(30000));
-        record.put("role", role);
-        record.put("busyLevel", String.valueOf(1));
-        record.put("deviceName", devName == null ? role + (int) (Math.random() * 10) : devName);
-
-
-        // Service information.  Pass it an instance name, service type
-        // _protocol._transportlayer , and the map containing
-        // information other devices will want once they connect to this one.
-
-        serviceInfo =
-                WifiP2pDnsSdServiceInfo.newInstance("GO", "_backbone1GO1CR._tcp", record);
-
-        // Add the local service, sending the service info, network channel,
-        // and listener that will be used to indicate success or failure of
-        // the request.
-        p2pManager.addLocalService(channel, serviceInfo, ndsRegisteredListener = new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                // Command successful! Code isn't necessarily needed here,
-                // Unless you want to update the UI or add logging statements.
-//                Toast.makeText(WiFiDirectControlActivity.this, "Service Discovery registered successfully.",
-//                        Toast.LENGTH_SHORT).show();
-                tvConsole.append("\n**********Service Discovery registered successfully.");
-            }
-
-            @Override
-            public void onFailure(int errorCode) {
-                // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
-//                Toast.makeText(WiFiDirectControlActivity.this, "Service Discovery register FAILED: " + errorCode,
-//                        Toast.LENGTH_SHORT).show();
-                tvConsole.append("\nService Discovery register FAILED: " + errorCode);
-            }
-        });
-    }
 
     /*
      * invokeQuietly - used to invoke methods with HIDE annotation

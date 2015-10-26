@@ -26,7 +26,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="deviceName"
-                    android:id="@+id/textViewDeviceName"/>
+                    android:id="@+id/textViewP2PDeviceName"/>
             <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -35,8 +35,20 @@
             <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text=" "
+                    android:id="@+id/textViewP2PDeviceIPAddress"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text=" "
+                    android:id="@+id/textView33"/>
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="Status"
-                    android:id="@+id/textViewDeviceStatus"/>
+                    android:id="@+id/textViewP2PDeviceStatus"/>
         </LinearLayout>
         <LinearLayout
                 android:orientation="horizontal"
@@ -138,12 +150,22 @@
                         android:text="Not Selected"
                         android:id="@+id/textViewP2PSelectedPeer" android:textAppearance="?android:attr/textAppearanceMedium"/>
             </LinearLayout>
-            <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:text="Connect"
-                    android:id="@+id/buttonP2PConnect" android:layout_gravity="center_horizontal"
-                    android:elegantTextHeight="false"/>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent" android:gravity="center_horizontal">
+                <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:text="Connect"
+                        android:id="@+id/buttonP2PConnect" android:layout_gravity="center_horizontal"
+                        android:elegantTextHeight="false"/>
+                <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:text="Create Group"
+                        android:id="@+id/buttonP2PCreateGroup"/>
+            </LinearLayout>
         </LinearLayout>
         <LinearLayout
                 android:orientation="vertical"
@@ -227,6 +249,17 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:id="@+id/textViewP2PCGOMyAddress"/>
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:text="  / # clients: "
+                        android:id="@+id/textView34"/>
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:id="@+id/textViewP2PCGONumberOfClients"/>
             </LinearLayout>
             <Button
                     android:layout_width="wrap_content"
