@@ -338,7 +338,8 @@ public class WiFiDirectControlActivity extends Activity {
      */
     private void initP2PFinalActions() {
         // register this device as a service provider with initial role
-        registerNsdService(getDeviceName(), initialServiceRole);
+        // TODO here ........
+        //registerNsdService(getDeviceName(), initialServiceRole);
         tvConsole.append("\n Device Name:" + getDeviceName());
 
         // starts listening to other devices
@@ -446,6 +447,9 @@ public class WiFiDirectControlActivity extends Activity {
         // clear discovered peers list contents
         listAdapterPeersWithServices.clear();
 
+        // TODO HERE.........................
+        registerNsdService(getDeviceName(), initialServiceRole);
+
         // listener for Bonjour TXT record
         WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
             /**
@@ -497,8 +501,8 @@ public class WiFiDirectControlActivity extends Activity {
         p2pManager.setDnsSdResponseListeners(channel, servListener, txtListener);
 
         // create a new  service request
-        WifiP2pDnsSdServiceRequest serviceRequest = WifiP2pDnsSdServiceRequest.newInstance(
-                discoveryServiceCurrentInstanceName, discoveryServiceServiceType);
+        WifiP2pDnsSdServiceRequest serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
+//                discoveryServiceCurrentInstanceName, discoveryServiceServiceType);
 
         // add service request
         p2pManager.addServiceRequest(channel, serviceRequest,
