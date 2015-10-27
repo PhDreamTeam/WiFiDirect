@@ -321,11 +321,12 @@ public class WiFiDirectControlActivity extends Activity {
         listViewPeersWithServices.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                final WifiP2PDeviceWrapper item = (WifiP2PDeviceWrapper) parent.getItemAtPosition(position);
-                showDialog("P2P Peer with Services details", "" + item.getDevice(), null);
+                final RemoteDeviceServiceInfo item = (RemoteDeviceServiceInfo) parent.getItemAtPosition(position);
+                showDialog("P2P Peer with Services details", "" + item.getServiceRecord() + "\n" +
+                        item.getWifiP2PDevice(), null);
 
-                selectedPeerName = "" + item;
-                selectedPeerAddress = item.getDevice().deviceAddress;
+                selectedPeerName = item.getWifiP2PDevice().deviceName;
+                selectedPeerAddress = item.getWifiP2PDevice().deviceAddress;
                 tvSelectedPeer.setText(selectedPeerName);
             }
         });
@@ -458,7 +459,9 @@ public class WiFiDirectControlActivity extends Activity {
             public void onDnsSdTxtRecordAvailable(String fullDomain, Map record, WifiP2pDevice device) {
                 tvConsole.append(
                         "\n\n Discover services txtRecord available: " + fullDomain + ", " + record.toString() +
-                                ", " + device);
+                                ", " + device + "\nDEVICE_NAME: " + device.deviceName + ".");
+
+                //device.status
 
                 // checking if record is from our service, if so keep it
 //                if (fullDomain.equalsIgnoreCase(
