@@ -129,6 +129,8 @@ public class WiFiDirectControlActivity extends Activity {
     private TextView tvP2PCGONumberOfClients;
     private Button btnP2PCreateGroup;
     private String deviceName;
+    private Button buttonP2PRegisterLocalService;
+    private Button buttonP2PStartBonjourSearching;
 
 
     boolean hiddenMethodsAreSupported() {
@@ -188,6 +190,8 @@ public class WiFiDirectControlActivity extends Activity {
             }
         });
 
+        // Search zone ================================================
+
         // search Services
         btnWiFiDirectSearchServices = (Button) findViewById(R.id.buttonWifiDirectSearchServices);
         btnWiFiDirectSearchServices.setOnClickListener(new View.OnClickListener() {
@@ -201,6 +205,21 @@ public class WiFiDirectControlActivity extends Activity {
         btnWiFiDirectSearchPeers.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 startDiscoverPeers();
+            }
+        });
+
+
+        buttonP2PRegisterLocalService = (Button) findViewById(R.id.buttonP2PRegisterLocalService);
+        buttonP2PRegisterLocalService.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                registerNsdService(getDeviceName(), initialServiceRole);
+            }
+        });
+
+        buttonP2PStartBonjourSearching = (Button) findViewById(R.id.buttonP2PStartBonjourSearching);
+        buttonP2PStartBonjourSearching.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                startBonjourDiscovering();
             }
         });
 
@@ -447,9 +466,6 @@ public class WiFiDirectControlActivity extends Activity {
         // clear discovered peers list contents
         listAdapterPeersWithServices.clear();
 
-        // TODO HERE.........................
-        registerNsdService(getDeviceName(), initialServiceRole);
-
         // listener for Bonjour TXT record
         WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
             /**
@@ -520,7 +536,26 @@ public class WiFiDirectControlActivity extends Activity {
         // launch services discovery
         p2pManager.discoverServices(channel, new WifiP2pManager.ActionListener() {
             public void onSuccess() {
-                btnWiFiDirectSearchServices.setEnabled(false);
+                //btnWiFiDirectSearchServices.setEnabled(false);
+                tvConsole.append("\nDiscover Services: succeeded");
+            }
+
+            public void onFailure(int code) {
+                if (code == WifiP2pManager.P2P_UNSUPPORTED)
+                    tvConsole.append("\nDiscover Services: failed, P2P isn't supported on this device.");
+                else tvConsole.append("\nDiscover Services: failed, error: " + code);
+            }
+        });
+    }
+
+    /*
+     *
+     */
+    void startBonjourDiscovering() {
+        // launch services discovery
+        p2pManager.discoverServices(channel, new WifiP2pManager.ActionListener() {
+            public void onSuccess() {
+                //btnWiFiDirectSearchServices.setEnabled(false);
                 tvConsole.append("\nDiscover Services: succeeded");
             }
 

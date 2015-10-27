@@ -82,6 +82,11 @@
                 android:orientation="horizontal"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent">
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Reg"
+                    android:id="@+id/buttonP2PRegisterLocalService"/>
             <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -93,6 +98,11 @@
                     android:layout_height="wrap_content"
                     android:text="Services"
                     android:id="@+id/buttonWifiDirectSearchServices" android:layout_weight="1"/>
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ServStart"
+                    android:id="@+id/buttonP2PStartBonjourSearching"/>
             <Button
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
