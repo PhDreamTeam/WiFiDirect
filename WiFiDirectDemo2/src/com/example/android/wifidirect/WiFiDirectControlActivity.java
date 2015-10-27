@@ -459,23 +459,24 @@ public class WiFiDirectControlActivity extends Activity {
                 tvConsole.append(
                         "\n\n Discover services txtRecord available: " + fullDomain + ", " + record.toString() +
                                 ", " + device);
+
                 // checking if record is from our service, if so keep it
-                if (fullDomain.equals(
-                        discoveryServiceCurrentInstanceName + "." + discoveryServiceServiceType + ".local.")) {
-                    // create auxiliary object
-                    RemoteDeviceServiceInfo rdsi = new RemoteDeviceServiceInfo((HashMap<String, String>) record,
-                            device);
+//                if (fullDomain.equalsIgnoreCase(
+//                        discoveryServiceCurrentInstanceName + "." + discoveryServiceServiceType + ".local.")) {
 
-                    // update list view of bonjour nodes
-                    if (!discoveredNodesServicesInfo.containsKey(device.deviceAddress)) {
-                        RemoteDeviceServiceInfo rdsi2 = discoveredNodesServicesInfo.get(device.deviceAddress);
-                        listAdapterPeersWithServices.remove(rdsi2);
-                    }
-                    listAdapterPeersWithServices.add(rdsi);
+                // create auxiliary object
+                RemoteDeviceServiceInfo rdsi = new RemoteDeviceServiceInfo((HashMap<String, String>) record,
+                        device);
 
-                    // update MAP
-                    discoveredNodesServicesInfo.put(device.deviceAddress, rdsi);
+                // update list view of bonjour nodes
+                if (!discoveredNodesServicesInfo.containsKey(device.deviceAddress)) {
+                    RemoteDeviceServiceInfo rdsi2 = discoveredNodesServicesInfo.get(device.deviceAddress);
+                    listAdapterPeersWithServices.remove(rdsi2);
                 }
+                listAdapterPeersWithServices.add(rdsi);
+
+                // update MAP
+                discoveredNodesServicesInfo.put(device.deviceAddress, rdsi);
             }
         };
 
@@ -502,6 +503,7 @@ public class WiFiDirectControlActivity extends Activity {
                     public void onSuccess() {
                         tvConsole.append("\naddServiceRequest: succeeded");
                     }
+
                     public void onFailure(int code) {
                         // Command failed.  Checking for P2P_UNSUPPORTED, ERROR, or BUSY
                         tvConsole.append("\naddServiceRequest: failed with code: " + code);
@@ -514,6 +516,7 @@ public class WiFiDirectControlActivity extends Activity {
                 btnWiFiDirectSearchServices.setEnabled(false);
                 tvConsole.append("\nDiscover Services: succeeded");
             }
+
             public void onFailure(int code) {
                 if (code == WifiP2pManager.P2P_UNSUPPORTED)
                     tvConsole.append("\nDiscover Services: failed, P2P isn't supported on this device.");
