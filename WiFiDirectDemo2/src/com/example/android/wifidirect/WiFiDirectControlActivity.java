@@ -30,13 +30,9 @@ import java.util.*;
  * Created by AT e DR on 23-06-2015.
  * <p/>
  * Note on Discover Peers:
- * Only when a device is in an active discovery that he is announced.
- * When the discovery ends, all the peers in that device are removed (after some time).
- * We need to_check this behaviour when the devices are connected
- * <p/>
- * TODO:
- * - discover services
- * - fix bug in ViewLists (redes sem nomes), várias entradas na mesma posição
+ * When a device is in an active peer discovery the bonjour recognizes it faster .
+ * In the bonjour discovery the devices may not appear initially, but after some
+ * tries they will appear - we may use a timer to get it right.
  */
 
 public class WiFiDirectControlActivity extends Activity {
@@ -129,8 +125,6 @@ public class WiFiDirectControlActivity extends Activity {
     private TextView tvP2PCGONumberOfClients;
     private Button btnP2PCreateGroup;
     private String deviceName;
-    private Button buttonP2PRegisterLocalService;
-    private Button buttonP2PStartBonjourSearching;
 
 
     boolean hiddenMethodsAreSupported() {
@@ -205,21 +199,6 @@ public class WiFiDirectControlActivity extends Activity {
         btnWiFiDirectSearchPeers.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 startDiscoverPeers();
-            }
-        });
-
-
-        buttonP2PRegisterLocalService = (Button) findViewById(R.id.buttonP2PRegisterLocalService);
-        buttonP2PRegisterLocalService.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                registerNsdService(getDeviceName(), initialServiceRole);
-            }
-        });
-
-        buttonP2PStartBonjourSearching = (Button) findViewById(R.id.buttonP2PStartBonjourSearching);
-        buttonP2PStartBonjourSearching.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                startBonjourDiscovering();
             }
         });
 
@@ -357,8 +336,7 @@ public class WiFiDirectControlActivity extends Activity {
      */
     private void initP2PFinalActions() {
         // register this device as a service provider with initial role
-        // TODO here ........
-        //registerNsdService(getDeviceName(), initialServiceRole);
+        registerNsdService(getDeviceName(), initialServiceRole);
         tvConsole.append("\n Device Name:" + getDeviceName());
 
         // starts listening to other devices
@@ -466,6 +444,11 @@ public class WiFiDirectControlActivity extends Activity {
         // clear discovered peers list contents
         listAdapterPeersWithServices.clear();
 
+        p2pManager.clearServiceRequests(channel, null);
+
+        //p2pManager.removeServiceRequest();
+
+
         // listener for Bonjour TXT record
         WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
             /**
@@ -481,11 +464,8 @@ public class WiFiDirectControlActivity extends Activity {
                         "\n\n Discover services txtRecord available: " + fullDomain + ", " + record.toString() +
                                 ", " + device + "\nDEVICE_NAME: " + device.deviceName + ".");
 
-                //device.status
-
-                // checking if record is from our service, if so keep it
-//                if (fullDomain.equalsIgnoreCase(
-//                        discoveryServiceCurrentInstanceName + "." + discoveryServiceServiceType + ".local.")) {
+                if(device.deviceName.trim().isEmpty())
+                    return;
 
                 // create auxiliary object
                 RemoteDeviceServiceInfo rdsi = new RemoteDeviceServiceInfo((HashMap<String, String>) record,
@@ -669,7 +649,7 @@ public class WiFiDirectControlActivity extends Activity {
     }
 
     /*
-     * TODO if necessary
+     *
      */
     private void stopDiscoverPeers() {
         p2pManager.stopPeerDiscovery(channel, new WifiP2pManager.ActionListener() {
