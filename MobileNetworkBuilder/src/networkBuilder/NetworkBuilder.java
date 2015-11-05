@@ -5,18 +5,15 @@ import layouts.ProportionalLayout;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 
 /**
- * Painting - several squares, all of them share the same rhythm and timer. All
- * the information is on main class.
- *
- * @author Ant�nio Te�filo
+ * Mobile network backbone builder
+ * .
  */
 public class NetworkBuilder extends JFrame {
 
@@ -24,7 +21,7 @@ public class NetworkBuilder extends JFrame {
 
     private static final int TIMER_STEP = 1000;
 
-    public static int MAXWIFIRANGETOMAKECONNECTION = 32;
+    public static int MAX_WIFI_RANGE_TO_MAKE_CONNECTIONS = 32;
 
     List<ArrayList<ScenarioNode>> timerJobs = Collections
             .synchronizedList(new ArrayList<ArrayList<ScenarioNode>>());
@@ -35,22 +32,11 @@ public class NetworkBuilder extends JFrame {
 
     private NodesPanel myPanel = null;
 
-    // TODO passar isto para um ArrayList
-    NodeAbstract[] nodes = new NodeAbstract[100];
+    ArrayList<NodeAbstract> nodes = new ArrayList<>(100);
 
     Timer timer = null;
 
-    int numberOfNodes = 0;
-
-    NodeAbstract currentNode = null;
-
     int buttonPressed = -1;
-
-    int deltaX = 0;
-    int deltaY = 1;
-
-    int width = 0;
-    int height = 0;
 
     private int nextNodeID = 1;
 
@@ -63,6 +49,7 @@ public class NetworkBuilder extends JFrame {
     private JButton btnStepTimer;
 
     private JFileChooser fc = new JFileChooser();
+    private JButton btnSaveScenario;
 
     /**
      * Este método cria toda a frame e coloca-a visível
@@ -83,14 +70,6 @@ public class NetworkBuilder extends JFrame {
             }
         };
         addWindowListener(wa);
-
-        // button Clear All
-        btnClearAll = new JButton("Clear all");
-        btnClearAll.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                clearAll();
-            }
-        });
 
         // Button start timer
         btnStartTimer = new JButton("Start Timer");
@@ -117,7 +96,8 @@ public class NetworkBuilder extends JFrame {
             }
         });
 
-        // Button stop timer
+
+        // Button load scenario
         btnLoadScenario = new JButton("Load Scenario");
         btnLoadScenario.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -125,12 +105,29 @@ public class NetworkBuilder extends JFrame {
             }
         });
 
+        // Button save scenario
+        btnSaveScenario = new JButton("Save Scenario");
+        btnSaveScenario.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                saveScenarioActions();
+            }
+        });
+
+        // button Clear All
+        btnClearAll = new JButton("Clear all");
+        btnClearAll.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                clearAll();
+            }
+        });
+
         buttonsPanel = new JPanel();
         buttonsPanel.add(btnStartTimer);
         buttonsPanel.add(btnStopTimer);
         buttonsPanel.add(btnStepTimer);
-        buttonsPanel.add(btnClearAll);
         buttonsPanel.add(btnLoadScenario);
+        buttonsPanel.add(btnSaveScenario);
+        buttonsPanel.add(btnClearAll);
 
         getContentPane().setLayout(new ProportionalLayout(0.1f));
 
@@ -151,37 +148,24 @@ public class NetworkBuilder extends JFrame {
                 buttonPressed = e.getButton();
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     // left button - create new NodeClient
-                    if (numberOfNodes < nodes.length) {
-                        addNode(new NodeClient(NetworkBuilder.this, numberOfNodes, "NI-" + nextNodeID++,
-                                e.getX(), e.getY()));
-                        currentNode = nodes[numberOfNodes - 1];
-                        repaint();
-                    }
+                    addNode(new NodeClient(NetworkBuilder.this, "NI-" + nextNodeID++,
+                            e.getX(), e.getY()));
+                    repaint();
                 }
 
                 if (e.getButton() == MouseEvent.BUTTON3) {
-                    // left button - create new square
-                    if (numberOfNodes < nodes.length) {
-                        addNode(new NodeGO(NetworkBuilder.this, numberOfNodes, "NI-" + nextNodeID++,
-                                e.getX(), e.getY()));
-                        currentNode = nodes[numberOfNodes - 1];
-                        repaint();
-                    }
+                    // left button - create new GO
+                    addNode(new NodeGO(NetworkBuilder.this, "NI-" + nextNodeID++,
+                            e.getX(), e.getY()));
+                    repaint();
                 }
             }
 
             public void mouseReleased(MouseEvent e) {
-                currentNode = null;
                 buttonPressed = -1;
             }
         });
 
-        myPanel.addComponentListener(new ComponentAdapter() {
-            public void componentResized(ComponentEvent e) {
-                //System.out.println("Label resized...");
-                myPanelResized();
-            }
-        });
 
         // timer and timer listener
         timer = new Timer(TIMER_STEP, new ActionListener() {
@@ -198,6 +182,9 @@ public class NetworkBuilder extends JFrame {
     }
 
 
+    /**
+     *
+     */
     private void loadScenarioActions() {
         // open file chooser
         int returnVal = fc.showOpenDialog(this);
@@ -207,9 +194,71 @@ public class NetworkBuilder extends JFrame {
 
             String scenarioPathName = file.getPath();
             System.out.println("Loading scenario: " + file.getName());
-            loadScenario(scenarioPathName);
+            if (file.getName().endsWith(".txt"))
+                loadScenario(scenarioPathName);
+            else
+                loadSerializedScenario(scenarioPathName);
         } else {
             System.out.println("Load scenario command cancelled by user");
+        }
+    }
+
+    /**
+     *
+     */
+    private void saveScenarioActions() {
+        // open file chooser
+        int returnVal = fc.showSaveDialog(this);
+
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File file = fc.getSelectedFile();
+
+            String scenarioPathName = file.getPath();
+            System.out.println("Loading scenario: " + file.getName());
+            saveSerializedScenario(scenarioPathName);
+        } else {
+            System.out.println("Load scenario command cancelled by user");
+        }
+    }
+
+    /*
+     *
+     */
+    private void saveSerializedScenario(String scenarioPathName) {
+        try {
+            OutputStream file = new FileOutputStream(scenarioPathName);
+            OutputStream buffer = new BufferedOutputStream(file);
+            ObjectOutput output = new ObjectOutputStream(buffer);
+            output.writeObject(nodes);
+            output.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void loadSerializedScenario(String scenarioPathName) {
+        // stop the timer, just in case
+        doStopTimerActions();
+
+        try {
+            InputStream file = new FileInputStream(scenarioPathName);
+            InputStream buffer = new BufferedInputStream(file);
+            ObjectInput input = new ObjectInputStream(buffer);
+
+            // deserialize the List
+            List<NodeAbstract> loadedNodes = (List<NodeAbstract>) input.readObject();
+            input.close();
+
+            // add nodes
+            for (NodeAbstract node : loadedNodes) {
+                node.setNetworkBuilder(this);
+                nodes.add(node);
+            }
+
+            repaint();
+
+        } catch (ClassNotFoundException | IOException ex) {
+            ex.printStackTrace();
         }
     }
 
@@ -231,25 +280,30 @@ public class NetworkBuilder extends JFrame {
         btnStopTimer.setVisible(false);
     }
 
+    /*
+     *
+     */
     private void doTimerActions() {
         // execute one timer jobs if exist
         if (!timerJobs.isEmpty()) {
             ArrayList<ScenarioNode> scenarioNodes = timerJobs.remove(0);
             for (ScenarioNode scenarioNode : scenarioNodes) {
-                addNode(new NodeClient(this, numberOfNodes, scenarioNode.name, scenarioNode.x,
+                addNode(new NodeClient(this, scenarioNode.name, scenarioNode.x,
                         scenarioNode.y));
             }
         }
 
         // do timer actions on all existing nodes
-        for (int i = 0; i < numberOfNodes; i++) {
-            nodes[i].doTimerActions();
-        }
+        for (int i = 0; i < nodes.size(); ++i)
+            nodes.get(i).doTimerActions();
 
         // update GUI
         repaint();
     }
 
+    /*
+     *
+     */
     protected void loadScenario(String fileName) {
         try {
             //new File("d.txt").createNewFile();
@@ -290,66 +344,60 @@ public class NetworkBuilder extends JFrame {
      *
      */
     boolean addNode(NodeAbstract node) {
-        if (numberOfNodes == nodes.length)
-            return false;
-        nodes[numberOfNodes++] = node;
+        nodes.add(node);
         return true;
     }
 
-    /**
-     *
-     */
-    protected void myPanelResized() {
-        width = myPanel.getWidth();
-        height = myPanel.getHeight();
-        // System.out.println("width -> " + width + " height -> " + height);
-    }
 
     /**
      *
      */
     public void clearAll() {
-        for (int i = 0; i < numberOfNodes; i++) {
-            nodes[i] = null;
-        }
-        numberOfNodes = 0;
+        nodes.clear();
         myPanel.repaint();
     }
 
+    /*
+     *
+     */
     public NodeAP transformNodeInAP(NodeAbstract node) {
+        // get GO node from node
         NodeAP ap = new NodeAP(node);
-        nodes[ap.indexInBuilder] = ap;
+
+        // get index of node
+        int idx = nodes.indexOf(node);
+        if (idx == -1)
+            throw new RuntimeException("Node not found is NODES: " + node);
+
+        // remove old node
+        nodes.remove(idx);
+        // add new node at the same index
+        nodes.add(idx, ap);
+
+        repaint();
         return ap;
     }
 
+    /*
+     *
+     */
     public NodeGO transformNodeInGO(NodeAbstract node) {
+        // get GO node from node
         NodeGO go = new NodeGO(node);
-        nodes[go.indexInBuilder] = go;
+
+        // get index of node
+        int idx = nodes.indexOf(node);
+        if (idx == -1)
+            throw new RuntimeException("Node not found is NODES: " + node);
+
+        // remove old node
+        nodes.remove(idx);
+        // add new node at the same index
+        nodes.add(idx, go);
+
         repaint();
         return go;
     }
-
-    // private void moveSquare(AbstractAP rs, int xx, int yy) {
-    // int x = rs.getX();
-    // int y = rs.getY();
-    // int width = rs.getWidth();
-    // int height = rs.getHeight();
-    // int OFFSET = 1;
-    //
-    // // The square is moving, repaint background
-    // // over the old square location.
-    // myPanel.repaint(x, y, width + OFFSET, height + OFFSET);
-    //
-    // // Update coordinates.
-    // x = xx - deltaX;
-    // rs.setX(x);
-    // y = yy - deltaY;
-    // rs.setY(y);
-    //
-    // // Repaint the square at the new location.
-    // myPanel.repaint(x, y, width + OFFSET, height + OFFSET);
-    // // myPanel.repaint();
-    // }
 
     /**
      * Main
@@ -368,6 +416,7 @@ public class NetworkBuilder extends JFrame {
         System.out.println("End of main...");
     }
 
+
     /**
      *
      */
@@ -385,15 +434,15 @@ public class NetworkBuilder extends JFrame {
             ((Graphics2D) g).setRenderingHints(rh);
 
             // first draw APs and GOs
-            for (int i = 0; i < numberOfNodes; i++) {
-                if (nodes[i] instanceof NodeAP)
-                    nodes[i].paintComponent(g);
+            for (NodeAbstract node : nodes) {
+                if (node instanceof NodeAbstractAP)
+                    node.paintComponent(g);
             }
 
             // then draw clients
-            for (int i = 0; i < numberOfNodes; i++) {
-                if (!(nodes[i] instanceof NodeAP))
-                    nodes[i].paintComponent(g);
+            for (NodeAbstract node : nodes) {
+                if (!(node instanceof NodeAbstractAP))
+                    node.paintComponent(g);
             }
         }
     }
@@ -401,17 +450,32 @@ public class NetworkBuilder extends JFrame {
     /**
      *
      */
-    public List<NodeGO> getGOList(NodeAbstract node) {
+    public List<NodeGO> getGOListInRange(NodeAbstract node) {
         ArrayList<NodeGO> gos = new ArrayList<NodeGO>();
 
-        for (int i = 0; i < numberOfNodes; i++) {
-            if (nodes[i] instanceof NodeGO) {
-                if (areInConnectionRange(node, nodes[i]))
-                    gos.add((NodeGO) nodes[i]);
+        for (NodeAbstract n : nodes) {
+            // TODO fazer equals pelo nome
+            if (n != node && n instanceof NodeGO) {
+                if (areInConnectionRange(node, n))
+                    gos.add((NodeGO) n);
             }
-
         }
         return gos;
+    }
+
+    /**
+     *
+     */
+    public List<NodeClient> getClientsListInRange(NodeAbstract node) {
+        ArrayList<NodeClient> clients = new ArrayList<>();
+
+        for (NodeAbstract n : nodes) {
+            if (n != node && n instanceof NodeClient) {
+                if (areInConnectionRange(node, n))
+                    clients.add((NodeClient) n);
+            }
+        }
+        return clients;
     }
 
     /**
@@ -423,7 +487,7 @@ public class NetworkBuilder extends JFrame {
         int y1 = node1.getY();
         int y2 = node2.getY();
 
-        return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)) <= MAXWIFIRANGETOMAKECONNECTION;
+        return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)) <= MAX_WIFI_RANGE_TO_MAKE_CONNECTIONS;
     }
 
     /**
@@ -450,6 +514,19 @@ public class NetworkBuilder extends JFrame {
         return true;
     }
 
+    /*
+     *
+     */
+    public void disconnectWFDClient(NodeAbstract nodeClient) {
+        NodeGO go = nodeClient.connectedByWFD;
+        nodeClient.connectedByWFD = null;
+        go.disconnectClient(nodeClient);
+        repaint();
+    }
+
+    /*
+     *
+     */
     class ScenarioNode {
         String name;
         int x, y;
