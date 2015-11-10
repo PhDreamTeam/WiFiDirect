@@ -30,6 +30,18 @@ class NodeGO extends NodeAbstractAP {
      * as neighbours (nodes with just one interface in use)
      */
     public void doTimerActions() {
+        // System.out.println("Timer actions " + getName());
+        if(isSelected())
+            return;
+
+        if(connectedNodes.size() == 0) {
+            List<NodeGO> gosInRange = networkBuilder.getGOListInRange(this);
+            if(gosInRange.size() > 0) {
+                networkBuilder.transformNodeGOAPInNodeClient(this);
+                return;
+            }
+        }
+
         if (connectedNodes.size() == NodeAbstractAP.MAX_CONNECTED_NODES_ON_AP) {
             if (existDisconnectedClientsAndAloneInMyRange()) {
                 // promote one of my clients, with just WFD interface used, to GO

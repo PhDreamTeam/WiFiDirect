@@ -14,6 +14,10 @@ class NodeClient extends NodeAbstract {
         super(networkBuilder, name, x, y, 2, Color.BLACK);
     }
 
+    public NodeClient(NodeAbstractAP nodeGOAP) {
+        this(nodeGOAP.networkBuilder, nodeGOAP.getName(), nodeGOAP.getX(), nodeGOAP.getY());
+    }
+
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         paintConnections(g);
@@ -36,6 +40,9 @@ class NodeClient extends NodeAbstract {
      *
      */
     public void doTimerActions() {
+        if (isSelected())
+            return;
+
         if (connectedByWFD == null) {
             // node is currently disconnected in WFD interface
             List<NodeGO> goList = networkBuilder.getGOListInRange(this);
@@ -61,7 +68,7 @@ class NodeClient extends NodeAbstract {
                     // if this node have one neighborhood client with just only one interface used
                     // just promote this node to GO
                     // TODO ...
-                    if(hasNeighbourClientsThatCanBeBridge()){
+                    if (hasNeighbourClientsThatCanBeBridge()) {
                         networkBuilder.transformNodeInGO(this);
                     } else {
                         // Nothing to do, the GO has to free one connection
@@ -96,9 +103,9 @@ class NodeClient extends NodeAbstract {
      * if it have at least one neighbour client tha is available to act as a bridge
      */
     private boolean hasNeighbourClientsThatCanBeBridge() {
-        List<NodeClient> neighbours =  networkBuilder.getClientsListInRange(this);
-        for (NodeClient neighbour:neighbours) {
-            if(neighbour.connectedByWF == null || neighbour.connectedByWFD == null)
+        List<NodeClient> neighbours = networkBuilder.getClientsListInRange(this);
+        for (NodeClient neighbour : neighbours) {
+            if (neighbour.connectedByWF == null || neighbour.connectedByWFD == null)
                 return true;
         }
         return false;
@@ -125,7 +132,7 @@ class NodeClient extends NodeAbstract {
      */
     private boolean isGOConnectedToGO(NodeAbstractAP ap1, NodeAbstractAP ap2) {
         List<NodeAbstractAP> aps = ap1.getConnectedAPs();
-        for (NodeAbstractAP ap: aps) {
+        for (NodeAbstractAP ap : aps) {
             // compare by address - caution with this
             if (ap == ap2)
                 return true;

@@ -110,6 +110,12 @@ public abstract class NodeAbstract implements Serializable {
         this.networkBuilder = networkBuilder;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        return obj != null && (obj instanceof NodeAbstract) && getName().equalsIgnoreCase(
+                ((NodeAbstract) obj).getName());
+    }
+
     public String toString() {
         return name;
     }
@@ -123,7 +129,8 @@ public abstract class NodeAbstract implements Serializable {
         timer.start();
     }
 
-    public void stopTimer(){
+
+    public void stopTimer() {
         timer.stop();
     }
 
@@ -178,6 +185,7 @@ public abstract class NodeAbstract implements Serializable {
     public abstract void doTimerActions();
 
     public void moveTo(int x, int y) {
+        System.out.println("Moving node " + getName() + " to " + x + ", " + y);
         setX(x);
         setY(y);
     }

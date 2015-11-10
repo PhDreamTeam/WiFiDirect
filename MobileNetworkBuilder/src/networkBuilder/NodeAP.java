@@ -25,6 +25,8 @@ public class NodeAP extends NodeAbstractAP {
      *
      */
     public void doTimerActions() {
+        if(isSelected())
+            return;
 
     }
 }

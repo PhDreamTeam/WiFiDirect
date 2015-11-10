@@ -1,5 +1,6 @@
 package networkBuilder;
 
+import layouts.CenterLayout;
 import layouts.ProportionalLayout;
 
 import javax.swing.*;
@@ -12,7 +13,16 @@ import java.util.List;
 
 /**
  * Mobile network backbone builder
- * .
+ *
+ * IN Work:
+ * DONE: individual timers
+ * DONE: mover nós
+ *
+ * Scenario doesn't stop
+ * Código dos APs
+ * Optimizar (reorganizar a rede) / reconfigurar
+ * Falha no algoritmo: dois GO com dois clientes estes não se connectam
+ * UM GO que se mova e ficar perto de outro GO, nenhum deles volta a ser um Cliente (caso de ego)
  */
 public class NetworkBuilder extends JFrame {
 
@@ -35,8 +45,6 @@ public class NetworkBuilder extends JFrame {
 
     Timer timer = null;
 
-    int buttonPressed = -1;
-
     private int nextNodeID = 1;
 
     private JButton btnStartTimer;
@@ -55,6 +63,8 @@ public class NetworkBuilder extends JFrame {
 
     Random rg = new Random();
     private boolean indidividualTimersActivated;
+    private JLabel nodesLabel;
+    private Timer timerInfo;
 
     /**
      * Este método cria toda a frame e coloca-a visível
@@ -71,7 +81,12 @@ public class NetworkBuilder extends JFrame {
 
         WindowAdapter wa = new WindowAdapter() {
             public void windowClosed(WindowEvent e) {
-                System.out.println(" windowClosed...");
+                System.out.println("WindowClosed... stopping all timers");
+
+                // stopping all timers
+                doStopTimerActions();
+                doStopIndividualTimerActions();
+                timerInfo.stop();
             }
         };
         addWindowListener(wa);
@@ -142,6 +157,12 @@ public class NetworkBuilder extends JFrame {
         add(myPanel, ProportionalLayout.CENTER);
         add(buttonsPanel, ProportionalLayout.SOUTH);
 
+        // info panel with one label
+        JPanel infoPanel = new JPanel(new CenterLayout());
+        nodesLabel = new JLabel();
+        infoPanel.add(nodesLabel);
+        add(infoPanel, ProportionalLayout.NORTH);
+
         System.out.println("Press mouse buttons inside panel");
 
         // first square
@@ -150,12 +171,10 @@ public class NetworkBuilder extends JFrame {
         myPanel.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 // right mouse button
-                //buttonPressed = e.getButton();
-
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     if ((e.getModifiers() & InputEvent.CTRL_MASK) == 0) {
                         // left button - create new NodeClient
-                        addNode(new NodeClient(NetworkBuilder.this, "NI-" + nextNodeID++,
+                        addNode(new NodeClient(NetworkBuilder.this, "N-" + nextNodeID++,
                                 e.getX(), e.getY()));
                         repaint();
                     } else {
@@ -171,19 +190,15 @@ public class NetworkBuilder extends JFrame {
                 if (e.getButton() == MouseEvent.BUTTON3) {
                     if ((e.getModifiers() & InputEvent.CTRL_MASK) == 0) {
                         // left button and no CTRL key pressed - create new GO
-                        addNode(new NodeGO(NetworkBuilder.this, "NI-" + nextNodeID++,
+                        addNode(new NodeGO(NetworkBuilder.this, "N-" + nextNodeID++,
                                 e.getX(), e.getY()));
                     } else {
                         // left button and CTRL key pressed - create new AP
-                        addNode(new NodeAP(NetworkBuilder.this, "NI-" + nextNodeID++,
+                        addNode(new NodeAP(NetworkBuilder.this, "N-" + nextNodeID++,
                                 e.getX(), e.getY()));
                     }
                     repaint();
                 }
-            }
-
-            public void mouseReleased(MouseEvent e) {
-                //buttonPressed = -1;
             }
         });
 
@@ -208,6 +223,14 @@ public class NetworkBuilder extends JFrame {
             }
         });
 
+        // timer and timer listener
+        timerInfo = new Timer(500, new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                updateInfoLabel();
+            }
+        });
+        timerInfo.start();
+
         // set the start directory for scenario loading file chooser
         fc.setCurrentDirectory(new File("MobileNetworkBuilder/src/networkBuilder/scenarios"));
 
@@ -224,6 +247,15 @@ public class NetworkBuilder extends JFrame {
     private void moveNodeTO(NodeAbstract node, int x, int y) {
         node.moveTo(x, y);
         repaint();
+    }
+
+    public void updateInfoLabel() {
+        StringBuilder msgBuilder = new StringBuilder("Nodes: ");
+        for (NodeAbstract node : nodes) {
+            msgBuilder.append(node);
+            msgBuilder.append(" ");
+        }
+        nodesLabel.setText(msgBuilder.toString());
     }
 
     /*
@@ -343,8 +375,10 @@ public class NetworkBuilder extends JFrame {
 
     private void aboutActions() {
         String strAbout = "Hyrax project - Mobile Network Backbone Builder" +
-                "\n\nV0.6" + "\n\nby António Teófilo and Diogo Remédios"
-                + "\n\n supervised by  Hervé Paulino and João Lourenço";
+                "\n\nV0.6" +
+                "\n\nNOVA LINCS, DI-FCT-UNL" +
+                "\n\nby António Teófilo and Diogo Remédios" +
+                "\nsupervised by  Hervé Paulino and João Lourenço";
 
         JOptionPane.showMessageDialog(this, strAbout, "About", JOptionPane.INFORMATION_MESSAGE);
     }
@@ -352,7 +386,7 @@ public class NetworkBuilder extends JFrame {
     private void exitActions() {
         // stop timer and dispose frame
         doStopTimerActions();
-        if(indidividualTimersActivated) {
+        if (indidividualTimersActivated) {
             doStopIndividualTimerActions();
         }
         dispose();
@@ -562,7 +596,7 @@ public class NetworkBuilder extends JFrame {
     boolean addNode(NodeAbstract node) {
         setSelectedNode(null);
         nodes.add(node);
-        if(indidividualTimersActivated) {
+        if (indidividualTimersActivated) {
             node.startTimer(getIndividualTimerDelay());
         }
         return true;
@@ -581,6 +615,8 @@ public class NetworkBuilder extends JFrame {
      *
      */
     public NodeAP transformNodeInAP(NodeAbstract node) {
+        node.stopTimer();
+
         // get GO node from node
         NodeAP ap = new NodeAP(node);
 
@@ -594,6 +630,9 @@ public class NetworkBuilder extends JFrame {
         // add new node at the same index
         nodes.add(idx, ap);
 
+        if(indidividualTimersActivated)
+            ap.startTimer(getIndividualTimerDelay());
+
         repaint();
         return ap;
     }
@@ -602,6 +641,8 @@ public class NetworkBuilder extends JFrame {
      *
      */
     public NodeGO transformNodeInGO(NodeAbstract node) {
+        node.stopTimer();
+
         // get GO node from node
         NodeGO go = new NodeGO(node);
 
@@ -615,8 +656,37 @@ public class NetworkBuilder extends JFrame {
         // add new node at the same index
         nodes.add(idx, go);
 
+        if(indidividualTimersActivated)
+            go.startTimer(getIndividualTimerDelay());
+
         repaint();
         return go;
+    }
+
+    /*
+     *
+     */
+    public NodeClient transformNodeGOAPInNodeClient(NodeAbstractAP nodeGO) {
+        nodeGO.stopTimer();
+
+        // get client node from GO node
+        NodeClient nodeCli = new NodeClient(nodeGO);
+
+        // get index of node
+        int idx = nodes.indexOf(nodeGO);
+        if (idx == -1)
+            throw new RuntimeException("Node not found is NODES: " + nodeGO);
+
+        // remove old node
+        nodes.remove(idx);
+        // add new node at the same index
+        nodes.add(idx, nodeCli);
+
+        if(indidividualTimersActivated)
+            nodeCli.startTimer(getIndividualTimerDelay());
+
+        repaint();
+        return nodeCli;
     }
 
     /**
