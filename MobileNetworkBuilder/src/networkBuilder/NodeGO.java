@@ -54,7 +54,7 @@ class NodeGO extends NodeAbstractAP {
         if (node1 == null) return node2;
         if (node2 == null) return node1;
 
-        if (networkBuilder.getGOListInRange(node1).size() >networkBuilder.getGOListInRange(node1).size() )
+        if (networkBuilder.getGOListInRange(node1).size() > networkBuilder.getGOListInRange(node1).size())
             return node1;
         return node2;
     }

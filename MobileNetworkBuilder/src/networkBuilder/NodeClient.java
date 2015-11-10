@@ -144,4 +144,21 @@ class NodeClient extends NodeAbstract {
             aps.add(connectedByWFD);
         return aps;
     }
+
+    public void moveTo(int x, int y) {
+        // register new x and y
+        super.moveTo(x, y);
+
+        // update connections
+        if (connectedByWFD != null) {
+            if (!networkBuilder.areInConnectionRange(connectedByWFD, this)) {
+                networkBuilder.disconnectWFDClient(this);
+            }
+        }
+        if (connectedByWF != null) {
+            if (!networkBuilder.areInConnectionRange(connectedByWF, this)) {
+                networkBuilder.disconnectWFClient(this);
+            }
+        }
+    }
 }

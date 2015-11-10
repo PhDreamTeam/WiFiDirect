@@ -24,6 +24,26 @@ public abstract class NodeAbstractAP extends NodeAbstract {
         return connectedNodes.size();
     }
 
+    /*
+     *
+     */
+    public void moveTo(int x, int y) {
+        // register new x and y
+        super.moveTo(x, y);
+
+        // a new list to avoid the side effects of original list changes
+        ArrayList<NodeAbstract> nodes = new ArrayList<>(connectedNodes);
+        for (NodeAbstract nodeClient : nodes) {
+            if (!networkBuilder.areInConnectionRange(this, nodeClient)) {
+                if(nodeClient.getConnectedByWFD()!= null && nodeClient.getConnectedByWFD().equals(this))
+                    networkBuilder.disconnectWFDClient(nodeClient);
+                if(nodeClient.getConnectedByWF()!= null && nodeClient.getConnectedByWF().equals(this))
+                    networkBuilder.disconnectWFClient(nodeClient);
+            }
+        }
+
+    }
+
 
     /**
      *

@@ -3,13 +3,12 @@ package networkBuilder;
 import layouts.ProportionalLayout;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
-import java.util.Scanner;
 
 /**
  * Mobile network backbone builder
@@ -44,12 +43,18 @@ public class NetworkBuilder extends JFrame {
 
     private JButton btnStopTimer;
 
-    private JButton btnLoadScenario;
-
     private JButton btnStepTimer;
 
     private JFileChooser fc = new JFileChooser();
-    private JButton btnSaveScenario;
+
+    private NodeAbstract currentSelectedNode = null;
+    private int deltaXSelectedNode;
+    private int deltaYSelectedNode;
+    private JButton btnStartIndTimers;
+    private JButton btnStopIndTimers;
+
+    Random rg = new Random();
+    private boolean indidividualTimersActivated;
 
     /**
      * Este método cria toda a frame e coloca-a visível
@@ -88,28 +93,28 @@ public class NetworkBuilder extends JFrame {
         });
         btnStopTimer.setVisible(false);
 
+        // Button start individual timers
+        btnStartIndTimers = new JButton("Start Individual Timers");
+        btnStartIndTimers.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                doStartIndividualTimerActions();
+            }
+        });
+
+        // Button stop individual timers
+        btnStopIndTimers = new JButton("Stop Individual Timers");
+        btnStopIndTimers.setVisible(false);
+        btnStopIndTimers.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                doStopIndividualTimerActions();
+            }
+        });
+
         // Button step timer
         btnStepTimer = new JButton("Step Timer");
         btnStepTimer.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 doTimerActions();
-            }
-        });
-
-
-        // Button load scenario
-        btnLoadScenario = new JButton("Load Scenario");
-        btnLoadScenario.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                loadScenarioActions();
-            }
-        });
-
-        // Button save scenario
-        btnSaveScenario = new JButton("Save Scenario");
-        btnSaveScenario.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                saveScenarioActions();
             }
         });
 
@@ -124,9 +129,9 @@ public class NetworkBuilder extends JFrame {
         buttonsPanel = new JPanel();
         buttonsPanel.add(btnStartTimer);
         buttonsPanel.add(btnStopTimer);
+        buttonsPanel.add(btnStartIndTimers);
+        buttonsPanel.add(btnStopIndTimers);
         buttonsPanel.add(btnStepTimer);
-        buttonsPanel.add(btnLoadScenario);
-        buttonsPanel.add(btnSaveScenario);
         buttonsPanel.add(btnClearAll);
 
         getContentPane().setLayout(new ProportionalLayout(0.1f));
@@ -145,26 +150,55 @@ public class NetworkBuilder extends JFrame {
         myPanel.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 // right mouse button
-                buttonPressed = e.getButton();
+                //buttonPressed = e.getButton();
+
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    // left button - create new NodeClient
-                    addNode(new NodeClient(NetworkBuilder.this, "NI-" + nextNodeID++,
-                            e.getX(), e.getY()));
-                    repaint();
+                    if ((e.getModifiers() & InputEvent.CTRL_MASK) == 0) {
+                        // left button - create new NodeClient
+                        addNode(new NodeClient(NetworkBuilder.this, "NI-" + nextNodeID++,
+                                e.getX(), e.getY()));
+                        repaint();
+                    } else {
+                        // select action
+                        selectAction(e.getX(), e.getY());
+                        if (currentSelectedNode != null) {
+                            deltaXSelectedNode = currentSelectedNode.getX() - e.getX();
+                            deltaYSelectedNode = currentSelectedNode.getY() - e.getY();
+                        }
+                    }
                 }
 
                 if (e.getButton() == MouseEvent.BUTTON3) {
-                    // left button - create new GO
-                    addNode(new NodeGO(NetworkBuilder.this, "NI-" + nextNodeID++,
-                            e.getX(), e.getY()));
+                    if ((e.getModifiers() & InputEvent.CTRL_MASK) == 0) {
+                        // left button and no CTRL key pressed - create new GO
+                        addNode(new NodeGO(NetworkBuilder.this, "NI-" + nextNodeID++,
+                                e.getX(), e.getY()));
+                    } else {
+                        // left button and CTRL key pressed - create new AP
+                        addNode(new NodeAP(NetworkBuilder.this, "NI-" + nextNodeID++,
+                                e.getX(), e.getY()));
+                    }
                     repaint();
                 }
             }
 
             public void mouseReleased(MouseEvent e) {
-                buttonPressed = -1;
+                //buttonPressed = -1;
             }
         });
+
+        // moving support listener
+        myPanel.addMouseMotionListener(
+                new MouseMotionAdapter() {
+                    public void mouseDragged(MouseEvent e) {
+                        //System.out.println("Drag");
+                        if (currentSelectedNode != null) {
+                            moveNodeTO(currentSelectedNode, deltaXSelectedNode + e.getX(),
+                                    deltaYSelectedNode + e.getY());
+                        }
+                    }
+                }
+        );
 
 
         // timer and timer listener
@@ -177,10 +211,153 @@ public class NetworkBuilder extends JFrame {
         // set the start directory for scenario loading file chooser
         fc.setCurrentDirectory(new File("MobileNetworkBuilder/src/networkBuilder/scenarios"));
 
+        // create menu and put it on frame
+        setJMenuBar(createMenu());
+
         // puts the frame visible (is not visible at start)
         setVisible(true);
     }
 
+    /*
+     *
+     */
+    private void moveNodeTO(NodeAbstract node, int x, int y) {
+        node.moveTo(x, y);
+        repaint();
+    }
+
+    /*
+     *
+     */
+    private void selectAction(int x, int y) {
+        // search first of simple nodes
+        for (NodeAbstract node : nodes) {
+            if (!(node instanceof NodeAbstractAP)) {
+                if (node.isCoordOnNode(x, y)) {
+                    setSelectedNode(node);
+                    repaint();
+                    return;
+                }
+            }
+        }
+
+        // search then on AP nodes
+        for (NodeAbstract node : nodes) {
+            if (node instanceof NodeAbstractAP) {
+                if (node.isCoordOnNode(x, y)) {
+                    setSelectedNode(node);
+                    repaint();
+                    return;
+                }
+            }
+        }
+
+        setSelectedNode(null);
+        repaint();
+    }
+
+    public void setSelectedNode(NodeAbstract node) {
+        if (currentSelectedNode != null)
+            currentSelectedNode.setSelected(false);
+
+        if (node != null)
+            node.setSelected(true);
+
+        currentSelectedNode = node;
+    }
+
+    /**
+     *
+     */
+    private JMenuBar createMenu() {
+        JMenuBar menuBar = new JMenuBar();
+
+        JMenu menu = new JMenu("Menu");
+        menuBar.add(menu);
+
+        ActionListener al = getMenuListener();
+
+        JMenuItem miLoadScenario = new JMenuItem("Load Scenario", KeyEvent.VK_L);
+        miLoadScenario.addActionListener(al);
+        menu.add(miLoadScenario);
+
+        JMenuItem miSaveScenario = new JMenuItem("Save Scenario", KeyEvent.VK_S);
+        miSaveScenario.addActionListener(al);
+        menu.add(miSaveScenario);
+
+        menu.addSeparator();
+
+        JMenuItem miHelp = new JMenuItem("Help", KeyEvent.VK_H);
+        miHelp.addActionListener(al);
+        menu.add(miHelp);
+
+        JMenuItem miAbout = new JMenuItem("About", KeyEvent.VK_A);
+        miAbout.addActionListener(al);
+        menu.add(miAbout);
+
+        menu.addSeparator();
+
+        JMenuItem miExit = new JMenuItem("Exit", KeyEvent.VK_X);
+        miExit.addActionListener(al);
+        menu.add(miExit);
+
+        return menuBar;
+    }
+
+    ActionListener getMenuListener() {
+        // Menu Action Listener
+        return new ActionListener() {
+
+            public void actionPerformed(ActionEvent e) {
+                String menuItemText = ((JMenuItem) (e.getSource())).getText();
+
+                if (menuItemText.equals("Load Scenario"))
+                    loadScenarioActions();
+
+                if (menuItemText.equals("Save Scenario"))
+                    saveScenarioActions();
+
+                if (menuItemText.equals("Help"))
+                    helpActions();
+
+                if (menuItemText.equals("About"))
+                    aboutActions();
+
+                if (menuItemText.equals("Exit"))
+                    exitActions();
+            }
+        };
+    }
+
+    private void helpActions() {
+        String strHelp = "HELP NOTES: ";
+        strHelp += "\n\nSave scenario:\n   - scenarios will be saved only as serialized objects. " +
+                "They should be saved with an extension different than .txt";
+        strHelp += "\nLoad scenario:\n   - it is possible to load serialized or txt scenarios";
+        strHelp += "\n\nScenario edition:\n   - add simple node:  left click;" +
+                "\n   - add GO:  right click;\n   - add AP:  right click + CTRL";
+
+        JOptionPane.showMessageDialog(this,
+                strHelp, "Help", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void aboutActions() {
+        String strAbout = "Hyrax project - Mobile Network Backbone Builder" +
+                "\n\nV0.6" + "\n\nby António Teófilo and Diogo Remédios"
+                + "\n\n supervised by  Hervé Paulino and João Lourenço";
+
+        JOptionPane.showMessageDialog(this, strAbout, "About", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void exitActions() {
+        // stop timer and dispose frame
+        doStopTimerActions();
+        if(indidividualTimersActivated) {
+            doStopIndividualTimerActions();
+        }
+        dispose();
+
+    }
 
     /**
      *
@@ -240,6 +417,9 @@ public class NetworkBuilder extends JFrame {
         // stop the timer, just in case
         doStopTimerActions();
 
+        // clear all existing nodes
+        clearAll();
+
         try {
             InputStream file = new FileInputStream(scenarioPathName);
             InputStream buffer = new BufferedInputStream(file);
@@ -254,13 +434,43 @@ public class NetworkBuilder extends JFrame {
                 node.setNetworkBuilder(this);
                 nodes.add(node);
             }
-
             repaint();
 
         } catch (ClassNotFoundException | IOException ex) {
             ex.printStackTrace();
         }
     }
+
+    /*
+    *
+    */
+    private void doStartIndividualTimerActions() {
+        for (NodeAbstract node : nodes) {
+            node.startTimer(getIndividualTimerDelay());
+        }
+
+        indidividualTimersActivated = true;
+        btnStartTimer.setVisible(false);
+        btnStartIndTimers.setVisible(false);
+        btnStopIndTimers.setVisible(true);
+        btnStepTimer.setVisible(false);
+    }
+
+    /*
+     *
+     */
+    private void doStopIndividualTimerActions() {
+        for (NodeAbstract node : nodes) {
+            node.stopTimer();
+        }
+
+        indidividualTimersActivated = false;
+        btnStartTimer.setVisible(true);
+        btnStartIndTimers.setVisible(true);
+        btnStopIndTimers.setVisible(false);
+        btnStepTimer.setVisible(true);
+    }
+
 
     /**
      *
@@ -269,6 +479,9 @@ public class NetworkBuilder extends JFrame {
         timer.start();
         btnStartTimer.setVisible(false);
         btnStopTimer.setVisible(true);
+        btnStartIndTimers.setVisible(false);
+        btnStopIndTimers.setVisible(false);
+        btnStepTimer.setVisible(false);
     }
 
     /**
@@ -278,6 +491,9 @@ public class NetworkBuilder extends JFrame {
         timer.stop();
         btnStartTimer.setVisible(true);
         btnStopTimer.setVisible(false);
+        btnStartIndTimers.setVisible(true);
+        btnStopIndTimers.setVisible(false);
+        btnStepTimer.setVisible(true);
     }
 
     /*
@@ -344,7 +560,11 @@ public class NetworkBuilder extends JFrame {
      *
      */
     boolean addNode(NodeAbstract node) {
+        setSelectedNode(null);
         nodes.add(node);
+        if(indidividualTimersActivated) {
+            node.startTimer(getIndividualTimerDelay());
+        }
         return true;
     }
 
@@ -416,6 +636,10 @@ public class NetworkBuilder extends JFrame {
         System.out.println("End of main...");
     }
 
+    public int getIndividualTimerDelay() {
+        return TIMER_STEP + rg.nextInt((int) (TIMER_STEP * 0.2));
+    }
+
 
     /**
      *
@@ -481,7 +705,7 @@ public class NetworkBuilder extends JFrame {
     /**
      *
      */
-    private boolean areInConnectionRange(NodeAbstract node1, NodeAbstract node2) {
+    public boolean areInConnectionRange(NodeAbstract node1, NodeAbstract node2) {
         int x1 = node1.getX();
         int x2 = node2.getX();
         int y1 = node1.getY();
@@ -499,6 +723,7 @@ public class NetworkBuilder extends JFrame {
 
         go.addConnectedClient(client);
         client.setConnectedByWFD(go);
+        repaint();
         return true;
     }
 
@@ -511,6 +736,7 @@ public class NetworkBuilder extends JFrame {
 
         apgo.addConnectedClient(client);
         client.setConnectedByWF(apgo);
+        repaint();
         return true;
     }
 
@@ -521,6 +747,16 @@ public class NetworkBuilder extends JFrame {
         NodeGO go = nodeClient.connectedByWFD;
         nodeClient.connectedByWFD = null;
         go.disconnectClient(nodeClient);
+        repaint();
+    }
+
+    /*
+     *
+     */
+    public void disconnectWFClient(NodeAbstract nodeClient) {
+        NodeAbstractAP ap = nodeClient.connectedByWF;
+        nodeClient.connectedByWF = null;
+        ap.disconnectClient(nodeClient);
         repaint();
     }
 
