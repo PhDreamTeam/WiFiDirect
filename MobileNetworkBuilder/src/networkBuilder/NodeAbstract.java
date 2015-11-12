@@ -10,7 +10,6 @@ import java.util.List;
  * Node
  */
 public abstract class NodeAbstract implements Serializable {
-
     private static final long serialVersionUID = -4367897668221156083L;
 
     public static Color colorWFDConnection = Color.RED;
@@ -135,12 +134,16 @@ public abstract class NodeAbstract implements Serializable {
     }
 
     public void drawCircle(Graphics g, int radius) {
+        int zoom = networkBuilder.getZoomFactor();
+        int xSO = networkBuilder.getXScreenOffset();
+        int ySO = networkBuilder.getYScreenOffset();
+
         // circle inside color
         g.setColor(isSelected ? Color.yellow : this.color);
-        g.fillOval(xPos - radius, yPos - radius, 2 * radius, 2 * radius);
+        g.fillOval((xPos - radius + xSO) * zoom, (yPos - radius + ySO) * zoom, 2 * radius * zoom, 2 * radius * zoom);
         // circle border line
         g.setColor(Color.BLACK);
-        g.drawOval(xPos - radius, yPos - radius, 2 * radius, 2 * radius);
+        g.drawOval((xPos - radius + xSO) * zoom, (yPos - radius + ySO) * zoom, 2 * radius * zoom, 2 * radius * zoom);
     }
 
     //public abstract void paintConnections(Graphics g);
@@ -188,5 +191,31 @@ public abstract class NodeAbstract implements Serializable {
         System.out.println("Moving node " + getName() + " to " + x + ", " + y);
         setX(x);
         setY(y);
+    }
+
+    public String getNodeInfo() {
+        return getName();
+    }
+
+    void addNodeAndDirectConnectionsToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstract> nodes) {
+        info.append(initialMsg);
+        for (NodeAbstract node : nodes) {
+            info.append(" ");
+            info.append(node.getName());
+            info.append("[");
+            if (node.connectedByWFD != null)
+                info.append("wfd(" + node.connectedByWFD.getName() + ")");
+            if (node.connectedByWF != null)
+                info.append("wf(" + node.connectedByWF.getName() + ")");
+            info.append("]");
+        }
+    }
+
+    void addNodeToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstract> nodes) {
+        info.append(initialMsg);
+        for (NodeAbstract node : nodes) {
+            info.append(" ");
+            info.append(node.getName());
+        }
     }
 }

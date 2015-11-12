@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class NodeAbstractAP extends NodeAbstract {
+    private static final long serialVersionUID = 7228806338473490783L;
 
     public static int MAX_CONNECTED_NODES_ON_AP = 8;
     protected ArrayList<NodeAbstract> connectedNodes = new ArrayList<NodeAbstract>();

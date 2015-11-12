@@ -7,7 +7,8 @@ import java.util.List;
 /**
  * Node
  */
-class NodeClient extends NodeAbstract {
+public class NodeClient extends NodeAbstract {
+    private static final long serialVersionUID = 6522880377285017785L;
 
     public NodeClient(NetworkBuilder networkBuilder, String name, int x,
                       int y) {
@@ -24,24 +25,53 @@ class NodeClient extends NodeAbstract {
     }
 
     public void paintConnections(Graphics g) {
+        int zoom = networkBuilder.getZoomFactor();
+        int xSO = networkBuilder.getXScreenOffset();
+        int ySO = networkBuilder.getYScreenOffset();
+
         if (connectedByWF != null) {
             g.setColor(colorWFConnection);
-            g.drawLine(getX(), getY(), connectedByWF.getX(),
-                    connectedByWF.getY());
+            g.drawLine((getX() + xSO) * zoom, (getY() + ySO) * zoom, (connectedByWF.getX() + xSO) * zoom,
+                    (connectedByWF.getY() + ySO) * zoom);
         }
         if (connectedByWFD != null) {
             g.setColor(colorWFDConnection);
-            g.drawLine(getX(), getY(), connectedByWFD.getX(),
-                    connectedByWFD.getY());
+            g.drawLine((getX() + xSO) * zoom, (getY() + ySO) * zoom, (connectedByWFD.getX() + xSO) * zoom,
+                    (connectedByWFD.getY() + ySO) * zoom);
         }
     }
+
+
+    public String getNodeInfo() {
+        StringBuilder info = new StringBuilder(getName() + " (Client)");
+
+        if (connectedByWFD != null) {
+            info.append(",&nbsp; WFD: ");
+            info.append(connectedByWFD.getName());
+        }
+        if (connectedByWF != null) {
+            info.append(",&nbsp; WF: ");
+            info.append(connectedByWF.getName());
+        }
+
+        addNodeToStringBuilder(info, ",&nbsp; GOs in range:",
+                networkBuilder.getGOListInRange(this));
+
+        addNodeAndDirectConnectionsToStringBuilder(info, ",&nbsp; Other clients in range:",
+                networkBuilder.getClientsListInRange(this));
+        return info.toString();
+    }
+
 
     /*
      *
      */
     public void doTimerActions() {
-        if (isSelected())
+        // TODO think is is to avoid selection or moving
+        if (isSelected()) {
+            networkBuilder.updateCurrentSelectedNodeInfo(this);
             return;
+        }
 
         if (connectedByWFD == null) {
             // node is currently disconnected in WFD interface

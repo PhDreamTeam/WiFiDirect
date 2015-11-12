@@ -1,10 +1,13 @@
 package networkBuilder;
 
 import layouts.CenterLayout;
+import layouts.FlowLayoutShowAll;
 import layouts.ProportionalLayout;
 
 import javax.swing.*;
 import javax.swing.Timer;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -13,11 +16,11 @@ import java.util.List;
 
 /**
  * Mobile network backbone builder
- *
+ * <p/>
  * IN Work:
  * DONE: individual timers
  * DONE: mover nós
- *
+ * <p/>
  * Scenario doesn't stop
  * Código dos APs
  * Optimizar (reorganizar a rede) / reconfigurar
@@ -31,6 +34,8 @@ public class NetworkBuilder extends JFrame {
     private static final int TIMER_STEP = 1000;
 
     public static int MAX_WIFI_RANGE_TO_MAKE_CONNECTIONS = 32;
+
+    private int OFFSET_SCREEN_FACTOR = 10;
 
     List<ArrayList<ScenarioNode>> timerJobs = Collections
             .synchronizedList(new ArrayList<ArrayList<ScenarioNode>>());
@@ -66,6 +71,14 @@ public class NetworkBuilder extends JFrame {
     private JLabel nodesLabel;
     private Timer timerInfo;
 
+    // zoom data
+    private int zoomFactor = 1;
+    private SpinnerNumberModel spinnerZoomModel;
+    private JSpinner spinnerZoom;
+
+    private int xScreenOffset = 0, yScreenOffset = 0;
+    private JLabel labelCurrentSelectedNode;
+
     /**
      * Este método cria toda a frame e coloca-a visível
      */
@@ -90,6 +103,9 @@ public class NetworkBuilder extends JFrame {
             }
         };
         addWindowListener(wa);
+
+        // main layout - content pane
+        getContentPane().setLayout(new ProportionalLayout(0.1f, 0, 0.05f, 0.05f));
 
         // Button start timer
         btnStartTimer = new JButton("Start Timer");
@@ -141,7 +157,8 @@ public class NetworkBuilder extends JFrame {
             }
         });
 
-        buttonsPanel = new JPanel();
+        // buttons panel
+        buttonsPanel = new JPanel(new FlowLayoutShowAll());
         buttonsPanel.add(btnStartTimer);
         buttonsPanel.add(btnStopTimer);
         buttonsPanel.add(btnStartIndTimers);
@@ -149,19 +166,48 @@ public class NetworkBuilder extends JFrame {
         buttonsPanel.add(btnStepTimer);
         buttonsPanel.add(btnClearAll);
 
-        getContentPane().setLayout(new ProportionalLayout(0.1f));
+        // Zoom area
+        JPanel panelZoom = new JPanel();
+        panelZoom.setBorder(BorderFactory.createLineBorder(Color.gray));
+        panelZoom.add(new JLabel("Zoom: "));
+        // Spinner and SpinnerModel
+        spinnerZoomModel = new SpinnerNumberModel(1, 1, 4, 1); // value, min, max, step
+        spinnerZoom = new JSpinner(spinnerZoomModel);
+        spinnerZoom.addChangeListener(new ChangeListener() {
+            public void stateChanged(ChangeEvent e) {
+                zoomFactor = spinnerZoomModel.getNumber().intValue();
+                repaint();
+            }
+        });
+        spinnerZoom.setEditor(new JSpinner.DefaultEditor(spinnerZoom));
+        panelZoom.add(spinnerZoom);
+        buttonsPanel.add(panelZoom);
 
+        // upper Panel
         myPanel = new NodesPanel();
         myPanel.setBorder(BorderFactory.createLineBorder(Color.black));
 
-        add(myPanel, ProportionalLayout.CENTER);
-        add(buttonsPanel, ProportionalLayout.SOUTH);
+        // bottomPanel
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.add(buttonsPanel, BorderLayout.NORTH);
+        labelCurrentSelectedNode = new JLabel("Current node:");
+//        labelCurrentSelectedNode.setOpaque(true);
+//        labelCurrentSelectedNode.setBackground(Color.lightGray);
+        labelCurrentSelectedNode.setBorder(BorderFactory.createLineBorder(Color.lightGray));
+        labelCurrentSelectedNode.setHorizontalAlignment(SwingConstants.CENTER);
+        bottomPanel.add(labelCurrentSelectedNode, BorderLayout.CENTER);
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(myPanel, BorderLayout.CENTER);
+        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
+
+        add(mainPanel, ProportionalLayout.CENTER);
 
         // info panel with one label
         JPanel infoPanel = new JPanel(new CenterLayout());
         nodesLabel = new JLabel();
         infoPanel.add(nodesLabel);
-        add(infoPanel, ProportionalLayout.NORTH);
+        add(infoPanel, BorderLayout.NORTH);
 
         System.out.println("Press mouse buttons inside panel");
 
@@ -170,19 +216,26 @@ public class NetworkBuilder extends JFrame {
 
         myPanel.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
+                int xSO = getXScreenOffset();
+                int ySO = getYScreenOffset();
+
+                int x = e.getX() / getZoomFactor() - xSO;
+                int y = e.getY() / getZoomFactor() - ySO;
+
+
                 // right mouse button
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     if ((e.getModifiers() & InputEvent.CTRL_MASK) == 0) {
                         // left button - create new NodeClient
                         addNode(new NodeClient(NetworkBuilder.this, "N-" + nextNodeID++,
-                                e.getX(), e.getY()));
+                                x, y));
                         repaint();
                     } else {
                         // select action
-                        selectAction(e.getX(), e.getY());
+                        selectAction(x, y);
                         if (currentSelectedNode != null) {
-                            deltaXSelectedNode = currentSelectedNode.getX() - e.getX();
-                            deltaYSelectedNode = currentSelectedNode.getY() - e.getY();
+                            deltaXSelectedNode = currentSelectedNode.getX() - x;
+                            deltaYSelectedNode = currentSelectedNode.getY() - y;
                         }
                     }
                 }
@@ -190,12 +243,10 @@ public class NetworkBuilder extends JFrame {
                 if (e.getButton() == MouseEvent.BUTTON3) {
                     if ((e.getModifiers() & InputEvent.CTRL_MASK) == 0) {
                         // left button and no CTRL key pressed - create new GO
-                        addNode(new NodeGO(NetworkBuilder.this, "N-" + nextNodeID++,
-                                e.getX(), e.getY()));
+                        addNode(new NodeGO(NetworkBuilder.this, "N-" + nextNodeID++, x, y));
                     } else {
                         // left button and CTRL key pressed - create new AP
-                        addNode(new NodeAP(NetworkBuilder.this, "N-" + nextNodeID++,
-                                e.getX(), e.getY()));
+                        addNode(new NodeAP(NetworkBuilder.this, "N-" + nextNodeID++, x, y));
                     }
                     repaint();
                 }
@@ -206,10 +257,16 @@ public class NetworkBuilder extends JFrame {
         myPanel.addMouseMotionListener(
                 new MouseMotionAdapter() {
                     public void mouseDragged(MouseEvent e) {
+                        int xSO = getXScreenOffset();
+                        int ySO = getYScreenOffset();
+
+                        int x = e.getX() / getZoomFactor() - xSO;
+                        int y = e.getY() / getZoomFactor() - ySO;
+
                         //System.out.println("Drag");
                         if (currentSelectedNode != null) {
-                            moveNodeTO(currentSelectedNode, deltaXSelectedNode + e.getX(),
-                                    deltaYSelectedNode + e.getY());
+                            moveNodeTO(currentSelectedNode, deltaXSelectedNode + x,
+                                    deltaYSelectedNode + y);
                         }
                     }
                 }
@@ -237,8 +294,54 @@ public class NetworkBuilder extends JFrame {
         // create menu and put it on frame
         setJMenuBar(createMenu());
 
+        /**
+         * Handle direction keys
+         */
+        KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                .addKeyEventDispatcher(new KeyEventDispatcher() {
+
+                    public boolean dispatchKeyEvent(KeyEvent e) {
+                        //System.out.println("KD " + e);
+                        if (e.getID() == KeyEvent.KEY_RELEASED) {
+//                            System.out.println("KD key released on dispatcher-> "
+//                                    + e.getKeyChar());
+                            int deltaXOffset = 0;
+                            int deltaYOffset = 0;
+                            switch (e.getKeyCode()) {
+                                case 37: // left
+                                    deltaXOffset = 1;
+                                    break;
+                                case 38: // up
+                                    deltaYOffset = 1;
+                                    break;
+                                case 39: // right
+                                    deltaXOffset = -1;
+                                    break;
+                                case 40: // down
+                                    deltaYOffset = -1;
+                                    break;
+                            }
+                            addScreenOffset(deltaXOffset, deltaYOffset);
+                            nodesLabel.requestFocus();
+                        }
+
+                        // return true, indicating that this key was processed
+                        return e.getKeyCode() >= 37 && e.getKeyCode() <= 40;
+                    }
+                });
+
+
         // puts the frame visible (is not visible at start)
         setVisible(true);
+    }
+
+    private void addScreenOffset(int deltaXOffset, int deltaYOffset) {
+        deltaXOffset *= OFFSET_SCREEN_FACTOR;
+        deltaYOffset *= OFFSET_SCREEN_FACTOR;
+
+        xScreenOffset += deltaXOffset;
+        yScreenOffset += deltaYOffset;
+        repaint();
     }
 
     /*
@@ -249,6 +352,13 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
+    public void setTextOnLabelCurrentSelectedNode(String txt) {
+        labelCurrentSelectedNode.setText("<html><br>" + txt + "<br><br></html>");
+    }
+
+    /*
+     *
+     */
     public void updateInfoLabel() {
         StringBuilder msgBuilder = new StringBuilder("Nodes: ");
         for (NodeAbstract node : nodes) {
@@ -289,13 +399,25 @@ public class NetworkBuilder extends JFrame {
     }
 
     public void setSelectedNode(NodeAbstract node) {
-        if (currentSelectedNode != null)
+        if (currentSelectedNode != null) {
             currentSelectedNode.setSelected(false);
+            updateCurrentSelectedNodeInfo(null);
+        }
 
-        if (node != null)
+        if (node != null) {
             node.setSelected(true);
+            updateCurrentSelectedNodeInfo(node);
+        }
 
         currentSelectedNode = node;
+    }
+
+    public int getZoomFactor() {
+        return zoomFactor;
+    }
+
+    public void setZoomFactor(int zoomFactor) {
+        this.zoomFactor = zoomFactor;
     }
 
     /**
@@ -361,18 +483,26 @@ public class NetworkBuilder extends JFrame {
         };
     }
 
+    /*
+     * help actions
+     */
     private void helpActions() {
         String strHelp = "HELP NOTES: ";
         strHelp += "\n\nSave scenario:\n   - scenarios will be saved only as serialized objects. " +
                 "They should be saved with an extension different than .txt";
         strHelp += "\nLoad scenario:\n   - it is possible to load serialized or txt scenarios";
         strHelp += "\n\nScenario edition:\n   - add simple node:  left click;" +
-                "\n   - add GO:  right click;\n   - add AP:  right click + CTRL";
+                "\n   - add GO:  right click;\n   - add AP:  CTRL + right click" +
+                "\n   - select node:  CTRL + left clickL on node (on empty area to unselect)";
+        strHelp += "\n\nChanging Scenario offset:\n   - with keys: Up, Down, Left and Right";
 
         JOptionPane.showMessageDialog(this,
                 strHelp, "Help", JOptionPane.INFORMATION_MESSAGE);
     }
 
+    /*
+     * about actions
+     */
     private void aboutActions() {
         String strAbout = "Hyrax project - Mobile Network Backbone Builder" +
                 "\n\nV0.6" +
@@ -630,7 +760,7 @@ public class NetworkBuilder extends JFrame {
         // add new node at the same index
         nodes.add(idx, ap);
 
-        if(indidividualTimersActivated)
+        if (indidividualTimersActivated)
             ap.startTimer(getIndividualTimerDelay());
 
         repaint();
@@ -656,7 +786,7 @@ public class NetworkBuilder extends JFrame {
         // add new node at the same index
         nodes.add(idx, go);
 
-        if(indidividualTimersActivated)
+        if (indidividualTimersActivated)
             go.startTimer(getIndividualTimerDelay());
 
         repaint();
@@ -682,7 +812,7 @@ public class NetworkBuilder extends JFrame {
         // add new node at the same index
         nodes.add(idx, nodeCli);
 
-        if(indidividualTimersActivated)
+        if (indidividualTimersActivated)
             nodeCli.startTimer(getIndividualTimerDelay());
 
         repaint();
@@ -708,6 +838,18 @@ public class NetworkBuilder extends JFrame {
 
     public int getIndividualTimerDelay() {
         return TIMER_STEP + rg.nextInt((int) (TIMER_STEP * 0.2));
+    }
+
+    public int getXScreenOffset() {
+        return xScreenOffset;
+    }
+
+    public int getYScreenOffset() {
+        return yScreenOffset;
+    }
+
+    public void updateCurrentSelectedNodeInfo(NodeAbstract node) {
+        setTextOnLabelCurrentSelectedNode(node == null ? "" : node.getNodeInfo());
     }
 
 
@@ -844,3 +986,4 @@ public class NetworkBuilder extends JFrame {
         }
     }
 }
+
