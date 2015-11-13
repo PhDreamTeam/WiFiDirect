@@ -18,8 +18,8 @@ public abstract class NodeAbstract implements Serializable {
 
     transient NetworkBuilder networkBuilder;
 
-    // node name
-    String name;
+    // node id
+    int id;
 
     // x, y at the center of the node
     int xPos;
@@ -39,11 +39,13 @@ public abstract class NodeAbstract implements Serializable {
     NodeGO connectedByWFD;
     NodeAbstractAP connectedByWF;
 
-
+    /**
+     *
+     */
     public NodeAbstract(NetworkBuilder networkBuilder,
-                        String name, int x, int y, int radius, Color color) {
+                        int id, int x, int y, int radius, Color color) {
         this.networkBuilder = networkBuilder;
-        this.name = name;
+        this.id = id;
         this.radius = radius;
         xPos = x;
         yPos = y;
@@ -57,82 +59,136 @@ public abstract class NodeAbstract implements Serializable {
         );
     }
 
+    /**
+     *
+     */
     public String getName() {
-        return name;
+        return getNamePrefix() + id;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public int getId() {
+        return id;
     }
 
+    protected abstract String getNamePrefix();
+
+
+    /**
+     *
+     */
     public void setX(int xPos) {
         this.xPos = xPos;
     }
 
+    /**
+     *
+     */
     public int getX() {
         return xPos;
     }
 
+    /**
+     *
+     */
     public void setY(int yPos) {
         this.yPos = yPos;
     }
 
+    /**
+     *
+     */
     public int getY() {
         return yPos;
     }
 
+    /**
+     *
+     */
     public int getRadius() {
         return radius;
     }
 
+    /**
+     *
+     */
     public Color getColor() {
         return color;
     }
 
+    /**
+     *
+     */
     public NodeGO getConnectedByWFD() {
         return connectedByWFD;
     }
 
+    /**
+     *
+     */
     public void setConnectedByWFD(NodeGO connectedByWFD) {
         this.connectedByWFD = connectedByWFD;
     }
 
+    /**
+     *
+     */
     public NodeAbstractAP getConnectedByWF() {
         return connectedByWF;
     }
 
+    /**
+     *
+     */
     public void setConnectedByWF(NodeAbstractAP connectedByWF) {
         this.connectedByWF = connectedByWF;
     }
 
+    /**
+     *
+     */
     public void setNetworkBuilder(NetworkBuilder networkBuilder) {
         this.networkBuilder = networkBuilder;
     }
 
-    @Override
+    /**
+     *
+     */
     public boolean equals(Object obj) {
         return obj != null && (obj instanceof NodeAbstract) && getName().equalsIgnoreCase(
                 ((NodeAbstract) obj).getName());
     }
-
+    /**
+     *
+     */
     public String toString() {
-        return name;
+        return getName();
     }
 
+    /**
+     *
+     */
     public void paintComponent(Graphics g) {
         drawCircle(g, 2);
     }
 
+    /**
+     *
+     */
     public void startTimer(int delay) {
         timer.setDelay(delay);
         timer.start();
     }
 
-
+    /**
+     *
+     */
     public void stopTimer() {
         timer.stop();
     }
 
+    /**
+     *
+     */
     public void drawCircle(Graphics g, int radius) {
         int zoom = networkBuilder.getZoomFactor();
         int xSO = networkBuilder.getXScreenOffset();
@@ -146,8 +202,18 @@ public abstract class NodeAbstract implements Serializable {
         g.drawOval((xPos - radius + xSO) * zoom, (yPos - radius + ySO) * zoom, 2 * radius * zoom, 2 * radius * zoom);
     }
 
-    //public abstract void paintConnections(Graphics g);
+    public void paintNodeName(Graphics g) {
+        int zoom = networkBuilder.getZoomFactor();
+        int xSO = networkBuilder.getXScreenOffset();
+        int ySO = networkBuilder.getYScreenOffset();
 
+        g.setColor(Color.darkGray);
+        g.drawString(getName(), (xPos + xSO) * zoom - 10, (yPos  + ySO) * zoom - 3 - 2 * zoom);
+    }
+
+    /**
+     *
+     */
     public abstract List<NodeAbstractAP> getConnectedAPs();
 
 
@@ -170,14 +236,23 @@ public abstract class NodeAbstract implements Serializable {
         return ap.getNConnectedNodes() < NodeAbstractAP.MAX_CONNECTED_NODES_ON_AP;
     }
 
+    /**
+     *
+     */
     public boolean isSelected() {
         return isSelected;
     }
 
+    /**
+     *
+     */
     public void setSelected(boolean isSelected) {
         this.isSelected = isSelected;
     }
 
+    /**
+     *
+     */
     public boolean isCoordOnNode(int x2, int y2) {
         int x1 = getX();
         int y1 = getY();
@@ -185,18 +260,30 @@ public abstract class NodeAbstract implements Serializable {
         return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)) <= radius;
     }
 
+    /**
+     *
+     */
     public abstract void doTimerActions();
 
+    /**
+     *
+     */
     public void moveTo(int x, int y) {
         System.out.println("Moving node " + getName() + " to " + x + ", " + y);
         setX(x);
         setY(y);
     }
 
+    /**
+     *
+     */
     public String getNodeInfo() {
         return getName();
     }
 
+    /**
+     *
+     */
     void addNodeAndDirectConnectionsToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstract> nodes) {
         info.append(initialMsg);
         for (NodeAbstract node : nodes) {
@@ -211,11 +298,16 @@ public abstract class NodeAbstract implements Serializable {
         }
     }
 
-    void addNodeToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstract> nodes) {
+    /**
+     *
+     */
+    static void addNodesToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstract> nodes) {
         info.append(initialMsg);
         for (NodeAbstract node : nodes) {
             info.append(" ");
             info.append(node.getName());
         }
     }
+
+
 }

@@ -10,20 +10,36 @@ import java.util.List;
 public class NodeClient extends NodeAbstract {
     private static final long serialVersionUID = 6522880377285017785L;
 
-    public NodeClient(NetworkBuilder networkBuilder, String name, int x,
+    /**
+     *
+     */
+    public NodeClient(NetworkBuilder networkBuilder, int id, int x,
                       int y) {
-        super(networkBuilder, name, x, y, 2, Color.BLACK);
+        super(networkBuilder, id, x, y, 2, Color.BLACK);
     }
 
+    /**
+     *
+     */
     public NodeClient(NodeAbstractAP nodeGOAP) {
-        this(nodeGOAP.networkBuilder, nodeGOAP.getName(), nodeGOAP.getX(), nodeGOAP.getY());
+        this(nodeGOAP.networkBuilder, nodeGOAP.getId(), nodeGOAP.getX(), nodeGOAP.getY());
     }
 
+    protected String getNamePrefix(){
+        return "CL";
+    }
+
+    /**
+     *
+     */
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         paintConnections(g);
     }
 
+    /**
+     *
+     */
     public void paintConnections(Graphics g) {
         int zoom = networkBuilder.getZoomFactor();
         int xSO = networkBuilder.getXScreenOffset();
@@ -42,8 +58,11 @@ public class NodeClient extends NodeAbstract {
     }
 
 
+    /**
+     *
+     */
     public String getNodeInfo() {
-        StringBuilder info = new StringBuilder(getName() + " (Client)");
+        StringBuilder info = new StringBuilder(getName());
 
         if (connectedByWFD != null) {
             info.append(",&nbsp; WFD: ");
@@ -54,7 +73,7 @@ public class NodeClient extends NodeAbstract {
             info.append(connectedByWF.getName());
         }
 
-        addNodeToStringBuilder(info, ",&nbsp; GOs in range:",
+        addNodesToStringBuilder(info, ",&nbsp; GOs in range:",
                 networkBuilder.getGOListInRange(this));
 
         addNodeAndDirectConnectionsToStringBuilder(info, ",&nbsp; Other clients in range:",
@@ -182,6 +201,9 @@ public class NodeClient extends NodeAbstract {
         return aps;
     }
 
+    /**
+     *
+     */
     public void moveTo(int x, int y) {
         // register new x and y
         super.moveTo(x, y);

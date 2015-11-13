@@ -11,14 +11,18 @@ import java.util.List;
 class NodeGO extends NodeAbstractAP {
     private static final long serialVersionUID = -7183337219303624907L;
 
-    public NodeGO(NetworkBuilder networkBuilder, String name, int x,
+    public NodeGO(NetworkBuilder networkBuilder, int id, int x,
                   int y) {
-        super(networkBuilder, name, x, y, Color.RED);
+        super(networkBuilder, id, x, y, Color.RED);
     }
 
     public NodeGO(NodeAbstract node) {
-        super(node.networkBuilder, node.getName(), node.getX(), node
+        super(node.networkBuilder, node.getId(), node.getX(), node
                 .getY(), Color.RED);
+    }
+
+    protected String getNamePrefix(){
+        return "GO";
     }
 
     ArrayList<NodeClient> waitingClients = new ArrayList<>();
@@ -66,7 +70,7 @@ class NodeGO extends NodeAbstractAP {
      *
      */
     public String getNodeInfo() {
-        StringBuilder info = new StringBuilder(getName() + " (GO)");
+        StringBuilder info = new StringBuilder(getName());
 
         if (connectedByWF != null) {
             info.append(",&nbsp; WF: ");
@@ -74,10 +78,7 @@ class NodeGO extends NodeAbstractAP {
         }
 
         addNodeAndDirectConnectionsToStringBuilder(info, ",&nbsp; Connected nodes:", connectedNodes);
-        info.append(",&nbsp; Connected nodes:");
-
-        addNodeToStringBuilder(info, ",&nbsp; GOs in range:", networkBuilder.getGOListInRange(this));
-
+        addNodesToStringBuilder(info, ",&nbsp; GOs in range:", networkBuilder.getGOListInRange(this));
         addNodeAndDirectConnectionsToStringBuilder(info, ",&nbsp; Other clients in range:",
                 networkBuilder.getClientsListInRange(this));
 

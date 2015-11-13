@@ -13,9 +13,9 @@ public abstract class NodeAbstractAP extends NodeAbstract {
     /*
      *
      */
-    public NodeAbstractAP(NetworkBuilder networkBuilder, String name,
+    public NodeAbstractAP(NetworkBuilder networkBuilder, int id,
                           int x, int y, Color color) {
-        super(networkBuilder, name, x, y, NetworkBuilder.MAX_WIFI_RANGE_TO_MAKE_CONNECTIONS, color);
+        super(networkBuilder, id, x, y, NetworkBuilder.MAX_WIFI_RANGE_TO_MAKE_CONNECTIONS, color);
     }
 
     /*
@@ -83,17 +83,10 @@ public abstract class NodeAbstractAP extends NodeAbstract {
      *
      */
     public void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g;
-
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
-                0.4f));
-
         // draw inner circle
         super.paintComponent(g);
         // draw coverage circle
-        drawCircle(g2, getRadius());
-
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+        drawCircle(g, getRadius());
     }
 
 }

@@ -6,6 +6,7 @@ import layouts.ProportionalLayout;
 
 import javax.swing.*;
 import javax.swing.Timer;
+import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
@@ -48,7 +49,7 @@ public class NetworkBuilder extends JFrame {
 
     ArrayList<NodeAbstract> nodes = new ArrayList<>(100);
 
-    Timer timer = null;
+    Timer globaltimer = null;
 
     private int nextNodeID = 1;
 
@@ -78,6 +79,7 @@ public class NetworkBuilder extends JFrame {
 
     private int xScreenOffset = 0, yScreenOffset = 0;
     private JLabel labelCurrentSelectedNode;
+    private KeyEventDispatcher ked;
 
     /**
      * Este método cria toda a frame e coloca-a visível
@@ -107,16 +109,16 @@ public class NetworkBuilder extends JFrame {
         // main layout - content pane
         getContentPane().setLayout(new ProportionalLayout(0.1f, 0, 0.05f, 0.05f));
 
-        // Button start timer
-        btnStartTimer = new JButton("Start Timer");
+        // Button start globaltimer
+        btnStartTimer = new JButton("Start Global Timer");
         btnStartTimer.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 doStartTimerActions();
             }
         });
 
-        // Button stop timer
-        btnStopTimer = new JButton("Stop Timer");
+        // Button stop globaltimer
+        btnStopTimer = new JButton("Stop Global Timer");
         btnStopTimer.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 doStopTimerActions();
@@ -141,7 +143,7 @@ public class NetworkBuilder extends JFrame {
             }
         });
 
-        // Button step timer
+        // Button step globaltimer
         btnStepTimer = new JButton("Step Timer");
         btnStepTimer.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -191,9 +193,10 @@ public class NetworkBuilder extends JFrame {
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.add(buttonsPanel, BorderLayout.NORTH);
         labelCurrentSelectedNode = new JLabel("Current node:");
-//        labelCurrentSelectedNode.setOpaque(true);
-//        labelCurrentSelectedNode.setBackground(Color.lightGray);
-        labelCurrentSelectedNode.setBorder(BorderFactory.createLineBorder(Color.lightGray));
+        Border outsideBorder = BorderFactory.createLineBorder(Color.lightGray);
+        Border insideBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        Border border = BorderFactory.createCompoundBorder(outsideBorder, insideBorder);
+        labelCurrentSelectedNode.setBorder(border);
         labelCurrentSelectedNode.setHorizontalAlignment(SwingConstants.CENTER);
         bottomPanel.add(labelCurrentSelectedNode, BorderLayout.CENTER);
 
@@ -227,7 +230,7 @@ public class NetworkBuilder extends JFrame {
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     if ((e.getModifiers() & InputEvent.CTRL_MASK) == 0) {
                         // left button - create new NodeClient
-                        addNode(new NodeClient(NetworkBuilder.this, "N-" + nextNodeID++,
+                        addNode(new NodeClient(NetworkBuilder.this, nextNodeID++,
                                 x, y));
                         repaint();
                     } else {
@@ -243,10 +246,10 @@ public class NetworkBuilder extends JFrame {
                 if (e.getButton() == MouseEvent.BUTTON3) {
                     if ((e.getModifiers() & InputEvent.CTRL_MASK) == 0) {
                         // left button and no CTRL key pressed - create new GO
-                        addNode(new NodeGO(NetworkBuilder.this, "N-" + nextNodeID++, x, y));
+                        addNode(new NodeGO(NetworkBuilder.this, nextNodeID++, x, y));
                     } else {
                         // left button and CTRL key pressed - create new AP
-                        addNode(new NodeAP(NetworkBuilder.this, "N-" + nextNodeID++, x, y));
+                        addNode(new NodeAP(NetworkBuilder.this, nextNodeID++, x, y));
                     }
                     repaint();
                 }
@@ -273,14 +276,14 @@ public class NetworkBuilder extends JFrame {
         );
 
 
-        // timer and timer listener
-        timer = new Timer(TIMER_STEP, new ActionListener() {
+        // globaltimer and globaltimer listener
+        globaltimer = new Timer(TIMER_STEP, new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 doTimerActions();
             }
         });
 
-        // timer and timer listener
+        // timer info and info timer listener
         timerInfo = new Timer(500, new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 updateInfoLabel();
@@ -292,47 +295,52 @@ public class NetworkBuilder extends JFrame {
         fc.setCurrentDirectory(new File("MobileNetworkBuilder/src/networkBuilder/scenarios"));
 
         // create menu and put it on frame
-        setJMenuBar(createMenu());
+        setJMenuBar(getMenu());
 
         /**
          * Handle direction keys
          */
         KeyboardFocusManager.getCurrentKeyboardFocusManager()
-                .addKeyEventDispatcher(new KeyEventDispatcher() {
-
-                    public boolean dispatchKeyEvent(KeyEvent e) {
-                        //System.out.println("KD " + e);
-                        if (e.getID() == KeyEvent.KEY_RELEASED) {
-//                            System.out.println("KD key released on dispatcher-> "
-//                                    + e.getKeyChar());
-                            int deltaXOffset = 0;
-                            int deltaYOffset = 0;
-                            switch (e.getKeyCode()) {
-                                case 37: // left
-                                    deltaXOffset = 1;
-                                    break;
-                                case 38: // up
-                                    deltaYOffset = 1;
-                                    break;
-                                case 39: // right
-                                    deltaXOffset = -1;
-                                    break;
-                                case 40: // down
-                                    deltaYOffset = -1;
-                                    break;
-                            }
-                            addScreenOffset(deltaXOffset, deltaYOffset);
-                            nodesLabel.requestFocus();
-                        }
-
-                        // return true, indicating that this key was processed
-                        return e.getKeyCode() >= 37 && e.getKeyCode() <= 40;
-                    }
-                });
+                .addKeyEventDispatcher(getKeyEventDispatcher());
 
 
         // puts the frame visible (is not visible at start)
         setVisible(true);
+    }
+
+    private KeyEventDispatcher getKeyEventDispatcher() {
+        if (ked == null) {
+
+            ked = new KeyEventDispatcher() {
+                public boolean dispatchKeyEvent(KeyEvent e) {
+                    //System.out.println("KD " + e);
+                    if (e.getID() == KeyEvent.KEY_RELEASED) {
+                        int deltaXOffset = 0;
+                        int deltaYOffset = 0;
+                        switch (e.getKeyCode()) {
+                            case 37: // left
+                                deltaXOffset = 1;
+                                break;
+                            case 38: // up
+                                deltaYOffset = 1;
+                                break;
+                            case 39: // right
+                                deltaXOffset = -1;
+                                break;
+                            case 40: // down
+                                deltaYOffset = -1;
+                                break;
+                        }
+                        addScreenOffset(deltaXOffset, deltaYOffset);
+                        nodesLabel.requestFocus();
+                    }
+
+                    // return true, indicating that this key was processed
+                    return e.getKeyCode() >= 37 && e.getKeyCode() <= 40;
+                }
+            };
+        }
+        return ked;
     }
 
     private void addScreenOffset(int deltaXOffset, int deltaYOffset) {
@@ -353,7 +361,7 @@ public class NetworkBuilder extends JFrame {
     }
 
     public void setTextOnLabelCurrentSelectedNode(String txt) {
-        labelCurrentSelectedNode.setText("<html><br>" + txt + "<br><br></html>");
+        labelCurrentSelectedNode.setText("<html>" + txt + "</html>");
     }
 
     /*
@@ -423,7 +431,7 @@ public class NetworkBuilder extends JFrame {
     /**
      *
      */
-    private JMenuBar createMenu() {
+    private JMenuBar getMenu() {
         JMenuBar menuBar = new JMenuBar();
 
         JMenu menu = new JMenu("Menu");
@@ -432,26 +440,36 @@ public class NetworkBuilder extends JFrame {
         ActionListener al = getMenuListener();
 
         JMenuItem miLoadScenario = new JMenuItem("Load Scenario", KeyEvent.VK_L);
+        miLoadScenario.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L,
+                InputEvent.ALT_MASK));
         miLoadScenario.addActionListener(al);
         menu.add(miLoadScenario);
 
         JMenuItem miSaveScenario = new JMenuItem("Save Scenario", KeyEvent.VK_S);
+        miSaveScenario.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
+                InputEvent.ALT_MASK));
         miSaveScenario.addActionListener(al);
         menu.add(miSaveScenario);
 
         menu.addSeparator();
 
         JMenuItem miHelp = new JMenuItem("Help", KeyEvent.VK_H);
+        miHelp.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H,
+                InputEvent.ALT_MASK));
         miHelp.addActionListener(al);
         menu.add(miHelp);
 
         JMenuItem miAbout = new JMenuItem("About", KeyEvent.VK_A);
+        miAbout.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A,
+                InputEvent.ALT_MASK));
         miAbout.addActionListener(al);
         menu.add(miAbout);
 
         menu.addSeparator();
 
         JMenuItem miExit = new JMenuItem("Exit", KeyEvent.VK_X);
+        miExit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X,
+                InputEvent.ALT_MASK));
         miExit.addActionListener(al);
         menu.add(miExit);
 
@@ -514,11 +532,12 @@ public class NetworkBuilder extends JFrame {
     }
 
     private void exitActions() {
-        // stop timer and dispose frame
+        // stop timers and dispose frame
         doStopTimerActions();
         if (indidividualTimersActivated) {
             doStopIndividualTimerActions();
         }
+        timerInfo.stop();
         dispose();
 
     }
@@ -527,9 +546,18 @@ public class NetworkBuilder extends JFrame {
      *
      */
     private void loadScenarioActions() {
+        // remove keyboard focus manager that suppress arrow keys
+        KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                .removeKeyEventDispatcher(getKeyEventDispatcher());
+
         // open file chooser
         int returnVal = fc.showOpenDialog(this);
 
+        // set again the keyboard focus manager
+        KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                .addKeyEventDispatcher(getKeyEventDispatcher());
+
+        // process the result
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             File file = fc.getSelectedFile();
 
@@ -548,8 +576,16 @@ public class NetworkBuilder extends JFrame {
      *
      */
     private void saveScenarioActions() {
+        // remove keyboard focus manager that suppress arrow keys
+        KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                .removeKeyEventDispatcher(getKeyEventDispatcher());
+
         // open file chooser
         int returnVal = fc.showSaveDialog(this);
+
+        // set again the keyboard focus manager
+        KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                .addKeyEventDispatcher(getKeyEventDispatcher());
 
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             File file = fc.getSelectedFile();
@@ -577,9 +613,13 @@ public class NetworkBuilder extends JFrame {
         }
     }
 
+    /**
+     * Load a serialized scenario
+     */
     private void loadSerializedScenario(String scenarioPathName) {
-        // stop the timer, just in case
+        // stop the timers, just in case
         doStopTimerActions();
+        doStopIndividualTimerActions();
 
         // clear all existing nodes
         clearAll();
@@ -590,13 +630,14 @@ public class NetworkBuilder extends JFrame {
             ObjectInput input = new ObjectInputStream(buffer);
 
             // deserialize the List
+            @SuppressWarnings("unchecked")
             List<NodeAbstract> loadedNodes = (List<NodeAbstract>) input.readObject();
             input.close();
 
             // add nodes
             for (NodeAbstract node : loadedNodes) {
                 node.setNetworkBuilder(this);
-                nodes.add(node);
+                addNode(node);
             }
             repaint();
 
@@ -640,7 +681,7 @@ public class NetworkBuilder extends JFrame {
      *
      */
     private void doStartTimerActions() {
-        timer.start();
+        globaltimer.start();
         btnStartTimer.setVisible(false);
         btnStopTimer.setVisible(true);
         btnStartIndTimers.setVisible(false);
@@ -652,7 +693,7 @@ public class NetworkBuilder extends JFrame {
      *
      */
     private void doStopTimerActions() {
-        timer.stop();
+        globaltimer.stop();
         btnStartTimer.setVisible(true);
         btnStopTimer.setVisible(false);
         btnStartIndTimers.setVisible(true);
@@ -668,12 +709,13 @@ public class NetworkBuilder extends JFrame {
         if (!timerJobs.isEmpty()) {
             ArrayList<ScenarioNode> scenarioNodes = timerJobs.remove(0);
             for (ScenarioNode scenarioNode : scenarioNodes) {
-                addNode(new NodeClient(this, scenarioNode.name, scenarioNode.x,
-                        scenarioNode.y));
+                NodeClient newNode = new NodeClient(this, scenarioNode.id, scenarioNode.x,
+                        scenarioNode.y);
+                addNode(newNode);
             }
         }
 
-        // do timer actions on all existing nodes
+        // do globaltimer actions on all existing nodes
         for (int i = 0; i < nodes.size(); ++i)
             nodes.get(i).doTimerActions();
 
@@ -682,11 +724,10 @@ public class NetworkBuilder extends JFrame {
     }
 
     /*
-     *
+     * Load txt scenario
      */
     protected void loadScenario(String fileName) {
         try {
-            //new File("d.txt").createNewFile();
             Scanner scan = new Scanner(new File(fileName));
             int timerSlot = 0;
             while (scan.hasNextLine()) {
@@ -699,12 +740,12 @@ public class NetworkBuilder extends JFrame {
                 System.out.print("Nodes of time slot " + timerSlot + " :");
                 // read line contents
                 while (lineContents.hasNext()) {
-                    String name = lineContents.next();
+                    int id = lineContents.nextInt();
                     int x = lineContents.nextInt();
                     int y = lineContents.nextInt();
-                    System.out.print(" " + name + "(" + x + ", " + y + ")");
+                    System.out.print(" " + id + "(" + x + ", " + y + ")");
                     // create new node and add it to lineNodes arrayList
-                    lineNodes.add(new ScenarioNode(name, x, y));
+                    lineNodes.add(new ScenarioNode(id, x, y));
                 }
                 System.out.println();
                 // submit lineNodes as a timer job
@@ -713,7 +754,7 @@ public class NetworkBuilder extends JFrame {
                 lineContents.close();
             }
             scan.close();
-            // start the timer to process its jobs
+            // start the globaltimer to process its jobs
             doStartTimerActions();
         } catch (FileNotFoundException e) {
             System.out.println("File not found: " + fileName);
@@ -721,11 +762,19 @@ public class NetworkBuilder extends JFrame {
     }
 
     /**
-     *
+     * Add a node to scenario
      */
     boolean addNode(NodeAbstract node) {
+        if (nodes.contains(node))
+            throw new RuntimeException("Global nodes add node: error duplicate IDs: " + node);
+
         setSelectedNode(null);
+
         nodes.add(node);
+
+        if (node.getId() >= nextNodeID)
+            nextNodeID = node.getId() + 1;
+
         if (indidividualTimersActivated) {
             node.startTimer(getIndividualTimerDelay());
         }
@@ -738,6 +787,7 @@ public class NetworkBuilder extends JFrame {
      */
     public void clearAll() {
         nodes.clear();
+        nextNodeID = 1;
         myPanel.repaint();
     }
 
@@ -852,34 +902,56 @@ public class NetworkBuilder extends JFrame {
         setTextOnLabelCurrentSelectedNode(node == null ? "" : node.getNodeInfo());
     }
 
+    Font nodesFont = new Font("Courier", Font.PLAIN, 10);
 
     /**
-     *
+     * Network nodes panel
      */
     class NodesPanel extends JPanel {
         private static final long serialVersionUID = 1L;
+
+        private AlphaComposite alphaGOAPS = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f);
+        private AlphaComposite alphaNoAlpha = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f);
+
+
 
         private RenderingHints rh = new RenderingHints(
                 RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON);
 
+        /**
+         * paint method
+         */
         public void paintComponent(Graphics g) {
             // System.out.println("paintComponent called");
             super.paintComponent(g);
 
-            ((Graphics2D) g).setRenderingHints(rh);
+            Graphics2D g2 = (Graphics2D) g;
+
+            g2.setRenderingHints(rh);
 
             // first draw APs and GOs
+            g2.setComposite(alphaGOAPS);
             for (NodeAbstract node : nodes) {
                 if (node instanceof NodeAbstractAP)
                     node.paintComponent(g);
             }
+            g2.setComposite(alphaNoAlpha);
 
             // then draw clients
             for (NodeAbstract node : nodes) {
                 if (!(node instanceof NodeAbstractAP))
                     node.paintComponent(g);
             }
+
+
+            g.setFont(nodesFont);
+
+            // then draw node names
+            for (NodeAbstract node : nodes) {
+                node.paintNodeName(g);
+            }
+
         }
     }
 
@@ -952,7 +1024,7 @@ public class NetworkBuilder extends JFrame {
         return true;
     }
 
-    /*
+    /**
      *
      */
     public void disconnectWFDClient(NodeAbstract nodeClient) {
@@ -962,7 +1034,7 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
-    /*
+    /**
      *
      */
     public void disconnectWFClient(NodeAbstract nodeClient) {
@@ -972,15 +1044,14 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
-    /*
+    /**
      *
      */
     class ScenarioNode {
-        String name;
-        int x, y;
+        int id, x, y;
 
-        public ScenarioNode(String name, int x, int y) {
-            this.name = name;
+        public ScenarioNode(int id, int x, int y) {
+            this.id = id;
             this.x = x;
             this.y = y;
         }
