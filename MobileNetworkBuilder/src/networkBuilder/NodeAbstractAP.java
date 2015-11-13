@@ -36,9 +36,9 @@ public abstract class NodeAbstractAP extends NodeAbstract {
         ArrayList<NodeAbstract> nodes = new ArrayList<>(connectedNodes);
         for (NodeAbstract nodeClient : nodes) {
             if (!networkBuilder.areInConnectionRange(this, nodeClient)) {
-                if(nodeClient.getConnectedByWFD()!= null && nodeClient.getConnectedByWFD().equals(this))
+                if (nodeClient.getConnectedByWFD() != null && nodeClient.getConnectedByWFD().equals(this))
                     networkBuilder.disconnectWFDClient(nodeClient);
-                if(nodeClient.getConnectedByWF()!= null && nodeClient.getConnectedByWF().equals(this))
+                if (nodeClient.getConnectedByWF() != null && nodeClient.getConnectedByWF().equals(this))
                     networkBuilder.disconnectWFClient(nodeClient);
             }
         }
@@ -51,9 +51,9 @@ public abstract class NodeAbstractAP extends NodeAbstract {
      */
     public List<NodeAbstractAP> getConnectedAPs() {
         ArrayList<NodeAbstractAP> aps = new ArrayList<>();
-        for (NodeAbstract client: connectedNodes) {
+        for (NodeAbstract client : connectedNodes) {
             List<NodeAbstractAP> clientAPs = client.getConnectedAPs();
-            for (NodeAbstractAP ap: clientAPs) {
+            for (NodeAbstractAP ap : clientAPs) {
                 if (!aps.contains(ap))
                     aps.add(ap);
             }
@@ -79,7 +79,7 @@ public abstract class NodeAbstractAP extends NodeAbstract {
         connectedNodes.remove(node);
     }
 
-    /*
+    /**
      *
      */
     public void paintComponent(Graphics g) {
@@ -87,6 +87,47 @@ public abstract class NodeAbstractAP extends NodeAbstract {
         super.paintComponent(g);
         // draw coverage circle
         drawCircle(g, getRadius());
+    }
+
+    /**
+     *
+     */
+    public String getNodeInfo() {
+        StringBuilder info = new StringBuilder();
+
+        // this node info
+        addNodeAndDirectConnectionsToStringBuilder(info, this);
+
+        // connected nodes
+        addNodesAndDirectConnectionsToStringBuilder(info, ";&nbsp; Connected nodes:", connectedNodes);
+
+        // GOs in range
+        addGOAPNodesToStringBuilder(info, ";&nbsp; GOs in range:", networkBuilder.getGOListInRange(this));
+
+        // other clients in range
+        List<NodeClient> otherClients = networkBuilder.getClientsListInRange(this);
+        otherClients.removeAll(connectedNodes);
+        addNodesAndDirectConnectionsToStringBuilder(info, ";&nbsp; Other clients in range:",
+                otherClients);
+
+        return info.toString();
+    }
+
+    /**
+     *
+     */
+    public void disconnectAll() {
+
+        // disconnect direct connections, if they exist
+        if (connectedByWFD != null)
+            networkBuilder.disconnectWFDClient(this);
+        if (connectedByWF != null)
+            networkBuilder.disconnectWFClient(this);
+
+        // disconnect nodes from this GOAP
+        ArrayList<NodeAbstract> conNodes = new ArrayList<>(connectedNodes);
+        for (NodeAbstract node : conNodes)
+            networkBuilder.disconnectClient(this, node);
     }
 
 }

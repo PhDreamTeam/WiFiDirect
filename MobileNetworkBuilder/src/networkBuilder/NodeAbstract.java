@@ -157,6 +157,7 @@ public abstract class NodeAbstract implements Serializable {
         return obj != null && (obj instanceof NodeAbstract) && getName().equalsIgnoreCase(
                 ((NodeAbstract) obj).getName());
     }
+
     /**
      *
      */
@@ -208,7 +209,7 @@ public abstract class NodeAbstract implements Serializable {
         int ySO = networkBuilder.getYScreenOffset();
 
         g.setColor(Color.darkGray);
-        g.drawString(getName(), (xPos + xSO) * zoom - 10, (yPos  + ySO) * zoom - 3 - 2 * zoom);
+        g.drawString(getName(), (xPos + xSO) * zoom - 10, (yPos + ySO) * zoom - 3 - 2 * zoom);
     }
 
     /**
@@ -284,30 +285,57 @@ public abstract class NodeAbstract implements Serializable {
     /**
      *
      */
-    void addNodeAndDirectConnectionsToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstract> nodes) {
+    void addNodesAndDirectConnectionsToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstract> nodes) {
         info.append(initialMsg);
         for (NodeAbstract node : nodes) {
-            info.append(" ");
-            info.append(node.getName());
-            info.append("[");
-            if (node.connectedByWFD != null)
-                info.append("wfd(" + node.connectedByWFD.getName() + ")");
-            if (node.connectedByWF != null)
-                info.append("wf(" + node.connectedByWF.getName() + ")");
-            info.append("]");
+            addNodeAndDirectConnectionsToStringBuilder(info, node);
         }
     }
 
     /**
      *
      */
-    static void addNodesToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstract> nodes) {
+    void addNodeAndDirectConnectionsToStringBuilder(StringBuilder info, NodeAbstract node) {
+        info.append(" ");
+        info.append(node.getName());
+        info.append("[");
+        if (node.connectedByWFD != null) {
+            info.append("wfd(");
+            info.append(node.connectedByWFD.getName());
+            info.append(")");
+        }
+        if (node.connectedByWF != null) {
+            if (node.connectedByWFD != null)
+                info.append(",");
+            info.append("wf(");
+            info.append(node.connectedByWF.getName());
+            info.append(")");
+        }
+        info.append("]");
+    }
+
+    /**
+     * Add list of GOAPS and the GOAPs that they can connect with just one client in the middle
+     */
+    static void addGOAPNodesToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstractAP> nodes) {
         info.append(initialMsg);
-        for (NodeAbstract node : nodes) {
+        for (NodeAbstractAP nodeGOAP : nodes) {
             info.append(" ");
-            info.append(node.getName());
+            info.append(nodeGOAP.getName());
+            info.append("{ ");
+            List<NodeAbstractAP> conGOAPs = nodeGOAP.getConnectedAPs();
+            for (NodeAbstractAP nodeGOAPi : conGOAPs) {
+                if (!nodeGOAPi.equals(nodeGOAP)) {
+                    info.append(nodeGOAPi.getName());
+                    info.append(" ");
+                }
+            }
+            info.append("}");
         }
     }
 
-
+    /**
+     *
+     */
+    public abstract void disconnectAll();
 }

@@ -453,6 +453,14 @@ public class NetworkBuilder extends JFrame {
 
         menu.addSeparator();
 
+        JMenuItem miDeleteSelectedNodeScenario = new JMenuItem("Delete selected node", KeyEvent.VK_D);
+        miDeleteSelectedNodeScenario.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
+                InputEvent.ALT_MASK));
+        miDeleteSelectedNodeScenario.addActionListener(al);
+        menu.add(miDeleteSelectedNodeScenario);
+
+        menu.addSeparator();
+
         JMenuItem miHelp = new JMenuItem("Help", KeyEvent.VK_H);
         miHelp.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H,
                 InputEvent.ALT_MASK));
@@ -489,6 +497,9 @@ public class NetworkBuilder extends JFrame {
                 if (menuItemText.equals("Save Scenario"))
                     saveScenarioActions();
 
+                if (menuItemText.equals("Delete selected node"))
+                    deleteSelectedNodeActions();
+
                 if (menuItemText.equals("Help"))
                     helpActions();
 
@@ -499,6 +510,23 @@ public class NetworkBuilder extends JFrame {
                     exitActions();
             }
         };
+    }
+
+    /*
+     *
+     */
+    private void deleteSelectedNodeActions() {
+        NodeAbstract node = currentSelectedNode;
+
+        setSelectedNode(null);
+
+        node.stopTimer();
+
+        disconnectNode(node);
+
+        nodes.remove(node);
+
+        repaint();
     }
 
     /*
@@ -602,6 +630,11 @@ public class NetworkBuilder extends JFrame {
      *
      */
     private void saveSerializedScenario(String scenarioPathName) {
+
+        // save current selected node - to avoid save scenario to have it
+        NodeAbstract currentSelectedNode = this.currentSelectedNode;
+        setSelectedNode(null);
+
         try {
             OutputStream file = new FileOutputStream(scenarioPathName);
             OutputStream buffer = new BufferedOutputStream(file);
@@ -611,6 +644,9 @@ public class NetworkBuilder extends JFrame {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
+
+        // get back old selected node
+        setSelectedNode(currentSelectedNode);
     }
 
     /**
@@ -904,6 +940,7 @@ public class NetworkBuilder extends JFrame {
 
     Font nodesFont = new Font("Courier", Font.PLAIN, 10);
 
+
     /**
      * Network nodes panel
      */
@@ -912,7 +949,6 @@ public class NetworkBuilder extends JFrame {
 
         private AlphaComposite alphaGOAPS = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f);
         private AlphaComposite alphaNoAlpha = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f);
-
 
 
         private RenderingHints rh = new RenderingHints(
@@ -959,11 +995,10 @@ public class NetworkBuilder extends JFrame {
      *
      */
     public List<NodeGO> getGOListInRange(NodeAbstract node) {
-        ArrayList<NodeGO> gos = new ArrayList<NodeGO>();
+        ArrayList<NodeGO> gos = new ArrayList<>();
 
         for (NodeAbstract n : nodes) {
-            // TODO fazer equals pelo nome
-            if (n != node && n instanceof NodeGO) {
+            if (!n.equals(node) && n instanceof NodeGO) {
                 if (areInConnectionRange(node, n))
                     gos.add((NodeGO) n);
             }
@@ -1042,6 +1077,24 @@ public class NetworkBuilder extends JFrame {
         nodeClient.connectedByWF = null;
         ap.disconnectClient(nodeClient);
         repaint();
+    }
+
+    /**
+     *
+     */
+    public void disconnectNode(NodeAbstract node) {
+        node.disconnectAll();
+    }
+
+    /**
+     *
+     */
+    public void disconnectClient(NodeAbstractAP nodeAbstractAP, NodeAbstract nodeToDisconnect) {
+        if (nodeToDisconnect.connectedByWFD != null && nodeToDisconnect.connectedByWFD.equals(nodeAbstractAP))
+            disconnectWFDClient(nodeToDisconnect);
+
+        if (nodeToDisconnect.connectedByWF != null && nodeToDisconnect.connectedByWF.equals(nodeAbstractAP))
+            disconnectWFClient(nodeToDisconnect);
     }
 
     /**

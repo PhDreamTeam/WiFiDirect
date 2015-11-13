@@ -62,22 +62,19 @@ public class NodeClient extends NodeAbstract {
      *
      */
     public String getNodeInfo() {
-        StringBuilder info = new StringBuilder(getName());
+        StringBuilder info = new StringBuilder();
 
-        if (connectedByWFD != null) {
-            info.append(",&nbsp; WFD: ");
-            info.append(connectedByWFD.getName());
-        }
-        if (connectedByWF != null) {
-            info.append(",&nbsp; WF: ");
-            info.append(connectedByWF.getName());
-        }
+        // this node info
+        addNodeAndDirectConnectionsToStringBuilder(info, this);
 
-        addNodesToStringBuilder(info, ",&nbsp; GOs in range:",
+        // GOs in range
+        addGOAPNodesToStringBuilder(info, ":&nbsp; GOs in range:",
                 networkBuilder.getGOListInRange(this));
 
-        addNodeAndDirectConnectionsToStringBuilder(info, ",&nbsp; Other clients in range:",
+        // other clients in range
+        addNodesAndDirectConnectionsToStringBuilder(info, ",&nbsp; Other clients in range:",
                 networkBuilder.getClientsListInRange(this));
+
         return info.toString();
     }
 
@@ -219,5 +216,16 @@ public class NodeClient extends NodeAbstract {
                 networkBuilder.disconnectWFClient(this);
             }
         }
+    }
+
+    /**
+     *
+     */
+    public void disconnectAll() {
+        if(connectedByWFD != null)
+            networkBuilder.disconnectWFDClient(this);
+        if(connectedByWF != null)
+            networkBuilder.disconnectWFClient(this);
+
     }
 }

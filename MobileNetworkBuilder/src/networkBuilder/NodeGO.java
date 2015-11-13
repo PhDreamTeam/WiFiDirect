@@ -11,16 +11,25 @@ import java.util.List;
 class NodeGO extends NodeAbstractAP {
     private static final long serialVersionUID = -7183337219303624907L;
 
+    /**
+     *
+     */
     public NodeGO(NetworkBuilder networkBuilder, int id, int x,
                   int y) {
         super(networkBuilder, id, x, y, Color.RED);
     }
 
+    /**
+     *
+     */
     public NodeGO(NodeAbstract node) {
         super(node.networkBuilder, node.getId(), node.getX(), node
                 .getY(), Color.RED);
     }
 
+    /**
+     *
+     */
     protected String getNamePrefix(){
         return "GO";
     }
@@ -66,26 +75,9 @@ class NodeGO extends NodeAbstractAP {
         }
     }
 
-    /*
-     *
-     */
-    public String getNodeInfo() {
-        StringBuilder info = new StringBuilder(getName());
 
-        if (connectedByWF != null) {
-            info.append(",&nbsp; WF: ");
-            info.append(connectedByWF.getName());
-        }
 
-        addNodeAndDirectConnectionsToStringBuilder(info, ",&nbsp; Connected nodes:", connectedNodes);
-        addNodesToStringBuilder(info, ",&nbsp; GOs in range:", networkBuilder.getGOListInRange(this));
-        addNodeAndDirectConnectionsToStringBuilder(info, ",&nbsp; Other clients in range:",
-                networkBuilder.getClientsListInRange(this));
-
-        return info.toString();
-    }
-
-    /*
+    /**
      *
      */
     private NodeAbstract getNodeWithBiggerGONeighboursNumber(NodeAbstract node1, NodeAbstract node2) {
@@ -114,7 +106,7 @@ class NodeGO extends NodeAbstractAP {
     }
 
 
-    /*
+    /**
      *
      */
     private boolean imTheOnlyReachableGo(NodeClient client, NodeGO nodeGO) {
