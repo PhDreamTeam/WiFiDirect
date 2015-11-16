@@ -30,7 +30,7 @@ class NodeGO extends NodeAbstractAP {
     /**
      *
      */
-    protected String getNamePrefix(){
+    protected String getNamePrefix() {
         return "GO";
     }
 
@@ -49,6 +49,9 @@ class NodeGO extends NodeAbstractAP {
             networkBuilder.updateCurrentSelectedNodeInfo(this);
             return;
         }
+
+        if (caseUnnecessaryGOWithOneClient())
+            return;
 
         if (connectedNodes.size() == 0) {
             List<NodeGO> gosInRange = networkBuilder.getGOListInRange(this);
@@ -75,6 +78,62 @@ class NodeGO extends NodeAbstractAP {
         }
     }
 
+
+    boolean caseUnnecessaryGOWithOneClient() {
+        // GO1,
+        // 1) with just one CL1 and
+        // 2) with CL1 connected to GO2, and
+        // 3) GO1 is in range of GO2, and
+        // 4) GO2 has good availability (space for 3 clients), and
+        // 5) (GO2 has more than 1 client or CL1 is connected by the WF interface with me),
+        //
+        // then GO1 disconnects from CL1 and transform itself in Client
+
+        // 1) just have one client
+        if (connectedNodes.size() != 1)
+            return false;
+
+        if (!(connectedNodes.get(0) instanceof NodeClient))
+            return false;
+
+        if (hasAtLeastOneDisconnectedClientInRangeThatOnlySeeThisGO())
+            return false;
+
+        NodeClient cl1 = (NodeClient) connectedNodes.get(0);
+        // 2) Cl1 connected to GO2, get GO2
+        if (cl1.getConnectedAPs().size() == 1)
+            return false;
+        NodeAbstractAP GO2 = cl1.getConnectedByWF().equals(this) ?
+                cl1.getConnectedByWFD() : cl1.getConnectedByWF();
+        // 3) GO2 in range
+        if (!networkBuilder.areInConnectionRange(this, GO2))
+            return false;
+        // 4) GO2 has good availability (space for 3 clients),
+        if (GO2.getNConnectedNodes() > MAX_CONNECTED_NODES_ON_AP - 3)
+            return false;
+
+        // 5) (GO2 has more than 1 client or CL1 is connected by the WF interface with me)
+        if (GO2.getNConnectedNodes() == 1 && cl1.getConnectedByWF().equals(GO2))
+            return false;
+
+        // THEN: GO1 disconnects from CL1 and transform itself in Client
+        networkBuilder.disconnectNode(this);
+        networkBuilder.transformNodeGOAPInNodeClient(this);
+        return true;
+    }
+
+    /**
+     *
+     */
+    private boolean hasAtLeastOneDisconnectedClientInRangeThatOnlySeeThisGO() {
+        List<NodeClient> clsInRange = networkBuilder.getClientsListInRange(this);
+        for (NodeClient nc : clsInRange) {
+            if (nc.getConnectedAPs().size() == 0)
+                return true;
+        }
+
+        return false;
+    }
 
 
     /**

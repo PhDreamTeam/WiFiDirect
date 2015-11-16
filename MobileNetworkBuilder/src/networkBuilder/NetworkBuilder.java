@@ -27,14 +27,9 @@ import java.util.List;
  * Falha no algoritmo: dois GO com dois clientes estes não se connectam
  * UM GO que se mova e ficar perto de outro GO, nenhum deles volta a ser um Cliente (caso de ego)
  *
- * - alterar o GITHUB para a HEAD
- *
  *  - load scenario and timer (what to do?)
- *  - cliente: um novo GO, que não está ligado a nada, mas o CL vê que esse GO vê outro
- *  GO activo e com espaço e portanto não se liga
  *
- * buu2 Master
- */
+ * */
 public class NetworkBuilder extends JFrame {
 
     private static final long serialVersionUID = 1L;
@@ -233,15 +228,15 @@ public class NetworkBuilder extends JFrame {
                 int y = e.getY() / getZoomFactor() - ySO;
 
 
-                // right mouse button
+                // LEFT mouse button
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    if ((e.getModifiers() & InputEvent.CTRL_MASK) == 0) {
-                        // left button - create new NodeClient
+                    if ((e.getModifiers() & InputEvent.CTRL_MASK) != 0) {
+                        // LEFT CLICK AND CTRL - create new NodeClient
                         addNode(new NodeClient(NetworkBuilder.this, nextNodeID++,
                                 x, y));
                         repaint();
                     } else {
-                        // select action
+                        // LEFT CLICK - select action
                         selectAction(x, y);
                         if (currentSelectedNode != null) {
                             deltaXSelectedNode = currentSelectedNode.getX() - x;
@@ -250,12 +245,13 @@ public class NetworkBuilder extends JFrame {
                     }
                 }
 
+                // RIGHT mouse button
                 if (e.getButton() == MouseEvent.BUTTON3) {
                     if ((e.getModifiers() & InputEvent.CTRL_MASK) == 0) {
-                        // left button and no CTRL key pressed - create new GO
+                        // RIGHT CLICK AND NO CTRL - create new GO
                         addNode(new NodeGO(NetworkBuilder.this, nextNodeID++, x, y));
                     } else {
-                        // left button and CTRL key pressed - create new AP
+                        // RIGHT CLICK AND CTRL - create new AP
                         addNode(new NodeAP(NetworkBuilder.this, nextNodeID++, x, y));
                     }
                     repaint();
@@ -544,9 +540,9 @@ public class NetworkBuilder extends JFrame {
         strHelp += "\n\nSave scenario:\n   - scenarios will be saved only as serialized objects. " +
                 "They should be saved with an extension different than .txt";
         strHelp += "\nLoad scenario:\n   - it is possible to load serialized or txt scenarios";
-        strHelp += "\n\nScenario edition:\n   - add simple node:  left click;" +
+        strHelp += "\n\nScenario edition:\n   - add simple node:  CTRL + left click;" +
                 "\n   - add GO:  right click;\n   - add AP:  CTRL + right click" +
-                "\n   - select node:  CTRL + left clickL on node (on empty area to unselect)";
+                "\n   - select node:  left click on node (on empty area to unselect)";
         strHelp += "\n\nChanging Scenario offset:\n   - with keys: Up, Down, Left and Right";
 
         JOptionPane.showMessageDialog(this,
@@ -626,10 +622,10 @@ public class NetworkBuilder extends JFrame {
             File file = fc.getSelectedFile();
 
             String scenarioPathName = file.getPath();
-            System.out.println("Loading scenario: " + file.getName());
+            System.out.println("Saving scenario: " + file.getName());
             saveSerializedScenario(scenarioPathName);
         } else {
-            System.out.println("Load scenario command cancelled by user");
+            System.out.println("Save scenario command cancelled by user");
         }
     }
 
@@ -829,6 +825,8 @@ public class NetworkBuilder extends JFrame {
      *
      */
     public void clearAll() {
+        doStopIndividualTimerActions();
+        doStopTimerActions();
         nodes.clear();
         nextNodeID = 1;
         myPanel.repaint();
