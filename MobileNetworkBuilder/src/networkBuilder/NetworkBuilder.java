@@ -19,8 +19,7 @@ import java.util.List;
  * Mobile network backbone builder
  * <p/>
  * IN Work:
- * DONE: individual timers
- * DONE: mover nós
+ * DONE: individual timers, mover nós
  * <p/>
  * Scenario doesn't stop
  * Código dos APs
