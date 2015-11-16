@@ -33,7 +33,7 @@ import java.util.List;
  *  - cliente: um novo GO, que não está ligado a nada, mas o CL vê que esse GO vê outro
  *  GO activo e com espaço e portanto não se liga
  *
- * buu2
+ * buu2 Master
  */
 public class NetworkBuilder extends JFrame {
 
