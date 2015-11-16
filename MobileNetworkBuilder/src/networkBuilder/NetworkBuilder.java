@@ -27,6 +27,14 @@ import java.util.List;
  * Optimizar (reorganizar a rede) / reconfigurar
  * Falha no algoritmo: dois GO com dois clientes estes não se connectam
  * UM GO que se mova e ficar perto de outro GO, nenhum deles volta a ser um Cliente (caso de ego)
+ *
+ * - alterar o GITHUB para a HEAD
+ *
+ *  - load scenario and timer (what to do?)
+ *  - cliente: um novo GO, que não está ligado a nada, mas o CL vê que esse GO vê outro
+ *  GO activo e com espaço e portanto não se liga
+ *
+ *
  */
 public class NetworkBuilder extends JFrame {
 
