@@ -8,7 +8,7 @@ public abstract class NodeAbstractAP extends NodeAbstract {
     private static final long serialVersionUID = 7228806338473490783L;
 
     public static int MAX_CONNECTED_NODES_ON_AP = 8;
-    protected ArrayList<NodeAbstract> connectedNodes = new ArrayList<NodeAbstract>();
+    protected ArrayList<NodeAbstract> connectedNodes = new ArrayList<>();
 
     /*
      *
@@ -128,6 +128,10 @@ public abstract class NodeAbstractAP extends NodeAbstract {
         ArrayList<NodeAbstract> conNodes = new ArrayList<>(connectedNodes);
         for (NodeAbstract node : conNodes)
             networkBuilder.disconnectClient(this, node);
+    }
+
+    public ArrayList<NodeAbstract> getConnectedNodes() {
+        return connectedNodes;
     }
 
 }

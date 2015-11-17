@@ -97,13 +97,7 @@ public class NodeClient extends NodeAbstract {
                 networkBuilder.transformNodeInGO(this);
             } else {
                 // node has GOs around - connect to the better one
-                NodeGO betterGO = null;
-//                for (NodeGO GOi : goList) {
-//                    if (isGOAvailable(GOi) && compareGOs(GOi, betterGO) > 0)
-//                        betterGO = GOi;
-//                }
-                betterGO = getBestGONotConnectedToGO(goList,
-                        connectedByWF);
+                NodeGO betterGO = getBestGONotConnectedToGO(goList, connectedByWF);
 
                 if (betterGO != null) {
                     if (networkBuilder.connectClientByWFD(this, betterGO)) {
@@ -119,8 +113,6 @@ public class NodeClient extends NodeAbstract {
                     if (hasNeighbourClientsThatCanBeBridge()) {
                         networkBuilder.transformNodeInGO(this);
                         return;
-                    } else {
-                        // Nothing to do, the GO has to free one connection
                     }
                 }
             }
@@ -164,8 +156,8 @@ public class NodeClient extends NodeAbstract {
             }
         }
 
-        if (caseTwoNotConnectedGOSWithClientsInRange())
-            return;
+        caseTwoNotConnectedGOSWithClientsInRange();
+        // if (...) return;
     }
 
     /**
@@ -207,9 +199,6 @@ public class NodeClient extends NodeAbstract {
      * this node GO to the outsider GO  (to convert myself to GO).
      * <p/>
      * Best PGO: the one with higher ID
-     *
-     * @param outsiderGO
-     * @return
      */
     private boolean isBestPGO(NodeGO outsiderGO) {
         List<NodeClient> clientsListInRange = networkBuilder.getClientsListInRange(this);
@@ -226,13 +215,30 @@ public class NodeClient extends NodeAbstract {
                 continue;
 
             // connected to outsider GO or this GO
-            if (go.equals(outsiderGO) || go.equals(myGO)) {
+            // to be a PGO it must see in range at least one client (potential bridge) from the other GO
+            if ((go.equals(outsiderGO) && hasOneClientInRangeFromTheOtherGO(nc, myGO)) ||
+                    (go.equals(myGO) && hasOneClientInRangeFromTheOtherGO(nc, outsiderGO))) {
                 if (comparePGOs(bestPGO, nc) < 0)
                     bestPGO = nc;
             }
         }
 
         return bestPGO.equals(this);
+    }
+
+    /**
+     * it must see in range at least one client (potential bridge) from the other GO
+     *
+     * @return True if found one client with just one interface used
+     */
+    private boolean hasOneClientInRangeFromTheOtherGO(NodeClient nodeClient, NodeAbstractAP go) {
+        List<NodeClient> clientsListInRange = networkBuilder.getClientsListInRange(nodeClient);
+
+        for (NodeClient nc : clientsListInRange) {
+            if (nc.getConnectedAPs().size() == 1 && nc.getConnectedAPs().get(0).equals(go))
+                return true;
+        }
+        return false;
     }
 
     /*
@@ -247,7 +253,7 @@ public class NodeClient extends NodeAbstract {
     }
 
     /**
-     * @return
+     *
      */
     private int getNBrothersPotentialBridgesInRange() {
         NodeAbstractAP myGO = getConnectedByWFD() != null ? getConnectedByWFD() : getConnectedByWF();
@@ -278,7 +284,7 @@ public class NodeClient extends NodeAbstract {
             NodeAbstractAP go = nc.getConnectedByWFD() != null ? nc.getConnectedByWFD() : nc.getConnectedByWF();
             if (go == null)
                 continue;
-            if (myGO.equals(go) || isGOConnectedToGO(myGO, go))
+            if (myGO.equals(go) || NetworkBuilder.isGOConnectedToGO(myGO, go))
                 continue;
             // we get a client in range that has as unconnected GO to his GO
             return nc;
@@ -307,7 +313,7 @@ public class NodeClient extends NodeAbstract {
         NodeGO betterGO = null;
         for (NodeGO go : goList) {
             if (isGOAvailable(go) && go != connectedGO) {
-                if (!isGOConnectedToGO(go, connectedGO) && compareGOs(go, betterGO) > 0) {
+                if (!NetworkBuilder.isGOConnectedToGO(go, connectedGO) && compareGOs(go, betterGO) > 0) {
                     betterGO = go;
                 }
             }
@@ -315,18 +321,6 @@ public class NodeClient extends NodeAbstract {
         return betterGO;
     }
 
-    /*
-     *
-     */
-    private boolean isGOConnectedToGO(NodeAbstractAP ap1, NodeAbstractAP ap2) {
-        List<NodeAbstractAP> aps = ap1.getConnectedAPs();
-        for (NodeAbstractAP ap : aps) {
-            // compare by address - caution with this
-            if (ap == ap2)
-                return true;
-        }
-        return false;
-    }
 
     /**
      *

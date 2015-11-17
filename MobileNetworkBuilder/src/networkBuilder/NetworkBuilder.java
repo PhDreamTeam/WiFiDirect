@@ -835,6 +835,19 @@ public class NetworkBuilder extends JFrame {
     /*
      *
      */
+    public static boolean isGOConnectedToGO(NodeAbstractAP ap1, NodeAbstractAP ap2) {
+        List<NodeAbstractAP> aps = ap1.getConnectedAPs();
+        for (NodeAbstractAP ap : aps) {
+            // compare by address - caution with this
+            if (ap == ap2)
+                return true;
+        }
+        return false;
+    }
+
+    /*
+     *
+     */
     public NodeAP transformNodeInAP(NodeAbstract node) {
         node.stopTimer();
 

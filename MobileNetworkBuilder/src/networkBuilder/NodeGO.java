@@ -42,6 +42,9 @@ class NodeGO extends NodeAbstractAP {
      * I need to send a message to one of my clients to transform itself in a GO.
      * The client node should be: one that have less GOs in the range; and have many potential clients
      * as neighbours (nodes with just one interface in use)
+     *
+     * TODO: case of two GOS and all the clients from one GO (and him) are in range of another GO
+     * (that have availability for all of them, and have more clients or have bigger ID)
      */
     public void doTimerActions() {
         // System.out.println("Timer actions " + getName());
@@ -51,6 +54,12 @@ class NodeGO extends NodeAbstractAP {
         }
 
         if (caseUnnecessaryGOWithOneClient())
+            return;
+
+        if (caseDuplicateGO())
+            return;
+
+        if (caseGOGO())
             return;
 
         if (connectedNodes.size() == 0) {
@@ -76,6 +85,105 @@ class NodeGO extends NodeAbstractAP {
                 networkBuilder.transformNodeInGO(bestNode);
             }
         }
+    }
+
+    /**
+     * Case that 1) this GO is in range of another GO and 2) both are not connected and
+     * 3) don't have auxiliary clients, and if this node:
+     * - 4) has less clients than the other GO
+     * - 5) has lower ID than the other GO
+     *
+     * THEN: this node will transform itself in client, to be a bridge,
+     *
+     * TODO: 1) correct be error of CL72 - NodeClient
+     * TODO: 2) Propagate the GO changes to the "left" - ...
+     *
+     * @return True is this node transformed itself in client
+     */
+    private boolean caseGOGO() {
+        // 1) get GOs in range
+        List<NodeGO> gos = networkBuilder.getGOListInRange(this);
+        if (gos.size() == 0)
+            return false;
+
+        for (NodeGO go: gos ) {
+            // 2) if they are connected, nothing to do
+            if(NetworkBuilder.isGOConnectedToGO(this, go))
+                continue;
+
+            // 3) there should not be any client in both ranges with a free interface
+            ArrayList<NodeAbstract> clis = go.getConnectedNodes();
+            for (NodeAbstract nc: clis) {
+                if(nc.getConnectedAPs().size() == 2)
+                    continue;
+
+                // found one unstable client, let it stabilize
+                if(networkBuilder.areInConnectionRange(this, nc))
+                    return false;
+            }
+
+            // 4) has less clients than the other GO
+            if(getNConnectedNodes() > go.getNConnectedNodes())
+                continue;
+
+            // 5) has lower ID than the other GO
+            if(getNConnectedNodes() == go.getNConnectedNodes() && getId() > go.getId())
+                continue;
+
+            // THEN: this node will transform itself in client, to be a bridge
+            disconnectAll();
+            networkBuilder.transformNodeGOAPInNodeClient(this);
+            System.out.println("Case GOGO: " + this + " transformed in client to be a bridge to " + go);
+            return true;
+        }
+
+        return false;
+    }
+
+    /*
+     * case of this (GO) is overlapped by another GOx, all my clients and I are in range of GOx,
+     * and GOx have more clients that I or have higher ID
+     */
+    private boolean caseDuplicateGO() {
+        // allow only GOs with 1, 2 or 3 clients to give all of them to the another GO
+        if(getNConnectedNodes() > MAX_CONNECTED_NODES_ON_AP / 2 - 1)
+            return false;
+
+        List<NodeGO> gos = networkBuilder.getGOListInRange(this);
+        if (gos.size() == 0)
+            return false;
+
+        for (NodeGO go: gos ) {
+            List<NodeClient> cliInRange = networkBuilder.getClientsListInRange(go);
+
+            // if the analyzed GO doesn't have capacity for my clients
+            if(getNConnectedNodes() + go.getNConnectedNodes() + 1  - 1 >= MAX_CONNECTED_NODES_ON_AP)
+                continue;
+
+            // checking if all my clients are in range of the other GO
+            boolean success = true;
+            for (NodeAbstract nc: connectedNodes)
+                if(!cliInRange.contains(nc)) {
+                    success = false;
+                    break;
+                }
+
+            if(!success)
+                continue;
+            // all my clients can be adopted by another GO. Is he better than me?
+            if(getNConnectedNodes() > go.getNConnectedNodes())
+                continue;
+            if(getNConnectedNodes() == go.getNConnectedNodes() && getId() < go.getId())
+                continue;
+
+            // all my clients can be adopted by go
+            disconnectAll();
+            networkBuilder.transformNodeGOAPInNodeClient(this);
+            System.out.println("Case GO adoption: "+ this + " adopted by " + go);
+            return true;
+        }
+
+        return false;
     }
 
 
