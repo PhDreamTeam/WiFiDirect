@@ -82,6 +82,7 @@ public class NetworkBuilder extends JFrame {
     private int xScreenOffset = 0, yScreenOffset = 0;
     private JLabel labelCurrentSelectedNode;
     private KeyEventDispatcher ked;
+    private JToggleButton btnAutoMove;
 
     /**
      * Este método cria toda a frame e coloca-a visível
@@ -161,6 +162,9 @@ public class NetworkBuilder extends JFrame {
             }
         });
 
+        // button Move
+        btnAutoMove = new JToggleButton("Auto Move");
+
         // buttons panel
         buttonsPanel = new JPanel(new FlowLayoutShowAll());
         buttonsPanel.add(btnStartTimer);
@@ -169,6 +173,7 @@ public class NetworkBuilder extends JFrame {
         buttonsPanel.add(btnStopIndTimers);
         buttonsPanel.add(btnStepTimer);
         buttonsPanel.add(btnClearAll);
+        buttonsPanel.add(btnAutoMove);
 
         // Zoom area
         JPanel panelZoom = new JPanel();
@@ -353,6 +358,10 @@ public class NetworkBuilder extends JFrame {
         xScreenOffset += deltaXOffset;
         yScreenOffset += deltaYOffset;
         repaint();
+    }
+
+    public boolean isAutoMoveActivated() {
+        return btnAutoMove.isSelected();
     }
 
     /*
@@ -643,6 +652,9 @@ public class NetworkBuilder extends JFrame {
             OutputStream buffer = new BufferedOutputStream(file);
             ObjectOutput output = new ObjectOutputStream(buffer);
             output.writeObject(nodes);
+            output.writeInt(zoomFactor);
+            output.writeInt(xScreenOffset);
+            output.writeInt(yScreenOffset);
             output.close();
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -671,7 +683,12 @@ public class NetworkBuilder extends JFrame {
             // deserialize the List
             @SuppressWarnings("unchecked")
             List<NodeAbstract> loadedNodes = (List<NodeAbstract>) input.readObject();
+            zoomFactor = input.readInt();
+            xScreenOffset = input.readInt();
+            yScreenOffset = input.readInt();
             input.close();
+
+            spinnerZoomModel.setValue(zoomFactor);
 
             // add nodes
             for (NodeAbstract node : loadedNodes) {

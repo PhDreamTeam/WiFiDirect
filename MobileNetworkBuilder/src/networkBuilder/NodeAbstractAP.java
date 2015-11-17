@@ -11,8 +11,8 @@ public abstract class NodeAbstractAP extends NodeAbstract {
     protected ArrayList<NodeAbstract> connectedNodes = new ArrayList<>();
 
     /*
-     *
-     */
+         *
+         */
     public NodeAbstractAP(NetworkBuilder networkBuilder, int id,
                           int x, int y, Color color) {
         super(networkBuilder, id, x, y, NetworkBuilder.MAX_WIFI_RANGE_TO_MAKE_CONNECTIONS, color);
@@ -31,7 +31,18 @@ public abstract class NodeAbstractAP extends NodeAbstract {
     public void moveTo(int x, int y) {
         // register new x and y
         super.moveTo(x, y);
+        moveVerifications();
+    }
 
+    /*
+     *
+     */
+    public void moveByTick() {
+        super.moveByTick();
+        moveVerifications();
+    }
+
+    private void moveVerifications() {
         // a new list to avoid the side effects of original list changes
         ArrayList<NodeAbstract> nodes = new ArrayList<>(connectedNodes);
         for (NodeAbstract nodeClient : nodes) {
@@ -42,7 +53,6 @@ public abstract class NodeAbstractAP extends NodeAbstract {
                     networkBuilder.disconnectWFClient(nodeClient);
             }
         }
-
     }
 
 

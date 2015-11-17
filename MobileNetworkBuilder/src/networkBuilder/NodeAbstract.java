@@ -15,6 +15,15 @@ public abstract class NodeAbstract implements Serializable {
     public static Color colorWFDConnection = Color.RED;
     public static Color colorWFConnection = Color.BLUE;
 
+    public static int MAX_TIME_TO_MOVE_MS = 20 * 1000;
+    public static int MIN_TIME_TO_MOVE_MS = 1 * 1000;
+
+    public static int SPEED_MIN_CMs_SEC = (int) (0.5 * 1000);
+    public static int SPEED_MAX_CMs_SEC = 5 * 1000;
+
+    //public static Random rg = new Random();
+
+    private static int PRIVILEGED_DURATION_TICKS = 3;
 
     transient NetworkBuilder networkBuilder;
 
@@ -22,8 +31,14 @@ public abstract class NodeAbstract implements Serializable {
     int id;
 
     // x, y at the center of the node
-    int xPos;
-    int yPos;
+    private double xPos;
+    private double yPos;
+
+    // Moving fields
+    int ticksToWait = (int)(Math.random() * 10 + 2);
+    int ticksToMove = 0;
+    double xDeltaMovingPxPerTick = Math.random() * 4 - 2; // -N..-1..0..1..N
+    double yDeltaMovingPxPerTick = Math.random() * 4 - 2; // -N..-1..0..1..N
 
     // central radius for simple nodes; coverage radius of APs and GOs
     int radius;
@@ -32,6 +47,17 @@ public abstract class NodeAbstract implements Serializable {
     Color color;
 
     private boolean isSelected;
+
+    /*
+     * This flag says that the node is privileged when compared to other, s it will not change state
+     * The privilege will just remain for some tick (defined in a constant)
+     */
+    private boolean isPrivilegedNode = false;
+
+    /*
+     * Number of ticks to lose privileged behaviour
+     */
+    private int nPrivilegedTicks = 0;
 
     Timer timer = null;
 
@@ -63,7 +89,19 @@ public abstract class NodeAbstract implements Serializable {
      *
      */
     public String getName() {
-        return getNamePrefix() + id;
+        return getNamePrefix() + id + (isPrivilegedNode ? "P" : "");
+    }
+
+
+    public boolean getIsPrivilegedNode() {
+        return isPrivilegedNode;
+    }
+
+
+    public void setIsPrivilegedNode(boolean isPrivilegedNode) {
+        this.isPrivilegedNode = isPrivilegedNode;
+        if (isPrivilegedNode)
+            nPrivilegedTicks = PRIVILEGED_DURATION_TICKS;
     }
 
     public int getId() {
@@ -84,7 +122,7 @@ public abstract class NodeAbstract implements Serializable {
      *
      */
     public int getX() {
-        return xPos;
+        return (int) xPos;
     }
 
     /**
@@ -98,7 +136,7 @@ public abstract class NodeAbstract implements Serializable {
      *
      */
     public int getY() {
-        return yPos;
+        return (int) yPos;
     }
 
     /**
@@ -197,10 +235,12 @@ public abstract class NodeAbstract implements Serializable {
 
         // circle inside color
         g.setColor(isSelected ? Color.yellow : this.color);
-        g.fillOval((xPos - radius + xSO) * zoom, (yPos - radius + ySO) * zoom, 2 * radius * zoom, 2 * radius * zoom);
+        g.fillOval((getX() - radius + xSO) * zoom, (getY() - radius + ySO) * zoom, 2 * radius * zoom,
+                2 * radius * zoom);
         // circle border line
         g.setColor(Color.BLACK);
-        g.drawOval((xPos - radius + xSO) * zoom, (yPos - radius + ySO) * zoom, 2 * radius * zoom, 2 * radius * zoom);
+        g.drawOval((getX() - radius + xSO) * zoom, (getY() - radius + ySO) * zoom, 2 * radius * zoom,
+                2 * radius * zoom);
     }
 
     public void paintNodeName(Graphics g) {
@@ -209,7 +249,7 @@ public abstract class NodeAbstract implements Serializable {
         int ySO = networkBuilder.getYScreenOffset();
 
         g.setColor(Color.darkGray);
-        g.drawString(getName(), (xPos + xSO) * zoom - 10, (yPos + ySO) * zoom - 3 - 2 * zoom);
+        g.drawString(getName(), (getX() + xSO) * zoom - 10, (getY() + ySO) * zoom - 3 - 2 * zoom);
     }
 
     /**
@@ -264,7 +304,33 @@ public abstract class NodeAbstract implements Serializable {
     /**
      *
      */
-    public abstract void doTimerActions();
+    public void doTimerActions() {
+        if (isPrivilegedNode && --nPrivilegedTicks == 0)
+            setIsPrivilegedNode(false);
+
+        if(networkBuilder.isAutoMoveActivated())
+            doAutoMoveActions();
+    }
+
+    /*
+     *
+     */
+    private void doAutoMoveActions() {
+        if (--ticksToWait == 0) {
+            // start new movement
+            ticksToMove = 10;
+        }
+
+        if (--ticksToMove >= 0) {
+            moveByTick();
+            networkBuilder.repaint();
+        }
+
+        if (ticksToMove == 0) {
+            // start new stop time
+            ticksToWait = 20;
+        }
+    }
 
     /**
      *
@@ -273,6 +339,17 @@ public abstract class NodeAbstract implements Serializable {
         System.out.println("Moving node " + getName() + " to " + x + ", " + y);
         setX(x);
         setY(y);
+    }
+
+    /**
+     *
+     */
+    public void moveByTick() {
+        // these fields must be accessed directly
+        xPos += xDeltaMovingPxPerTick;
+        yPos += yDeltaMovingPxPerTick;
+
+        System.out.println("Moving by tick node " + getName() + " to " + (int) xPos + ", " + (int) yPos);
     }
 
     /**

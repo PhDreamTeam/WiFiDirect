@@ -47,19 +47,21 @@ class NodeGO extends NodeAbstractAP {
      * (that have availability for all of them, and have more clients or have bigger ID)
      */
     public void doTimerActions() {
+        super.doTimerActions();
+
         // System.out.println("Timer actions " + getName());
         if (isSelected()) {
             networkBuilder.updateCurrentSelectedNodeInfo(this);
             return;
         }
 
-        if (caseUnnecessaryGOWithOneClient())
+        if (!getIsPrivilegedNode() && caseUnnecessaryGOWithOneClient())
             return;
 
-        if (caseDuplicateGO())
+        if ( !getIsPrivilegedNode() && caseDuplicateGO())
             return;
 
-        if (caseGOGO())
+        if (!getIsPrivilegedNode() && caseGOGO())
             return;
 
         if (connectedNodes.size() == 0) {
@@ -93,14 +95,14 @@ class NodeGO extends NodeAbstractAP {
      * - 4) has less clients than the other GO
      * - 5) has lower ID than the other GO
      *
-     * THEN: this node will transform itself in client, to be a bridge,
-     *
-     * TODO: 1) correct be error of CL72 - NodeClient
-     * TODO: 2) Propagate the GO changes to the "left" - ...
+     * THEN: this node will transform itself in client, to be a bridge
      *
      * @return True is this node transformed itself in client
      */
     private boolean caseGOGO() {
+        if(getIsPrivilegedNode())
+            return false;
+
         // 1) get GOs in range
         List<NodeGO> gos = networkBuilder.getGOListInRange(this);
         if (gos.size() == 0)
@@ -123,17 +125,20 @@ class NodeGO extends NodeAbstractAP {
             }
 
             // 4) has less clients than the other GO
-            if(getNConnectedNodes() > go.getNConnectedNodes())
-                continue;
+            if(!go.getIsPrivilegedNode()) {
+                if (getNConnectedNodes() > go.getNConnectedNodes())
+                    continue;
 
-            // 5) has lower ID than the other GO
-            if(getNConnectedNodes() == go.getNConnectedNodes() && getId() > go.getId())
-                continue;
+                // 5) has lower ID than the other GO
+                if ((getNConnectedNodes() == go.getNConnectedNodes() && getId() > go.getId()))
+                    continue;
+            }
 
             // THEN: this node will transform itself in client, to be a bridge
             disconnectAll();
-            networkBuilder.transformNodeGOAPInNodeClient(this);
+            NodeClient newNC = networkBuilder.transformNodeGOAPInNodeClient(this);
             System.out.println("Case GOGO: " + this + " transformed in client to be a bridge to " + go);
+            newNC.setIsPrivilegedNode(true);
             return true;
         }
 

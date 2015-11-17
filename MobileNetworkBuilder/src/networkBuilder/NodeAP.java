@@ -43,6 +43,8 @@ public class NodeAP extends NodeAbstractAP {
      *
      */
     public void doTimerActions() {
+        super.doTimerActions();
+
         if(isSelected()) {
             networkBuilder.updateCurrentSelectedNodeInfo(this);
             return;

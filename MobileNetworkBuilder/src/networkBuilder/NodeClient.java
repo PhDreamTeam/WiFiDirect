@@ -5,7 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Node
+ * Node Client
+ *
+ *
+ * TODO: New Scenario: caseNodeWith2InterfacesNeedsToConnectToOutsider
+ * um cliente CL1 com as duas interfaces ligadas
+ vê um Cliente CL2, ou um GO, que não está ligado nem directa nem indirectamente
+ a nenhum dos seus GOs
+ CL1 vê que existe pelo menos um outro cliente de ambos os seus GOs (que
+ está ligado a um deles e se pode ligar ao outro)
+ then: CL1 transforma-se em GO   (todos os outros têm de se transformar em clientes e ligar-se a ele)
  */
 public class NodeClient extends NodeAbstract {
     private static final long serialVersionUID = 6522880377285017785L;
@@ -83,6 +92,8 @@ public class NodeClient extends NodeAbstract {
      *
      */
     public void doTimerActions() {
+        super.doTimerActions();
+
         // Do not execute actions when selected, to avoid node transformation (in GO/AP)
         if (isSelected()) {
             networkBuilder.updateCurrentSelectedNodeInfo(this);
@@ -156,7 +167,8 @@ public class NodeClient extends NodeAbstract {
             }
         }
 
-        caseTwoNotConnectedGOSWithClientsInRange();
+        if(!getIsPrivilegedNode() )
+            caseTwoNotConnectedGOSWithClientsInRange();
         // if (...) return;
     }
 
@@ -171,7 +183,8 @@ public class NodeClient extends NodeAbstract {
         //                um cliente (ao alcance a CL2) que tem um outro cliente CL3 do mesmo GO ao seu alcance
         //          - Melhor PGO: o que tiver maior ID.
         //  4) THEN Converter em GO
-        //  5) TODO: Caso não haja nem um PGO: entre CL1 e CL2 o com maior ID; ex: Cl1, passar CL1 a GO, passar o seu GO a client
+        //  5) TODO: Caso não haja nem um PGO: entre CL1 e CL2 o com maior ID;
+        //                 ex: Cl1, passar CL1 a GO, passar o seu GO a client
         //        GO5 passa a cliente (levar consigo a informação de alteração)
 
         // 1,2) checking if this node client is in range of another client connected to a GO that is not
@@ -190,7 +203,8 @@ public class NodeClient extends NodeAbstract {
         System.out.println(this + " is best PGO to make the connection to " + outsiderGO);
 
         disconnectAll();
-        networkBuilder.transformNodeInGO(this);
+        NodeGO newGO = networkBuilder.transformNodeInGO(this);
+        newGO.setIsPrivilegedNode(true);
         return true;
     }
 
@@ -243,9 +257,14 @@ public class NodeClient extends NodeAbstract {
 
     /*
      * One client node c1 is best PGO than another client node c2
-     * if c1
+     * if c1 is best return positive value, if c2 is best return negative value
      */
     private static int comparePGOs(NodeClient c1, NodeClient c2) {
+        if(c1 == null || c1.getIsPrivilegedNode())
+            return -1;
+        if(c2 == null || c2.getIsPrivilegedNode())
+            return +1;
+
         int diff = c1.getNBrothersPotentialBridgesInRange() - c2.getNBrothersPotentialBridgesInRange();
         if (diff != 0)
             return diff;
@@ -340,7 +359,18 @@ public class NodeClient extends NodeAbstract {
     public void moveTo(int x, int y) {
         // register new x and y
         super.moveTo(x, y);
+        moveVerifications();
+    }
 
+    /**
+     *
+     */
+    public void moveByTick() {
+        super.moveByTick();
+        moveVerifications();
+    }
+
+    private void moveVerifications() {
         // update connections
         if (connectedByWFD != null) {
             if (!networkBuilder.areInConnectionRange(connectedByWFD, this)) {
