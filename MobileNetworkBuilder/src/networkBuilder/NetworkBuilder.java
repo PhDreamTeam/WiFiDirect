@@ -26,10 +26,9 @@ import java.util.List;
  * Optimizar (reorganizar a rede) / reconfigurar
  * Falha no algoritmo: dois GO com dois clientes estes não se connectam
  * UM GO que se mova e ficar perto de outro GO, nenhum deles volta a ser um Cliente (caso de ego)
- *
- *  - load scenario and timer (what to do?)
- *
- * */
+ * <p/>
+ * - load scenario and timer (what to do?)
+ */
 public class NetworkBuilder extends JFrame {
 
     private static final long serialVersionUID = 1L;
@@ -37,6 +36,10 @@ public class NetworkBuilder extends JFrame {
     private static final int TIMER_STEP = 1000;
 
     public static int MAX_WIFI_RANGE_TO_MAKE_CONNECTIONS = 32;
+
+    public static Font NODES_FONT = new Font("Courier", Font.PLAIN, 10);
+
+    // Fields ...
 
     private int OFFSET_SCREEN_FACTOR = 10;
 
@@ -473,6 +476,20 @@ public class NetworkBuilder extends JFrame {
 
         menu.addSeparator();
 
+        JMenuItem miCenterScenario = new JMenuItem("Center scenario", KeyEvent.VK_C);
+        miCenterScenario.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C,
+                InputEvent.ALT_MASK));
+        miCenterScenario.addActionListener(al);
+        menu.add(miCenterScenario);
+
+        JMenuItem miRenumberingScenario = new JMenuItem("ReNumbering nodes", KeyEvent.VK_N);
+        miRenumberingScenario.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N,
+                InputEvent.ALT_MASK));
+        miRenumberingScenario.addActionListener(al);
+        menu.add(miRenumberingScenario);
+
+        menu.addSeparator();
+
         JMenuItem miHelp = new JMenuItem("Help", KeyEvent.VK_H);
         miHelp.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H,
                 InputEvent.ALT_MASK));
@@ -512,6 +529,13 @@ public class NetworkBuilder extends JFrame {
                 if (menuItemText.equals("Delete selected node"))
                     deleteSelectedNodeActions();
 
+
+                if (menuItemText.equals("Center scenario"))
+                    centerScenarioActions();
+
+                if (menuItemText.equals("ReNumbering nodes"))
+                    renumberingNodesActions();
+
                 if (menuItemText.equals("Help"))
                     helpActions();
 
@@ -522,6 +546,63 @@ public class NetworkBuilder extends JFrame {
                     exitActions();
             }
         };
+    }
+
+    private void centerScenarioActions() {
+        if (nodes.size() == 0)
+            return;
+
+        NodeAbstract n0 = nodes.get(0);
+        int maxX = n0.getX(), maxY = n0.getY(), minX = n0.getX(), minY = n0.getY();
+
+        for (NodeAbstract n : nodes) {
+            if (n.getX() > maxX)
+                maxX = n.getX();
+            if (n.getX() < minX)
+                minX = n.getX();
+
+            if (n.getY() > maxY)
+                maxY = n.getY();
+            if (n.getY() < minY)
+                minY = n.getY();
+        }
+
+        int deltaX = maxX - minX;
+        int deltaY = maxY - minY;
+
+        int panelWidth = myPanel.getWidth();
+        int panelHeight = myPanel.getHeight();
+
+        int finalDeltaX = minX - (panelWidth / 2 - deltaX / 2);
+        int finalDeltaY = minY - (panelHeight / 2 - deltaY / 2);
+
+        for (NodeAbstract n : nodes) {
+            n.setX(n.getX() - finalDeltaX);
+            n.setY(n.getY() - finalDeltaY);
+        }
+
+        xScreenOffset = 0; //
+        yScreenOffset = 0; // panelHeight / 2 - deltaY / 2;
+
+        // TODO: falta fazer com ZOOM - funciona com zoom = 1
+
+        repaint();
+    }
+
+    /*
+     * Remumbering the nodes starting at 1 and updates nextNodeID
+     */
+    private void renumberingNodesActions() {
+        int id = 0;
+
+        // update nodes
+        for (NodeAbstract n : nodes) {
+            n.setId(++id);
+        }
+        // update next node ID
+        nextNodeID = ++id;
+
+        repaint();
     }
 
     /*
@@ -604,7 +685,7 @@ public class NetworkBuilder extends JFrame {
             String scenarioPathName = file.getPath();
             System.out.println("Loading scenario: " + file.getName());
             if (file.getName().endsWith(".txt"))
-                loadScenario(scenarioPathName);
+                loadTxtScenario(scenarioPathName);
             else
                 loadSerializedScenario(scenarioPathName);
         } else {
@@ -632,9 +713,35 @@ public class NetworkBuilder extends JFrame {
 
             String scenarioPathName = file.getPath();
             System.out.println("Saving scenario: " + file.getName());
-            saveSerializedScenario(scenarioPathName);
+            if (file.getName().endsWith(".txt"))
+                saveTxtScenario(scenarioPathName);
+            else
+                saveSerializedScenario(scenarioPathName);
+
         } else {
             System.out.println("Save scenario command cancelled by user");
+        }
+    }
+
+    private void saveTxtScenario(String scenarioPathName) {
+
+        try {
+            PrintWriter pw = new PrintWriter(scenarioPathName);
+            for (NodeAbstract n : nodes) {
+                pw.print(n.getId() + " " + n.getNamePrefix() + " " + n.getX() + " " + n.getY());
+                if (n.getConnectedByWFD() != null) {
+                    pw.print(" WFD " + n.getConnectedByWFD().getId());
+                }
+                if (n.getConnectedByWF() != null) {
+                    pw.print(" WF " + n.getConnectedByWF().getId());
+                }
+                pw.println();
+            }
+            pw.println("ZoomInfo " + getZoomFactor() + " " + xScreenOffset + " " + yScreenOffset);
+            pw.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -761,17 +868,7 @@ public class NetworkBuilder extends JFrame {
      *
      */
     private void doTimerActions() {
-        // execute one timer jobs if exist
-        if (!timerJobs.isEmpty()) {
-            ArrayList<ScenarioNode> scenarioNodes = timerJobs.remove(0);
-            for (ScenarioNode scenarioNode : scenarioNodes) {
-                NodeClient newNode = new NodeClient(this, scenarioNode.id, scenarioNode.x,
-                        scenarioNode.y);
-                addNode(newNode);
-            }
-        }
-
-        // do globaltimer actions on all existing nodes
+        // do global timer actions on all existing nodes
         for (int i = 0; i < nodes.size(); ++i)
             nodes.get(i).doTimerActions();
 
@@ -782,39 +879,137 @@ public class NetworkBuilder extends JFrame {
     /*
      * Load txt scenario
      */
-    protected void loadScenario(String fileName) {
+    protected void loadTxtScenario(String fileName) {
         try {
-            Scanner scan = new Scanner(new File(fileName));
-            int timerSlot = 0;
-            while (scan.hasNextLine()) {
-                String line = scan.nextLine();
-                if (line.trim().isEmpty())
-                    continue;
-                // we have a line with contents
-                Scanner lineContents = new Scanner(line);
-                ArrayList<ScenarioNode> lineNodes = new ArrayList<>();
-                System.out.print("Nodes of time slot " + timerSlot + " :");
-                // read line contents
-                while (lineContents.hasNext()) {
-                    int id = lineContents.nextInt();
-                    int x = lineContents.nextInt();
-                    int y = lineContents.nextInt();
-                    System.out.print(" " + id + "(" + x + ", " + y + ")");
-                    // create new node and add it to lineNodes arrayList
-                    lineNodes.add(new ScenarioNode(id, x, y));
-                }
-                System.out.println();
-                // submit lineNodes as a timer job
-                timerJobs.add(lineNodes);
-                timerSlot++;
-                lineContents.close();
-            }
-            scan.close();
-            // start the globaltimer to process its jobs
-            doStartTimerActions();
+            ArrayList<ScenarioInfo> scenarioNodes = readTxtScenario(fileName);
+            createScenario(scenarioNodes);
+            myPanel.revalidate();
+            myPanel.repaint();
         } catch (FileNotFoundException e) {
             System.out.println("File not found: " + fileName);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
+    }
+
+    /*
+     * create Scenario from list of scenario nodes
+     */
+    private void createScenario(ArrayList<ScenarioInfo> scenarioInfoNodes) {
+        // create nodes
+        for (ScenarioInfo scenarioInfo : scenarioInfoNodes) {
+
+            if (scenarioInfo instanceof ScenarioZoomInfo) {
+                ScenarioZoomInfo szi = (ScenarioZoomInfo) scenarioInfo;
+                this.zoomFactor = szi.zoomFactor;
+                this.xScreenOffset = szi.xScreenOffset;
+                this.yScreenOffset = szi.yScreenOffset;
+            } else {
+
+                ScenarioNode sc = (ScenarioNode) scenarioInfo;
+
+                // new CL node
+                if (sc.role.equals("CL"))
+                    addNode(new NodeClient(this, sc.id, sc.x, sc.y));
+                // new GO node
+                if (sc.role.equals("GO"))
+                    addNode(new NodeGO(this, sc.id, sc.x, sc.y));
+                // new AP node
+                if (sc.role.equals("AP"))
+                    addNode(new NodeAP(this, sc.id, sc.x, sc.y));
+            }
+        }
+
+        // create connections
+        for (ScenarioInfo sin : scenarioInfoNodes) {
+            if (sin instanceof ScenarioNode) {
+                ScenarioNode sn = (ScenarioNode) sin;
+
+                NodeClient nAux = new NodeClient(this, sn.id, 0, 0);
+                NodeAbstract n = nodes.get(nodes.indexOf(nAux));
+
+                // checking for WFD connection
+                if (sn.wfdGOID != -1) {
+                    NodeClient nAuxGO = new NodeClient(this, sn.wfdGOID, 0, 0);
+                    NodeAbstract nGO = nodes.get(nodes.indexOf(nAuxGO));
+                    if (!(nGO instanceof NodeGO))
+                        throw new IllegalStateException("Error: Not found GO with id: " + sn.wfdGOID);
+                    // create WFD connection
+                    connectClientByWFD(n, (NodeGO) nGO);
+                }
+
+                // checking for WF connection
+                if (sn.wfGOID != -1) {
+                    NodeClient nAuxGOAP = new NodeClient(this, sn.wfGOID, 0, 0);
+                    NodeAbstract nGOAP = nodes.get(nodes.indexOf(nAuxGOAP));
+                    if (!(nGOAP instanceof NodeAbstractAP))
+                        throw new IllegalStateException("Error: Not found GOAP with id: " + sn.wfGOID);
+                    // create WF connection
+                    connectClientByWF(n, (NodeAbstractAP) nGOAP);
+                }
+            }
+        }
+    }
+
+    /*
+     * read Txt Scenario
+     */
+    private ArrayList<ScenarioInfo> readTxtScenario(String fileName) throws FileNotFoundException {
+        ArrayList<ScenarioInfo> scenarioNodes = new ArrayList<>();
+
+        Scanner scan = new Scanner(new File(fileName));
+        int timerSlot = 0;
+        while (scan.hasNextLine()) {
+            String line = scan.nextLine();
+            if (line.trim().isEmpty())
+                continue;
+            // we have a line with contents
+            Scanner lineContents = new Scanner(line);
+
+            if (lineContents.hasNextInt()) {
+
+                // read line contents
+                int id = lineContents.nextInt();
+                String role = lineContents.next();
+                int x = lineContents.nextInt();
+                int y = lineContents.nextInt();
+
+                int wfdGOID = -1;
+                int wfGOID = -1;
+
+                while (lineContents.hasNext()) {
+                    String theInterface = lineContents.next();
+                    int goID = lineContents.nextInt();
+                    if (theInterface.equals("WFD"))
+                        wfdGOID = goID;
+                    if (theInterface.equals("WF"))
+                        wfGOID = goID;
+                }
+
+                // print ...
+                System.out.print(" " + id + " " + role + "(" + x + ", " + y + ")");
+                if (wfdGOID != -1)
+                    System.out.print(" WFD " + wfdGOID);
+                if (wfGOID != -1)
+                    System.out.print(" WF " + wfGOID);
+                System.out.println();
+
+                // create new node and add it to list of scenario nodes
+                scenarioNodes.add(new ScenarioNode(id, role, x, y, wfdGOID, wfGOID));
+            } else {
+                // zoom info line
+                if (lineContents.next().equalsIgnoreCase("ZoomInfo")) {
+                    int zoomFactor = lineContents.nextInt();
+                    int xso = lineContents.nextInt();
+                    int yso = lineContents.nextInt();
+                    scenarioNodes.add(new ScenarioZoomInfo(zoomFactor, xso, yso));
+                } else throw new RuntimeException("Error: Invalid line: " + line);
+            }
+            lineContents.close();
+        }
+        scan.close();
+
+        return scenarioNodes;
     }
 
     /**
@@ -971,59 +1166,7 @@ public class NetworkBuilder extends JFrame {
 
     public void updateCurrentSelectedNodeInfo(NodeAbstract node) {
         setTextOnLabelCurrentSelectedNode(node == null ? "" : node.getNodeInfo());
-    }
-
-    Font nodesFont = new Font("Courier", Font.PLAIN, 10);
-
-
-    /**
-     * Network nodes panel
-     */
-    class NodesPanel extends JPanel {
-        private static final long serialVersionUID = 1L;
-
-        private AlphaComposite alphaGOAPS = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f);
-        private AlphaComposite alphaNoAlpha = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f);
-
-
-        private RenderingHints rh = new RenderingHints(
-                RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
-
-        /**
-         * paint method
-         */
-        public void paintComponent(Graphics g) {
-            // System.out.println("paintComponent called");
-            super.paintComponent(g);
-
-            Graphics2D g2 = (Graphics2D) g;
-
-            g2.setRenderingHints(rh);
-
-            // first draw APs and GOs
-            g2.setComposite(alphaGOAPS);
-            for (NodeAbstract node : nodes) {
-                if (node instanceof NodeAbstractAP)
-                    node.paintComponent(g);
-            }
-            g2.setComposite(alphaNoAlpha);
-
-            // then draw clients
-            for (NodeAbstract node : nodes) {
-                if (!(node instanceof NodeAbstractAP))
-                    node.paintComponent(g);
-            }
-
-
-            g.setFont(nodesFont);
-
-            // then draw node names
-            for (NodeAbstract node : nodes) {
-                node.paintNodeName(g);
-            }
-
-        }
+        System.out.println(node == null ? "" : node.getNodeInfo());
     }
 
     /**
@@ -1133,15 +1276,82 @@ public class NetworkBuilder extends JFrame {
     }
 
     /**
+     * Network nodes panel
+     */
+    class NodesPanel extends JPanel {
+        private static final long serialVersionUID = 1L;
+
+        private AlphaComposite alphaGOAPS = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f);
+        private AlphaComposite alphaNoAlpha = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f);
+
+
+        private RenderingHints rh = new RenderingHints(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
+
+        /**
+         * paint method
+         */
+        public void paintComponent(Graphics g) {
+            // System.out.println("paintComponent called");
+            super.paintComponent(g);
+
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHints(rh);
+
+            // first draw APs and GOs
+            g2.setComposite(alphaGOAPS);
+            for (NodeAbstract node : nodes) {
+                if (node instanceof NodeAbstractAP)
+                    node.paintComponent(g);
+            }
+            g2.setComposite(alphaNoAlpha);
+
+            // then draw clients
+            for (NodeAbstract node : nodes) {
+                if (!(node instanceof NodeAbstractAP))
+                    node.paintComponent(g);
+            }
+
+            g.setFont(NODES_FONT);
+
+            // then draw node names
+            for (NodeAbstract node : nodes) {
+                node.paintNodeName(g);
+            }
+        }
+    }
+
+    /**
      *
      */
-    class ScenarioNode {
-        int id, x, y;
+    class ScenarioInfo {
 
-        public ScenarioNode(int id, int x, int y) {
+    }
+
+    class ScenarioNode extends ScenarioInfo {
+        int id, x, y;
+        String role;
+        int wfdGOID, wfGOID;
+
+        public ScenarioNode(int id, String role, int x, int y, int wfdGOID, int wfGOID) {
             this.id = id;
             this.x = x;
             this.y = y;
+            this.wfdGOID = wfdGOID;
+            this.wfGOID = wfGOID;
+            this.role = role;
+        }
+    }
+
+    class ScenarioZoomInfo extends ScenarioInfo {
+        int zoomFactor;
+        int xScreenOffset, yScreenOffset;
+
+        public ScenarioZoomInfo(int zoomFactor, int xScreenOffset, int yScreenOffset) {
+            this.zoomFactor = zoomFactor;
+            this.xScreenOffset = xScreenOffset;
+            this.yScreenOffset = yScreenOffset;
         }
     }
 }

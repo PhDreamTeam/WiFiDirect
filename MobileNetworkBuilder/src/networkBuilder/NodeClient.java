@@ -6,15 +6,15 @@ import java.util.List;
 
 /**
  * Node Client
- *
- *
+ * <p/>
+ * <p/>
  * TODO: New Scenario: caseNodeWith2InterfacesNeedsToConnectToOutsider
  * um cliente CL1 com as duas interfaces ligadas
- vê um Cliente CL2, ou um GO, que não está ligado nem directa nem indirectamente
- a nenhum dos seus GOs
- CL1 vê que existe pelo menos um outro cliente de ambos os seus GOs (que
- está ligado a um deles e se pode ligar ao outro)
- then: CL1 transforma-se em GO   (todos os outros têm de se transformar em clientes e ligar-se a ele)
+ * vê um Cliente CL2, ou um GO, que não está ligado nem directa nem indirectamente
+ * a nenhum dos seus GOs
+ * CL1 vê que existe pelo menos um outro cliente de ambos os seus GOs (que
+ * está ligado a um deles e se pode ligar ao outro)
+ * then: CL1 transforma-se em GO   (todos os outros têm de se transformar em clientes e ligar-se a ele)
  */
 public class NodeClient extends NodeAbstract {
     private static final long serialVersionUID = 6522880377285017785L;
@@ -74,14 +74,14 @@ public class NodeClient extends NodeAbstract {
         StringBuilder info = new StringBuilder();
 
         // this node info
-        addNodeAndDirectConnectionsToStringBuilder(info, this);
+        addNodeAndDirectConnectionsToStringBuilder(info, "NodeInfo: ", this);
 
         // GOs in range
-        addGOAPNodesToStringBuilder(info, ":&nbsp; GOs in range:",
+        addGOAPNodesToStringBuilder(info, ";&nbsp; GOsInRange: ",
                 networkBuilder.getGOListInRange(this));
 
         // other clients in range
-        addNodesAndDirectConnectionsToStringBuilder(info, ",&nbsp; Other clients in range:",
+        addNodesAndDirectConnectionsToStringBuilder(info, ";&nbsp; OtherClientsInRange: ",
                 networkBuilder.getClientsListInRange(this));
 
         return info.toString();
@@ -101,38 +101,58 @@ public class NodeClient extends NodeAbstract {
         }
 
         if (connectedByWFD == null && connectedByWF == null) {
-            // node is currently disconnected in WFD interface
+            // R1CL: node is currently disconnected in WFD interface
             List<NodeGO> goList = networkBuilder.getGOListInRange(this);
             if (goList.size() == 0) {
                 // node is alone, it must advertise itself becoming a GO
                 networkBuilder.transformNodeInGO(this);
-            } else {
-                // node has GOs around - connect to the better one
-                NodeGO betterGO = getBestGONotConnectedToGO(goList, connectedByWF);
-
-                if (betterGO != null) {
-                    if (networkBuilder.connectClientByWFD(this, betterGO)) {
-                        // connection established
-                        return;
-                    }
-                    return;
-                } else {
-                    // All neighboring GO nodes are full
-                    // if this node have one neighborhood client with just only one interface used
-                    // just promote this node to GO
-                    // TODO ...
-                    if (hasNeighbourClientsThatCanBeBridge()) {
-                        networkBuilder.transformNodeInGO(this);
-                        return;
-                    }
-                }
+                return;
             }
+
+            // R2CL: node has GOs around - connect to the best one
+            NodeGO bestGO = getBestGONotConnectedToGO(goList, null);
+            if (bestGO != null) {
+                if (networkBuilder.connectClientByWFD(this, bestGO)) {
+                    // connection established
+                    return;
+                }
+                // connection failed - next time it will try another GO
+                return;
+            }
+
+            // All neighboring GOs nodes are full
+            // R3CL: if this node has one neighborhood client with just only one interface used
+            // just promote this node to GO
+            if (hasNeighbourClientsThatCanBeBridge()) {
+                networkBuilder.transformNodeInGO(this);
+                return;
+            }
+
+            // no available GOs neither bridges - remain Cli for now
+            // TODO: this must be solved from the GO part
         }
 
-        // node is connected by WFD, checking to connect by WF
+        // R4CL: WFD used, WF free and available GO in range, connect to WF
+        if(case_WFDUsed_WFFree_AndAvailableGoInRange())
+            return;
+
+        // R4CL: WF used, WFD free and available GO in range. connect to WFD
+        if(case_WFUsed_WFDFree_AndAvailableGoInRange())
+            return;
+
+        // R5CL: caseTwoNotConnectedGOSWithClientsInRange
+        if (!getIsPrivilegedNode())
+            caseTwoNotConnectedGOSWithClientsInRange();
+        // if (...) return;
+    }
+
+    /*
+     * R4CL_WFD: node is only connected by WFD, checking to connect by WFD
+     */
+    private boolean case_WFDUsed_WFFree_AndAvailableGoInRange() {
+        // R4CL: node is only connected by WFD, checking to connect by WFD
         if (connectedByWFD != null && connectedByWF == null) {
-            // node is currently disconnected in WFD interface
-            // connect to
+            // node is currently disconnected in WF interface
             List<NodeGO> goList = networkBuilder.getGOListInRange(this);
             if (goList.size() != 0) {
                 // node has GOs around - connect to the one GO that is not
@@ -143,15 +163,20 @@ public class NodeClient extends NodeAbstract {
                 if (bestGO != null) {
                     System.out.println("Node " + this + " connecting to " + bestGO);
                     networkBuilder.connectClientByWF(this, bestGO);
-                    return;
+                    return true;
                 }
             }
         }
+        return false;
+    }
 
-        // node is connected by WF, checking to connect by WFD
+    /*
+     * R4CL_WF: node is only connected by WF, checking to connect by WFD
+     */
+    private boolean case_WFUsed_WFDFree_AndAvailableGoInRange() {
+        // R4CL: node is only connected by WF, checking to connect by WFD
         if (connectedByWFD == null && connectedByWF != null) {
             // node is currently disconnected in WFD interface
-            // connect to
             List<NodeGO> goList = networkBuilder.getGOListInRange(this);
             if (goList.size() != 0) {
                 // node has GOs around - connect to the one GO that is not
@@ -162,14 +187,11 @@ public class NodeClient extends NodeAbstract {
                 if (bestGO != null) {
                     System.out.println("Node " + this + " connecting to " + bestGO);
                     networkBuilder.connectClientByWFD(this, bestGO);
-                    return;
+                    return true;
                 }
             }
         }
-
-        if(!getIsPrivilegedNode() )
-            caseTwoNotConnectedGOSWithClientsInRange();
-        // if (...) return;
+        return false;
     }
 
     /**
@@ -260,9 +282,9 @@ public class NodeClient extends NodeAbstract {
      * if c1 is best return positive value, if c2 is best return negative value
      */
     private static int comparePGOs(NodeClient c1, NodeClient c2) {
-        if(c1 == null || c1.getIsPrivilegedNode())
+        if (c1 == null || c1.getIsPrivilegedNode())
             return -1;
-        if(c2 == null || c2.getIsPrivilegedNode())
+        if (c2 == null || c2.getIsPrivilegedNode())
             return +1;
 
         int diff = c1.getNBrothersPotentialBridgesInRange() - c2.getNBrothersPotentialBridgesInRange();

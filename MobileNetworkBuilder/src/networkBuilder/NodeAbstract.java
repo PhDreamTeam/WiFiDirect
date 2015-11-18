@@ -35,7 +35,7 @@ public abstract class NodeAbstract implements Serializable {
     private double yPos;
 
     // Moving fields
-    int ticksToWait = (int)(Math.random() * 10 + 2);
+    int ticksToWait = (int) (Math.random() * 10 + 2);
     int ticksToMove = 0;
     double xDeltaMovingPxPerTick = Math.random() * 4 - 2; // -N..-1..0..1..N
     double yDeltaMovingPxPerTick = Math.random() * 4 - 2; // -N..-1..0..1..N
@@ -106,6 +106,10 @@ public abstract class NodeAbstract implements Serializable {
 
     public int getId() {
         return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     protected abstract String getNamePrefix();
@@ -308,7 +312,7 @@ public abstract class NodeAbstract implements Serializable {
         if (isPrivilegedNode && --nPrivilegedTicks == 0)
             setIsPrivilegedNode(false);
 
-        if(networkBuilder.isAutoMoveActivated())
+        if (networkBuilder.isAutoMoveActivated())
             doAutoMoveActions();
     }
 
@@ -364,16 +368,30 @@ public abstract class NodeAbstract implements Serializable {
      */
     void addNodesAndDirectConnectionsToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstract> nodes) {
         info.append(initialMsg);
+        info.append("{");
+
+        boolean isFirst = true;
         for (NodeAbstract node : nodes) {
+            if (isFirst)
+                isFirst = false;
+            else info.append(", ");
             addNodeAndDirectConnectionsToStringBuilder(info, node);
         }
+        info.append("}");
+    }
+
+    /**
+     *
+     */
+    void addNodeAndDirectConnectionsToStringBuilder(StringBuilder info, String initialMsg, NodeAbstract node) {
+        info.append(initialMsg);
+        addNodeAndDirectConnectionsToStringBuilder(info, node);
     }
 
     /**
      *
      */
     void addNodeAndDirectConnectionsToStringBuilder(StringBuilder info, NodeAbstract node) {
-        info.append(" ");
         info.append(node.getName());
         info.append("[");
         if (node.connectedByWFD != null) {
@@ -396,19 +414,32 @@ public abstract class NodeAbstract implements Serializable {
      */
     static void addGOAPNodesToStringBuilder(StringBuilder info, String initialMsg, List<? extends NodeAbstractAP> nodes) {
         info.append(initialMsg);
+        info.append("{");
+
+        boolean isFirst = true;
         for (NodeAbstractAP nodeGOAP : nodes) {
-            info.append(" ");
+            if (isFirst)
+                isFirst = false;
+            else info.append(", ");
             info.append(nodeGOAP.getName());
-            info.append("{ ");
+
+            // show GO connected to the current GO
+            boolean isFirst2 = true;
+            info.append("[");
             List<NodeAbstractAP> conGOAPs = nodeGOAP.getConnectedAPs();
             for (NodeAbstractAP nodeGOAPi : conGOAPs) {
                 if (!nodeGOAPi.equals(nodeGOAP)) {
+                    if (isFirst2)
+                        isFirst2 = false;
+                    else info.append(", ");
                     info.append(nodeGOAPi.getName());
-                    info.append(" ");
                 }
             }
-            info.append("}");
+            info.append("]");
+
         }
+
+        info.append("}");
     }
 
     /**

@@ -106,18 +106,18 @@ public abstract class NodeAbstractAP extends NodeAbstract {
         StringBuilder info = new StringBuilder();
 
         // this node info
-        addNodeAndDirectConnectionsToStringBuilder(info, this);
+        addNodeAndDirectConnectionsToStringBuilder(info, "NodeInfo: ", this);
 
         // connected nodes
-        addNodesAndDirectConnectionsToStringBuilder(info, ";&nbsp; Connected nodes:", connectedNodes);
+        addNodesAndDirectConnectionsToStringBuilder(info, ";&nbsp; ConnectedNodes: ", connectedNodes);
 
         // GOs in range
-        addGOAPNodesToStringBuilder(info, ";&nbsp; GOs in range:", networkBuilder.getGOListInRange(this));
+        addGOAPNodesToStringBuilder(info, ";&nbsp; GOsInRange: ", networkBuilder.getGOListInRange(this));
 
         // other clients in range
         List<NodeClient> otherClients = networkBuilder.getClientsListInRange(this);
         otherClients.removeAll(connectedNodes);
-        addNodesAndDirectConnectionsToStringBuilder(info, ";&nbsp; Other clients in range:",
+        addNodesAndDirectConnectionsToStringBuilder(info, ";&nbsp; OtherClientsInRange: ",
                 otherClients);
 
         return info.toString();
