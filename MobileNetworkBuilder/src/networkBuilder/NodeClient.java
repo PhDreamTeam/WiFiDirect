@@ -140,11 +140,14 @@ public class NodeClient extends NodeAbstract {
         if(case_WFUsed_WFDFree_AndAvailableGoInRange())
             return;
 
-        // R5CL: caseTwoNotConnectedGOSWithClientsInRange
+        // R5CL: caseTwoClientsInRangeFromNotConnectedGOs
         if (!getIsPrivilegedNode())
-            caseTwoNotConnectedGOSWithClientsInRange();
+            caseTwoClientsInRangeFromNotConnectedGOs();
         // if (...) return;
     }
+
+    // TODO: one client CL that see one GO1 in range of GO(CL), but GO1 has no clients and GO have availability,
+    // CL should not connect to GO1
 
     /*
      * R4CL_WFD: node is only connected by WFD, checking to connect by WFD
@@ -197,17 +200,15 @@ public class NodeClient extends NodeAbstract {
     /**
      * handle anomaly case of Two Not Connected GOS With Clients In Range
      */
-    boolean caseTwoNotConnectedGOSWithClientsInRange() {
+    boolean caseTwoClientsInRangeFromNotConnectedGOs() {
         //  1) um nó cliente CL1 ligado a GO5 vê outro cliente CL2 ligado a GO6
         //  2)   e GO5 não está ligado a GO6
         //  3)   e CL1 é o melhor PGO
         //          - PGO (potencial GO:
         //                um cliente (ao alcance a CL2) que tem um outro cliente CL3 do mesmo GO ao seu alcance
-        //          - Melhor PGO: o que tiver maior ID.
+        //          - Melhor PGO: o que tiver mais potential bridges do seu GO ao seu alcance, ou
+        //                        em caso de igualdade o que tiver maior ID.
         //  4) THEN Converter em GO
-        //  5) TODO: Caso não haja nem um PGO: entre CL1 e CL2 o com maior ID;
-        //                 ex: Cl1, passar CL1 a GO, passar o seu GO a client
-        //        GO5 passa a cliente (levar consigo a informação de alteração)
 
         // 1,2) checking if this node client is in range of another client connected to a GO that is not
         //    connected to the GO of the current node
@@ -244,11 +245,10 @@ public class NodeClient extends NodeAbstract {
         NodeClient bestPGO = this;
 
         for (NodeClient nc : clientsListInRange) {
-            if (nc.getConnectedAPs().size() == 2)
+            if (nc.getConnectedAPs().size() == 2 || nc.getConnectedAPs().size() == 0)
                 continue;
+
             NodeAbstractAP go = nc.getConnectedByWFD() != null ? nc.getConnectedByWFD() : nc.getConnectedByWF();
-            if (go == null)
-                continue;
 
             // connected to outsider GO or this GO
             // to be a PGO it must see in range at least one client (potential bridge) from the other GO

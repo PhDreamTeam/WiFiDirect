@@ -267,10 +267,11 @@ public abstract class NodeAbstract implements Serializable {
      * @return > 0 if ap1 is better, < 0 if ap2 is better, 0 if they are equal
      */
     public static int compareGOs(NodeAbstractAP ap1, NodeAbstractAP ap2) {
-
         if (ap1 == null) return -1;
         if (ap2 == null) return +1;
-        return ap2.getNConnectedNodes() - ap1.getNConnectedNodes();
+        if (ap2.getNConnectedNodes() != ap1.getNConnectedNodes())
+            return ap2.getNConnectedNodes() - ap1.getNConnectedNodes();
+        return ap1.getId() - ap2.getId();
     }
 
     /*
