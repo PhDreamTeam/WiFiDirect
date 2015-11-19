@@ -196,8 +196,7 @@ public abstract class NodeAbstract implements Serializable {
      *
      */
     public boolean equals(Object obj) {
-        return obj != null && (obj instanceof NodeAbstract) && getName().equalsIgnoreCase(
-                ((NodeAbstract) obj).getName());
+        return obj != null && (obj instanceof NodeAbstract) && (getId() == ((NodeAbstract) obj).getId());
     }
 
     /**

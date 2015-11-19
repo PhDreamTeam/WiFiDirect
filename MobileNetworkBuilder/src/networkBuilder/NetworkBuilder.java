@@ -56,6 +56,7 @@ public class NetworkBuilder extends JFrame {
 
     Timer globaltimer = null;
 
+    // TODO: change this to lastNextID
     private int nextNodeID = 1;
 
     private JButton btnStartTimer;
@@ -187,8 +188,7 @@ public class NetworkBuilder extends JFrame {
         spinnerZoom = new JSpinner(spinnerZoomModel);
         spinnerZoom.addChangeListener(new ChangeListener() {
             public void stateChanged(ChangeEvent e) {
-                zoomFactor = spinnerZoomModel.getNumber().intValue();
-                repaint();
+                setZoomFactor(spinnerZoomModel.getNumber().intValue());
             }
         });
         spinnerZoom.setEditor(new JSpinner.DefaultEditor(spinnerZoom));
@@ -440,7 +440,11 @@ public class NetworkBuilder extends JFrame {
     }
 
     public void setZoomFactor(int zoomFactor) {
+        // TODO  this is not correct
+//        xScreenOffset = (int)((double)xScreenOffset / this.zoomFactor + xScreenOffset * zoomFactor);
+//        yScreenOffset = (int)((double)yScreenOffset / this.zoomFactor + yScreenOffset * zoomFactor);
         this.zoomFactor = zoomFactor;
+        repaint();
     }
 
     /**
@@ -459,6 +463,12 @@ public class NetworkBuilder extends JFrame {
                 InputEvent.ALT_MASK));
         miLoadScenario.addActionListener(al);
         menu.add(miLoadScenario);
+
+        JMenuItem miLoadAddScenario = new JMenuItem("Load Add Scenario", KeyEvent.VK_A);
+        miLoadAddScenario.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A,
+                InputEvent.ALT_MASK));
+        miLoadAddScenario.addActionListener(al);
+        menu.add(miLoadAddScenario);
 
         JMenuItem miSaveScenario = new JMenuItem("Save Scenario", KeyEvent.VK_S);
         miSaveScenario.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
@@ -521,7 +531,10 @@ public class NetworkBuilder extends JFrame {
                 String menuItemText = ((JMenuItem) (e.getSource())).getText();
 
                 if (menuItemText.equals("Load Scenario"))
-                    loadScenarioActions();
+                    loadScenarioActions(false);
+
+                if (menuItemText.equals("Load Add Scenario"))
+                    loadScenarioActions(true);
 
                 if (menuItemText.equals("Save Scenario"))
                     saveScenarioActions();
@@ -534,7 +547,7 @@ public class NetworkBuilder extends JFrame {
                     centerScenarioActions();
 
                 if (menuItemText.equals("ReNumbering nodes"))
-                    renumberingNodesActions();
+                    reNumberingNodesActions();
 
                 if (menuItemText.equals("Help"))
                     helpActions();
@@ -567,32 +580,31 @@ public class NetworkBuilder extends JFrame {
                 minY = n.getY();
         }
 
-        int deltaX = maxX - minX;
-        int deltaY = maxY - minY;
+        int deltaX = (maxX - minX) * zoomFactor;
+        int deltaY = (maxY - minY) * zoomFactor;
 
         int panelWidth = myPanel.getWidth();
         int panelHeight = myPanel.getHeight();
 
-        int finalDeltaX = minX - (panelWidth / 2 - deltaX / 2);
-        int finalDeltaY = minY - (panelHeight / 2 - deltaY / 2);
+        int finalDeltaX = minX * zoomFactor - (panelWidth / 2 - deltaX / 2);
+        int finalDeltaY = minY * zoomFactor - (panelHeight / 2 - deltaY / 2);
 
         for (NodeAbstract n : nodes) {
-            n.setX(n.getX() - finalDeltaX);
-            n.setY(n.getY() - finalDeltaY);
+            n.setX((n.getX() * zoomFactor - finalDeltaX) / zoomFactor);
+            n.setY((n.getY() * zoomFactor - finalDeltaY) / zoomFactor);
         }
 
-        xScreenOffset = 0; //
-        yScreenOffset = 0; // panelHeight / 2 - deltaY / 2;
-
-        // TODO: falta fazer com ZOOM - funciona com zoom = 1
+        // zero screen offset
+        xScreenOffset = 0;
+        yScreenOffset = 0;
 
         repaint();
     }
 
     /*
-     * Remumbering the nodes starting at 1 and updates nextNodeID
+     * ReNumbering the nodes starting at 1 and updates nextNodeID
      */
-    private void renumberingNodesActions() {
+    private void reNumberingNodesActions() {
         int id = 0;
 
         // update nodes
@@ -666,7 +678,7 @@ public class NetworkBuilder extends JFrame {
     /**
      *
      */
-    private void loadScenarioActions() {
+    private void loadScenarioActions(boolean toAdd) {
         // remove keyboard focus manager that suppress arrow keys
         KeyboardFocusManager.getCurrentKeyboardFocusManager()
                 .removeKeyEventDispatcher(getKeyEventDispatcher());
@@ -684,10 +696,15 @@ public class NetworkBuilder extends JFrame {
 
             String scenarioPathName = file.getPath();
             System.out.println("Loading scenario: " + file.getName());
+
+            // stop the timers, just in case
+            doStopTimerActions();
+            doStopIndividualTimerActions();
+
             if (file.getName().endsWith(".txt"))
-                loadTxtScenario(scenarioPathName);
+                loadTxtScenario(scenarioPathName, toAdd);
             else
-                loadSerializedScenario(scenarioPathName);
+                loadSerializedScenario(scenarioPathName, toAdd);
         } else {
             System.out.println("Load scenario command cancelled by user");
         }
@@ -774,20 +791,14 @@ public class NetworkBuilder extends JFrame {
     /**
      * Load a serialized scenario
      */
-    private void loadSerializedScenario(String scenarioPathName) {
-        // stop the timers, just in case
-        doStopTimerActions();
-        doStopIndividualTimerActions();
-
-        // clear all existing nodes
-        clearAll();
+    private void loadSerializedScenario(String scenarioPathName, boolean toAdd) {
 
         try {
             InputStream file = new FileInputStream(scenarioPathName);
             InputStream buffer = new BufferedInputStream(file);
             ObjectInput input = new ObjectInputStream(buffer);
 
-            // deserialize the List
+            // deserialize the nodes list and screen data
             @SuppressWarnings("unchecked")
             List<NodeAbstract> loadedNodes = (List<NodeAbstract>) input.readObject();
             zoomFactor = input.readInt();
@@ -797,15 +808,36 @@ public class NetworkBuilder extends JFrame {
 
             spinnerZoomModel.setValue(zoomFactor);
 
+            // checking for duplicated node ID
+            if (!toAdd) {
+                for (NodeAbstract node : loadedNodes) {
+                    if (nodes.contains(new NodeClient(this, node.id, 0, 0)))
+                        throw new IllegalStateException("Error: duplicate ID: " + node.id);
+                }
+            }
+
             // add nodes
             for (NodeAbstract node : loadedNodes) {
                 node.setNetworkBuilder(this);
+                if(toAdd)
+                    node.setId(++nextNodeID);
                 addNode(node);
             }
             repaint();
 
-        } catch (ClassNotFoundException | IOException ex) {
-            ex.printStackTrace();
+        } catch (ClassNotFoundException ex) {
+            String str = "Error loading scenario " + scenarioPathName + ": Class not found: " +
+                    ex.getMessage();
+            System.out.println(str);
+            labelCurrentSelectedNode.setText(str);
+        } catch (IOException ex) {
+            String str = "Error loading scenario " + scenarioPathName + ": " +
+                    ex.getClass().getSimpleName();
+            System.out.println(str);
+            labelCurrentSelectedNode.setText(str);
+        } catch (IllegalStateException e) {
+            System.out.println(e.getMessage());
+            labelCurrentSelectedNode.setText("Error loading scenario: " + e.getMessage());
         }
     }
 
@@ -879,44 +911,49 @@ public class NetworkBuilder extends JFrame {
     /*
      * Load txt scenario
      */
-    protected void loadTxtScenario(String fileName) {
+    protected void loadTxtScenario(String fileName, boolean toAdd) {
         try {
-            ArrayList<ScenarioInfo> scenarioNodes = readTxtScenario(fileName);
-            createScenario(scenarioNodes);
-            myPanel.revalidate();
+            ArrayList<ScenarioInfo> scenarioNodes = readTxtScenario(fileName, toAdd);
+            createScenario(scenarioNodes, toAdd);
             myPanel.repaint();
+            labelCurrentSelectedNode.setText("Loaded scenario: " + fileName);
         } catch (FileNotFoundException e) {
             System.out.println("File not found: " + fileName);
-        } catch (Exception e) {
+            labelCurrentSelectedNode.setText("Error loading scenario " + fileName + ": File not found");
+        } catch (IllegalStateException e) {
             System.out.println(e.getMessage());
+            labelCurrentSelectedNode.setText("Error loading scenario: " + e.getMessage());
         }
     }
 
     /*
      * create Scenario from list of scenario nodes
      */
-    private void createScenario(ArrayList<ScenarioInfo> scenarioInfoNodes) {
+    private void createScenario(ArrayList<ScenarioInfo> scenarioInfoNodes, boolean toAdd) {
+        ArrayList<NodeAbstract> newNodes = new ArrayList<>();
+
         // create nodes
         for (ScenarioInfo scenarioInfo : scenarioInfoNodes) {
 
             if (scenarioInfo instanceof ScenarioZoomInfo) {
+                // zoom info node
                 ScenarioZoomInfo szi = (ScenarioZoomInfo) scenarioInfo;
                 this.zoomFactor = szi.zoomFactor;
                 this.xScreenOffset = szi.xScreenOffset;
                 this.yScreenOffset = szi.yScreenOffset;
             } else {
-
+                // scenario node
                 ScenarioNode sc = (ScenarioNode) scenarioInfo;
 
                 // new CL node
                 if (sc.role.equals("CL"))
-                    addNode(new NodeClient(this, sc.id, sc.x, sc.y));
+                    newNodes.add(new NodeClient(this, sc.id, sc.x, sc.y));
                 // new GO node
                 if (sc.role.equals("GO"))
-                    addNode(new NodeGO(this, sc.id, sc.x, sc.y));
+                    newNodes.add(new NodeGO(this, sc.id, sc.x, sc.y));
                 // new AP node
                 if (sc.role.equals("AP"))
-                    addNode(new NodeAP(this, sc.id, sc.x, sc.y));
+                    newNodes.add(new NodeAP(this, sc.id, sc.x, sc.y));
             }
         }
 
@@ -926,14 +963,15 @@ public class NetworkBuilder extends JFrame {
                 ScenarioNode sn = (ScenarioNode) sin;
 
                 NodeClient nAux = new NodeClient(this, sn.id, 0, 0);
-                NodeAbstract n = nodes.get(nodes.indexOf(nAux));
+                NodeAbstract n = newNodes.get(newNodes.indexOf(nAux));
 
                 // checking for WFD connection
                 if (sn.wfdGOID != -1) {
                     NodeClient nAuxGO = new NodeClient(this, sn.wfdGOID, 0, 0);
-                    NodeAbstract nGO = nodes.get(nodes.indexOf(nAuxGO));
+                    NodeAbstract nGO = newNodes.get(newNodes.indexOf(nAuxGO));
                     if (!(nGO instanceof NodeGO))
-                        throw new IllegalStateException("Error: Not found GO with id: " + sn.wfdGOID);
+                        throw new IllegalStateException("Error: In " + sn +
+                                ", not found GO with id: " + sn.wfdGOID);
                     // create WFD connection
                     connectClientByWFD(n, (NodeGO) nGO);
                 }
@@ -941,28 +979,42 @@ public class NetworkBuilder extends JFrame {
                 // checking for WF connection
                 if (sn.wfGOID != -1) {
                     NodeClient nAuxGOAP = new NodeClient(this, sn.wfGOID, 0, 0);
-                    NodeAbstract nGOAP = nodes.get(nodes.indexOf(nAuxGOAP));
+                    NodeAbstract nGOAP = newNodes.get(newNodes.indexOf(nAuxGOAP));
                     if (!(nGOAP instanceof NodeAbstractAP))
-                        throw new IllegalStateException("Error: Not found GOAP with id: " + sn.wfGOID);
+                        throw new IllegalStateException("Error: In " + sn +
+                                ", not found GOAP with id: " + sn.wfGOID);
                     // create WF connection
                     connectClientByWF(n, (NodeAbstractAP) nGOAP);
                 }
             }
         }
+
+        // add nodes to scenario, if is a loading with nodes addition:
+        // then re number nodes to avoid collisions
+        for (NodeAbstract n : newNodes) {
+            if (toAdd)
+                n.setId(++nextNodeID);
+            addNode(n);
+        }
+        repaint();
     }
 
     /*
      * read Txt Scenario
      */
-    private ArrayList<ScenarioInfo> readTxtScenario(String fileName) throws FileNotFoundException {
+    private ArrayList<ScenarioInfo> readTxtScenario(String fileName, boolean toAdd)
+            throws FileNotFoundException {
         ArrayList<ScenarioInfo> scenarioNodes = new ArrayList<>();
 
         Scanner scan = new Scanner(new File(fileName));
-        int timerSlot = 0;
+
         while (scan.hasNextLine()) {
             String line = scan.nextLine();
+
+            // skip empty lines
             if (line.trim().isEmpty())
                 continue;
+
             // we have a line with contents
             Scanner lineContents = new Scanner(line);
 
@@ -986,16 +1038,13 @@ public class NetworkBuilder extends JFrame {
                         wfGOID = goID;
                 }
 
-                // print ...
-                System.out.print(" " + id + " " + role + "(" + x + ", " + y + ")");
-                if (wfdGOID != -1)
-                    System.out.print(" WFD " + wfdGOID);
-                if (wfGOID != -1)
-                    System.out.print(" WF " + wfGOID);
-                System.out.println();
+                // create new node, print it, checking it, add it to list of scenario nodes
+                ScenarioNode sn = new ScenarioNode(id, role, x, y, wfdGOID, wfGOID);
+                System.out.println("Loading node: " + sn);
+                if (!toAdd && nodes.contains(new NodeClient(this, id, 0, 0)))
+                    throw new IllegalStateException("Error loading node: ID " + id + " already exist");
+                scenarioNodes.add(sn);
 
-                // create new node and add it to list of scenario nodes
-                scenarioNodes.add(new ScenarioNode(id, role, x, y, wfdGOID, wfGOID));
             } else {
                 // zoom info line
                 if (lineContents.next().equalsIgnoreCase("ZoomInfo")) {
@@ -1003,7 +1052,8 @@ public class NetworkBuilder extends JFrame {
                     int xso = lineContents.nextInt();
                     int yso = lineContents.nextInt();
                     scenarioNodes.add(new ScenarioZoomInfo(zoomFactor, xso, yso));
-                } else throw new RuntimeException("Error: Invalid line: " + line);
+                } else
+                    throw new IllegalStateException("Error: Invalid line: " + line);
             }
             lineContents.close();
         }
@@ -1041,6 +1091,7 @@ public class NetworkBuilder extends JFrame {
         doStopTimerActions();
         nodes.clear();
         nextNodeID = 1;
+        xScreenOffset = yScreenOffset = 0;
         myPanel.repaint();
     }
 
@@ -1341,6 +1392,13 @@ public class NetworkBuilder extends JFrame {
             this.wfdGOID = wfdGOID;
             this.wfGOID = wfGOID;
             this.role = role;
+        }
+
+        @Override
+        public String toString() {
+            return role + id + " (" + x + ", " + y + ")" +
+                    (wfdGOID != -1 ? " WFD " + wfdGOID : "") +
+                    (wfGOID != -1 ? " WF " + wfGOID : "");
         }
     }
 
