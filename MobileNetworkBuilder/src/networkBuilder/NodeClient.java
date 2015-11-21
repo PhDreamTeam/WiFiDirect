@@ -287,10 +287,10 @@ public class NodeClient extends NodeAbstract {
         if (c2 == null || c2.getIsPrivilegedNode())
             return +1;
 
+        // best if the one with more potential bridges in range
         int diff = c1.getNBrothersPotentialBridgesInRange() - c2.getNBrothersPotentialBridgesInRange();
-        if (diff != 0)
-            return diff;
-        return c1.getId() - c2.getId();
+        // if equal, the best is the one with bigger ID
+        return diff != 0 ?  diff : c1.getId() - c2.getId();
     }
 
     /**

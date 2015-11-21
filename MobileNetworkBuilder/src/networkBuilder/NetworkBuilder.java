@@ -39,6 +39,9 @@ public class NetworkBuilder extends JFrame {
 
     public static Font NODES_FONT = new Font("Courier", Font.PLAIN, 10);
 
+    public static Color MSG_ERROR_BACKGROUND_COLOR = new Color(255, 30, 30);
+    public static Color MSG_ERROR_FOREGROUND_COLOR = Color.WHITE;
+
     // Fields ...
 
     private int OFFSET_SCREEN_FACTOR = 10;
@@ -84,9 +87,11 @@ public class NetworkBuilder extends JFrame {
     private JSpinner spinnerZoom;
 
     private int xScreenOffset = 0, yScreenOffset = 0;
-    private JLabel labelCurrentSelectedNode;
+    private JLabel labelInfo;
     private KeyEventDispatcher ked;
     private JToggleButton btnAutoMove;
+    private boolean lastInfoMsgHasError = false;
+
 
     /**
      * Este método cria toda a frame e coloca-a visível
@@ -202,13 +207,14 @@ public class NetworkBuilder extends JFrame {
         // bottomPanel
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.add(buttonsPanel, BorderLayout.NORTH);
-        labelCurrentSelectedNode = new JLabel("Current node:");
+        labelInfo = new JLabel("Current node:");
         Border outsideBorder = BorderFactory.createLineBorder(Color.lightGray);
         Border insideBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
         Border border = BorderFactory.createCompoundBorder(outsideBorder, insideBorder);
-        labelCurrentSelectedNode.setBorder(border);
-        labelCurrentSelectedNode.setHorizontalAlignment(SwingConstants.CENTER);
-        bottomPanel.add(labelCurrentSelectedNode, BorderLayout.CENTER);
+        labelInfo.setBorder(border);
+        labelInfo.setOpaque(true);
+        labelInfo.setHorizontalAlignment(SwingConstants.CENTER);
+        bottomPanel.add(labelInfo, BorderLayout.CENTER);
 
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(myPanel, BorderLayout.CENTER);
@@ -373,10 +379,6 @@ public class NetworkBuilder extends JFrame {
     private void moveNodeTO(NodeAbstract node, int x, int y) {
         node.moveTo(x, y);
         repaint();
-    }
-
-    public void setTextOnLabelCurrentSelectedNode(String txt) {
-        labelCurrentSelectedNode.setText("<html>" + txt + "</html>");
     }
 
     /*
@@ -706,7 +708,7 @@ public class NetworkBuilder extends JFrame {
             else
                 loadSerializedScenario(scenarioPathName, toAdd);
         } else {
-            System.out.println("Load scenario command cancelled by user");
+            writeInfoMsg("Load scenario command cancelled by user");
         }
     }
 
@@ -756,9 +758,13 @@ public class NetworkBuilder extends JFrame {
             }
             pw.println("ZoomInfo " + getZoomFactor() + " " + xScreenOffset + " " + yScreenOffset);
             pw.close();
+            writeInfoMsg("Scenario saved on: " + scenarioPathName.substring(
+                    scenarioPathName.lastIndexOf(File.separator) + File.separator.length()));
 
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ex) {
+            writeInfoErrorExceptionMsg(
+                    "Error saving scenario: " + scenarioPathName.substring(
+                            scenarioPathName.lastIndexOf(File.separator) + File.separator.length()), ex);
         }
     }
 
@@ -780,8 +786,12 @@ public class NetworkBuilder extends JFrame {
             output.writeInt(xScreenOffset);
             output.writeInt(yScreenOffset);
             output.close();
+            writeInfoMsg("Scenario saved on: " + scenarioPathName.substring(
+                    scenarioPathName.lastIndexOf(File.separator) + File.separator.length()));
         } catch (IOException ex) {
-            ex.printStackTrace();
+            writeInfoErrorExceptionMsg(
+                    "Error saving scenario: " + scenarioPathName.substring(
+                            scenarioPathName.lastIndexOf(File.separator) + File.separator.length()), ex);
         }
 
         // get back old selected node
@@ -819,25 +829,17 @@ public class NetworkBuilder extends JFrame {
             // add nodes
             for (NodeAbstract node : loadedNodes) {
                 node.setNetworkBuilder(this);
-                if(toAdd)
+                if (toAdd)
                     node.setId(++nextNodeID);
                 addNode(node);
             }
             repaint();
+            writeInfoMsg("Scenario loaded from: " + scenarioPathName.substring(
+                    scenarioPathName.lastIndexOf(File.separator) + File.separator.length()));
 
-        } catch (ClassNotFoundException ex) {
-            String str = "Error loading scenario " + scenarioPathName + ": Class not found: " +
-                    ex.getMessage();
-            System.out.println(str);
-            labelCurrentSelectedNode.setText(str);
-        } catch (IOException ex) {
-            String str = "Error loading scenario " + scenarioPathName + ": " +
-                    ex.getClass().getSimpleName();
-            System.out.println(str);
-            labelCurrentSelectedNode.setText(str);
-        } catch (IllegalStateException e) {
-            System.out.println(e.getMessage());
-            labelCurrentSelectedNode.setText("Error loading scenario: " + e.getMessage());
+        } catch (Exception ex) {
+            writeInfoErrorExceptionMsg("Error loading scenario " + scenarioPathName.substring(
+                    scenarioPathName.lastIndexOf(File.separator) + File.separator.length()), ex);
         }
     }
 
@@ -911,19 +913,59 @@ public class NetworkBuilder extends JFrame {
     /*
      * Load txt scenario
      */
-    protected void loadTxtScenario(String fileName, boolean toAdd) {
+    protected void loadTxtScenario(String scenarioPathName, boolean toAdd) {
         try {
-            ArrayList<ScenarioInfo> scenarioNodes = readTxtScenario(fileName, toAdd);
+            ArrayList<ScenarioInfo> scenarioNodes = readTxtScenario(scenarioPathName, toAdd);
             createScenario(scenarioNodes, toAdd);
             myPanel.repaint();
-            labelCurrentSelectedNode.setText("Loaded scenario: " + fileName);
-        } catch (FileNotFoundException e) {
-            System.out.println("File not found: " + fileName);
-            labelCurrentSelectedNode.setText("Error loading scenario " + fileName + ": File not found");
-        } catch (IllegalStateException e) {
-            System.out.println(e.getMessage());
-            labelCurrentSelectedNode.setText("Error loading scenario: " + e.getMessage());
+            writeInfoMsg("Scenario loaded from: " + scenarioPathName.substring(
+                    scenarioPathName.lastIndexOf(File.separator) + File.separator.length()));
+        } catch (Exception ex) {
+            writeInfoErrorExceptionMsg("Error loading scenario " + scenarioPathName.substring(
+                    scenarioPathName.lastIndexOf(File.separator) + File.separator.length()), ex);
         }
+    }
+
+    /*
+     *
+     */
+    public void writeInfoMsg(String msg) {
+        // write msg on console and info label
+        System.out.println(msg);
+        labelInfo.setText(msg);
+        // reset error flag and adjust colors
+        if (lastInfoMsgHasError) {
+            lastInfoMsgHasError = false;
+            labelInfo.setBackground(null);
+            labelInfo.setForeground(Color.black);
+        }
+    }
+
+    /*
+     *
+     */
+    public void setInfoMsgAsHTML(String txt) {
+        writeInfoMsg("<html>" + txt + "</html>");
+    }
+
+    /*
+     *
+     */
+    private void writeInfoErrorExceptionMsg(String msg, Exception ex) {
+        writeInfoErrorMsg(msg + ": " + ex.getClass().getSimpleName() + ", " + ex.getMessage());
+    }
+
+    /*
+     *
+     */
+    public void writeInfoErrorMsg(String msg) {
+        // signal flag
+        lastInfoMsgHasError = true;
+        // write msg on console and info label
+        System.out.println(msg);
+        labelInfo.setText(msg);
+        labelInfo.setBackground(MSG_ERROR_BACKGROUND_COLOR);
+        labelInfo.setForeground(MSG_ERROR_FOREGROUND_COLOR);
     }
 
     /*
@@ -1216,8 +1258,7 @@ public class NetworkBuilder extends JFrame {
     }
 
     public void updateCurrentSelectedNodeInfo(NodeAbstract node) {
-        setTextOnLabelCurrentSelectedNode(node == null ? "" : node.getNodeInfo());
-        System.out.println(node == null ? "" : node.getNodeInfo());
+        setInfoMsgAsHTML(node == null ? "" : node.getNodeInfo());
     }
 
     /**

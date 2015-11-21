@@ -55,23 +55,28 @@ class NodeGO extends NodeAbstractAP {
             return;
         }
 
+        //R1GO
         if (!getIsPrivilegedNode() && caseUnnecessaryGOWithOneClient())
             return;
 
+        //R2GO
         if ( !getIsPrivilegedNode() && caseDuplicateGO())
             return;
 
+        //R3GO
         if (!getIsPrivilegedNode() && caseGOGO())
             return;
 
+        //R4GO
         if (connectedNodes.size() == 0) {
-            List<NodeGO> gosInRange = networkBuilder.getGOListInRange(this);
+            List<NodeGO> gosInRange = networkBuilder.getGOListInRange(this); //TODO Não deveriam ser os GOs available???
             if (gosInRange.size() > 0) {
                 networkBuilder.transformNodeGOAPInNodeClient(this);
                 return;
             }
         }
 
+        //R5GO
         if (connectedNodes.size() == NodeAbstractAP.MAX_CONNECTED_NODES_ON_AP) {
             if (existDisconnectedClientsAndAloneInMyRange()) {
                 // promote one of my clients, with just WFD interface used, to GO
@@ -81,7 +86,7 @@ class NodeGO extends NodeAbstractAP {
                     if (node.connectedByWF == null && node instanceof NodeClient) {
                         bestNode = getNodeWithBiggerGONeighboursNumber(bestNode, node);
                     }
-                }
+                }//TODO Não deveriam ser os GOs available??? e só no caso de não haver é que era de GOs existentes?
                 // promote best node to GO
                 networkBuilder.disconnectWFDClient(bestNode);
                 networkBuilder.transformNodeInGO(bestNode);
