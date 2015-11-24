@@ -25,4 +25,5 @@
     <string name="MyAddress">My address:</string>
     <string name="GOIPAddress">GO IP Address</string>
     <string name="GONameIpLabel">GO name / IP:</string>
+    <string name="Save">Save</string>
 </resources>

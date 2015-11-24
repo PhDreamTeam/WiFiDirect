@@ -1,10 +1,22 @@
 package com.example.android.wifidirect;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.os.Environment;
+import android.util.Log;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * Created by ateofilo on 19-10-2015.
@@ -23,11 +35,14 @@ class ReceptionGuiInfo {
     private TextView tvCurAvgRcvSpeed;
     private TextView tvLabel;
 
-    public ReceptionGuiInfo(final LinearLayout parentLinearLayout, final String ipAddress, final int localPort) {
+    ArrayList<DataTransferInfo> transferInfoArrayList;
+
+    public ReceptionGuiInfo(final LinearLayout parentLinearLayout, final String ipAddress, final int localPort, final ArrayList<DataTransferInfo> transferInfoArrayList) {
         this.parentLinearLayout = parentLinearLayout;
         context = parentLinearLayout.getContext();
         this.ipAddress = ipAddress.substring(1);
         this.localPort = localPort;
+        this.transferInfoArrayList = transferInfoArrayList;
 
         parentLinearLayout.post(new Runnable() {
             @Override
@@ -55,6 +70,36 @@ class ReceptionGuiInfo {
                 tvLabel.setTextAppearance(context, android.R.style.TextAppearance_Medium);
                 tvLabel.setGravity(Gravity.CENTER);
                 thisLinearLayout.addView(tvLabel, params);
+                tvLabel.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        final StringBuilder sb = new StringBuilder(500);
+                        final StringBuilder sbDetailed = new StringBuilder(500);
+                        //add current system time
+                        sb.append("Speed(Mbps), dT(s), dB(MB)\n");
+                        sbDetailed.append("Speed(Mbps), dT(s), dB(MB)\n");
+                        for (DataTransferInfo dti : transferInfoArrayList) {
+                            if(dti != null) {
+                                sb.append(dti);
+                                sbDetailed.append(dti.toStringDetailed());
+                            }else{
+                                sb.append("Totals:");
+                                sbDetailed.append("Totals:");
+                            }
+                            sb.append("\n");
+                            sbDetailed.append("\n");
+                        }
+                        showYesNoDialog(context, "Transfer Information", sb.toString()
+                                , R.string.Save, android.R.string.cancel, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        // Save on file the transfer Data
+                                        saveTransferInfoOnFile(sbDetailed.toString(), "transferData.txt");
+                                    }
+                                }, null);
+
+                    }
+                });
 
                 // ====================================================
                 // results line 1
@@ -111,6 +156,31 @@ class ReceptionGuiInfo {
                 parentLinearLayout.addView(thisLinearLayout);
             }
         });
+    }
+
+    private void saveTransferInfoOnFile(String transferInfoStr, String filename) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd_HH'h'mm'm'ss's'");
+        String timestamp = sdf.format(new Date());
+
+        final File f = new File(Environment.getExternalStorageDirectory() + "/"
+                + context.getPackageName() + "/" + timestamp + "_" + filename); // add filename
+        File dirs = new File(f.getParent());
+        if (!dirs.exists())
+            dirs.mkdirs();
+        //f.createNewFile();
+        Log.d(WiFiDirectActivity.TAG, "TransferInfoData: saving to file: " + f.toString());
+        PrintWriter fopw = null;
+        try {
+            fopw = new PrintWriter(f);
+            fopw.println(timestamp + ", " + filename);
+            fopw.print(transferInfoStr);
+
+        } catch (FileNotFoundException e) {
+            Log.d(WiFiDirectActivity.TAG, "Error TransferInfoData: File not Found: " + f.toString());
+        } finally {
+            if (fopw != null)
+                fopw.close();
+        }
     }
 
     public String getTvCurAvgRcvSpeed() {
@@ -194,6 +264,18 @@ class ReceptionGuiInfo {
                 tvLabel.setTextAppearance(context, android.R.style.TextAppearance_Small);
             }
         });
+    }
+
+    /*
+     *
+     */
+    public static void showYesNoDialog(Context context, String tittle, String msg
+            , int yesResourceId, int noResourceId, DialogInterface.OnClickListener onClickYesListener, DialogInterface.OnClickListener onClickNoListener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(tittle).setMessage(msg).setCancelable(false);
+        builder.setNegativeButton(noResourceId, onClickNoListener);
+        builder.setPositiveButton(yesResourceId, onClickYesListener);
+        builder.show();
     }
 
 }

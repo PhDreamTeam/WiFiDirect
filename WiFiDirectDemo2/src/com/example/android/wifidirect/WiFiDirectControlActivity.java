@@ -173,7 +173,7 @@ public class WiFiDirectControlActivity extends Activity {
             public void onClick(View v) {
                 clearRegisteredGroups();
                 if (!hiddenMethodsAreSupported()) {
-                    showDialog("Hidden methods not supported!!!", "App will close",
+                    showDialog(WiFiDirectControlActivity.this, "Hidden methods not supported!!!", "App will close",
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
                                     // closes this activity
@@ -312,7 +312,7 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 final WifiP2PDeviceWrapper item = (WifiP2PDeviceWrapper) parent.getItemAtPosition(position);
-                showDialog("P2P Peer details", "" + item.getDevice(), null);
+                showDialog(WiFiDirectControlActivity.this, "P2P Peer details", "" + item.getDevice(), null);
             }
         });
 
@@ -320,7 +320,7 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 final RemoteDeviceServiceInfo item = (RemoteDeviceServiceInfo) parent.getItemAtPosition(position);
-                showDialog("P2P Peer with Services details", "" + item.getServiceRecord() + "\n" +
+                showDialog(WiFiDirectControlActivity.this, "P2P Peer with Services details", "" + item.getServiceRecord() + "\n" +
                         item.getWifiP2PDevice(), null);
 
                 selectedPeerName = item.getWifiP2PDevice().deviceName;
@@ -952,8 +952,8 @@ public class WiFiDirectControlActivity extends Activity {
     /*
      *
      */
-    public void showDialog(String tittle, String msg, DialogInterface.OnClickListener onClickListener) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    public static void showDialog(Context context, String tittle, String msg, DialogInterface.OnClickListener onClickListener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(tittle).setMessage(msg).setCancelable(false);
         builder.setNeutralButton(android.R.string.ok, onClickListener).show();
     }

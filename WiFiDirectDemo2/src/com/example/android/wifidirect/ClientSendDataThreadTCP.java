@@ -285,7 +285,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     private void updateSentData(final long sentData, boolean forceUpdate) {
         long currentNanoTime = System.nanoTime();
 
-        if ((currentNanoTime > lastUpdate + 1000000000) || forceUpdate) {
+        if ((currentNanoTime > lastUpdate + 1_000_000_000) || forceUpdate) {
             lastUpdate = currentNanoTime;
             editTextSentData.post(new Runnable() {
                 @Override

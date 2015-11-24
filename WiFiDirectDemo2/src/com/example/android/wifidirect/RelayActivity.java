@@ -33,13 +33,13 @@ public class RelayActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.relay_activity);
         btnStartStop = (Button) findViewById(R.id.buttonStartStop);
-        btnTcpUdp = (Button) findViewById(R.id.buttonTcpUdp);
+        btnTcpUdp = (Button) findViewById(R.id.buttonRATcpUdp);
 
         isTcp = btnTcpUdp.getText().toString().equals("TCP");
 
         printNetworkInfo(getApplicationContext());
 
-        findViewById(R.id.buttonStartStop).setOnClickListener(
+        btnStartStop.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -72,7 +72,7 @@ public class RelayActivity extends Activity {
                     }
                 });
 
-        findViewById(R.id.buttonTcpUdp).setOnClickListener(
+        btnTcpUdp.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -177,9 +177,9 @@ public class RelayActivity extends Activity {
 //        connMng.requestNetwork(netReq, netCallBack);
 //
 //        // get P2P Network
-//        // cada vez que se activa este callback dá um erro "o Wi-Fi Direct foi imterrompido"
+//        // cada vez que se activa este callback dï¿½ um erro "o Wi-Fi Direct foi imterrompido"
 //        // mesmo que comentado o interior do callback
-//        // CONCLUSÃO: NÃO SE PODE UTILIZAR NO "OPO"
+//        // CONCLUSï¿½O: Nï¿½O SE PODE UTILIZAR NO "OPO"
 //        NetworkRequest netReq2 = new NetworkRequest.Builder().
 //                addCapability(NetworkCapabilities.NET_CAPABILITY_WIFI_P2P).
 //                //addTransportType(NetworkCapabilities.TRANSPORT_WIFI).

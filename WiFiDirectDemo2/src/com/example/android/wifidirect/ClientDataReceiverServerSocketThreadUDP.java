@@ -5,6 +5,7 @@ import android.widget.LinearLayout;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.util.ArrayList;
 
 /**
  * Created by DR e AT on 27/05/2015.
@@ -23,6 +24,7 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
     private ReceptionGuiInfo receptionGuiInfoGui;
     double maxSpeed = 0;
 
+    ArrayList<DataTransferInfo> transferInfoArrayList = new ArrayList<>();
 
     public ClientDataReceiverServerSocketThreadUDP(int portNumber,
                                                    LinearLayout llReceptionZone, int bufferSize) {
@@ -41,7 +43,7 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
             serverDatagramSocket = new DatagramSocket(portNumber);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
-            receptionGuiInfoGui = new ReceptionGuiInfo(llReceptionZone, "...", portNumber);
+            receptionGuiInfoGui = new ReceptionGuiInfo(llReceptionZone, "...", portNumber, transferInfoArrayList);
 
             while (run) {
                 // wait connections

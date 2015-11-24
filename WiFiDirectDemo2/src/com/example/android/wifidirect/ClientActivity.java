@@ -23,16 +23,16 @@ import java.net.UnknownHostException;
  * <p/>
  * DONE: adapt GUI to collapse transmission or receiving section
  * DONE: enable several receptions simultaneously
- * DONE: controlar o final da transmissão
- * DONE: colocar a velocidade média como delta de inicio e fim, na recepção
+ * DONE: controlar o final da transmissï¿½o
+ * DONE: colocar a velocidade mï¿½dia como delta de inicio e fim, na recepï¿½ï¿½o
  * DONE: controlar os bytes recebidos (pode estar relacionado com o ponto seguinte)
- * porque os bytes recebidos não são iguais aos transmitidos
- * DONE: controlar o fim da recepção: por fim dos dados, ou detecção do fecho do canal
- * DONE: duração da transmissão, na recepção
+ * porque os bytes recebidos nï¿½o sï¿½o iguais aos transmitidos
+ * DONE: controlar o fim da recepï¿½ï¿½o: por fim dos dados, ou detecï¿½ï¿½o do fecho do canal
+ * DONE: duraï¿½ï¿½o da transmissï¿½o, na recepï¿½ï¿½o
  * Done: UDP
  * DONE: send image TCP and UDP (not considered as an image)
  * <p/>
- * - gravar resultados em ficheiro - talvez não seja necessário
+ * - gravar resultados em ficheiro - talvez nï¿½o seja necessï¿½rio
  * TODO:  .
  * - place button to close reception result
  *
@@ -70,6 +70,9 @@ public class ClientActivity extends Activity {
     private TextView tvReceptionZone;
     private LinearLayout llTransmissionZone;
     private LinearLayout llReceptionZone;
+    private RadioButton rbReplyInfoNone;
+    private RadioButton rbReplyInfoOKs;
+    private RadioButton rbReplyInfoEcho;
 
 
     // TODO - clear  gui elements that are no more necessary (wait for a while)
@@ -89,7 +92,7 @@ public class ClientActivity extends Activity {
         btnStartStopTransmitting = (Button) findViewById(R.id.buttonStartStopTransmitting);
         btnStartStopServer = (Button) findViewById(R.id.buttonStartStopServer);
         btnSendImage = (Button) findViewById(R.id.buttonSendImage);
-        btnTcpUdp = (Button) findViewById(R.id.buttonTcpUdp);
+        btnTcpUdp = (Button) findViewById(R.id.buttonCATcpUdp);
 
         btnTdls = (Button) findViewById(R.id.buttonTdls);
         btnRegCrTdls = (Button) findViewById(R.id.buttonRegCrTdls);
@@ -112,6 +115,11 @@ public class ClientActivity extends Activity {
 
         llTransmissionZone = (LinearLayout) findViewById(R.id.LinearLayoutTransmission);
         llReceptionZone = (LinearLayout) findViewById(R.id.LinearLayoutReception);
+
+
+        rbReplyInfoNone = (RadioButton) findViewById(R.id.radioButtonClientReplyInfoNone);
+        rbReplyInfoOKs = (RadioButton) findViewById(R.id.radioButtonClientReplyInfoOKs);
+        rbReplyInfoEcho = (RadioButton) findViewById(R.id.radioButtonClientReplyInfoEcho);
 
 
         // Remove TDLS buttons on devices that doesn't support it
@@ -189,10 +197,12 @@ public class ClientActivity extends Activity {
 
                             toast("Start Receiving!!!!!");
 
+                            setEnabledRadioButtonsReplyMode(false);
+
                             if (isTcp)
                                 clientReceiver = new ClientDataReceiverServerSocketThreadTCP(
                                         Integer.parseInt(rcvPortNumber)
-                                        , llReceptionZone, bufferSize);
+                                        , llReceptionZone, bufferSize, getReplyMode());
                             else
                                 clientReceiver = new ClientDataReceiverServerSocketThreadUDP(
                                         Integer.parseInt(rcvPortNumber)
@@ -204,13 +214,14 @@ public class ClientActivity extends Activity {
                         } else {
                             clientReceiver.stopThread();
                             btnStartStopServer.setText("Start Receiving");
+                            setEnabledRadioButtonsReplyMode(true);
                         }
                     }
                 }
 
         );
 
-        findViewById(R.id.buttonTcpUdp).setOnClickListener(
+        btnTcpUdp.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -372,4 +383,20 @@ public class ClientActivity extends Activity {
         super.onBackPressed();
         toast("onBackPressed");
     }
+
+    public ReplyMode getReplyMode(){
+        if(rbReplyInfoOKs.isChecked())
+            return ReplyMode.OK;
+        if(rbReplyInfoEcho.isChecked())
+            return ReplyMode.ECHO;
+        return ReplyMode.NONE;
+    }
+
+    private void setEnabledRadioButtonsReplyMode(boolean enable){
+        rbReplyInfoNone.setEnabled(enable);
+        rbReplyInfoOKs.setEnabled(enable);
+        rbReplyInfoEcho.setEnabled(enable);
+    }
 }
+
+enum ReplyMode {NONE, OK, ECHO};

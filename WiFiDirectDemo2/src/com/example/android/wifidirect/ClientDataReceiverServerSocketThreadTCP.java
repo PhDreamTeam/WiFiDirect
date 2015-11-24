@@ -21,15 +21,17 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
     int portNumber;
     ServerSocket serverSocket;
     boolean run = true;
+    ReplyMode replyMode;
 
     LinearLayout llReceptionZone;
     ArrayList<IStoppable> workingThreads = new ArrayList<IStoppable>();
 
     public ClientDataReceiverServerSocketThreadTCP(int portNumber,
-                                                   LinearLayout llReceptionZone, int bufferSize) {
+                                                   LinearLayout llReceptionZone, int bufferSize, ReplyMode replyMode) {
         this.portNumber = portNumber;
         this.bufferSize = bufferSize;
         this.llReceptionZone = llReceptionZone;
+        this.replyMode = replyMode;
     }
 
     @Override
@@ -41,7 +43,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 // wait connections
                 Socket cliSock = serverSocket.accept();
                 myToast("Received a connection...");
-                IStoppable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize, llReceptionZone);
+                IStoppable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize, llReceptionZone, replyMode);
                 workingThreads.add(t);
                 t.start();
             }
@@ -65,20 +67,24 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         boolean run = true;
         Socket originSocket;
         byte buffer[];
-        long rcvDataCounterTotal, rcvDataCounterLastValue, sentDataCounterTotal;
+        long rcvDataCounterTotal = 0, rcvDataCounterLastValue = 0, sentDataCounterTotal = 0;
         long initialNanoTime;
         long lastUpdate = 0;
         double maxSpeed = 0;
 
+        ReplyMode replyMode;
         ReceptionGuiInfo receptionGuiInfoGui;
 
-        public ClientDataReceiverThreadTCP(Socket cliSock, int bufferSize, LinearLayout llReceptionZone) {
+        ArrayList<DataTransferInfo> transferInfoArrayList = new ArrayList<>();
+
+        public ClientDataReceiverThreadTCP(Socket cliSock, int bufferSize, LinearLayout llReceptionZone, ReplyMode replyMode) {
             originSocket = cliSock;
             this.bufferSize = bufferSize;
             buffer = new byte[bufferSize];
+            this.replyMode = replyMode;
 
             receptionGuiInfoGui = new ReceptionGuiInfo(llReceptionZone, cliSock.getRemoteSocketAddress().toString(),
-                    cliSock.getLocalPort());
+                    cliSock.getLocalPort(), transferInfoArrayList);
         }
 
         public long getRcvDataCounterTotal() {
@@ -129,7 +135,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 }
 
-                initialNanoTime = System.nanoTime();
+                initialNanoTime = lastUpdate = System.nanoTime();
                 Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSize);
 
                 // Receive client data
@@ -149,8 +155,14 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     rcvDataCounterTotal += readDataLen;
 
                     //send reply
-                    dos.write("ok".getBytes()); // send reply to original client
-                    sentDataCounterTotal += "ok".getBytes().length;
+                    if (replyMode == ReplyMode.OK) {
+                        dos.write("ok".getBytes()); // send reply to original client
+                        sentDataCounterTotal += "ok".getBytes().length;
+                    }
+                    if (replyMode == ReplyMode.ECHO) {
+                        dos.write(buffer, 0, readDataLen); // send reply to original client
+                        sentDataCounterTotal += readDataLen;
+                    }
 
                     updateVisualDeltaInformation(false/*true*/); // DEBUG DR
                     // this may slow down reception. may want to get data only when necessary
@@ -167,7 +179,10 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 // calculate avg speed  based on time
                 long deltaNanoTime = finalNanoTime - initialNanoTime;
                 receptionGuiInfoGui.setCurAvgRcvSpeed((rcvDataCounterTotal / 1024.0) /
-                        (deltaNanoTime / 1000000000.0));
+                        (deltaNanoTime / 1_000_000_000.0));
+                // record total transfer data info
+                transferInfoArrayList.add(null);
+                transferInfoArrayList.add(new DataTransferInfo(deltaNanoTime, rcvDataCounterTotal, finalNanoTime));
 
                 // remove this thread from the container of threads
                 workingThreads.remove(this);
@@ -224,21 +239,22 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             // elapsed time
             final long currentNanoTime = System.nanoTime();
 
-            if ((currentNanoTime > lastUpdate + 1000000000) || forcedUpdate) {
+            if ((currentNanoTime > lastUpdate + 1_000_000_000) || forcedUpdate) {
 
                 long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
-                double elapsedDeltaRcvTimeSeconds = (double) elapsedDeltaRcvTimeNano / 1000000000.0;
+                double elapsedDeltaRcvTimeSeconds = elapsedDeltaRcvTimeNano / 1_000_000_000.0;
                 // transfer speed B/s
-                final double speed = ((sentDataCounterTotal - rcvDataCounterLastValue) / 1024)
-                        / elapsedDeltaRcvTimeSeconds;
+                long deltaBytes = rcvDataCounterTotal - rcvDataCounterLastValue;
+                final double speedKbps = (deltaBytes / 1024.0) / elapsedDeltaRcvTimeSeconds;
                 lastUpdate = currentNanoTime;
-                rcvDataCounterLastValue = sentDataCounterTotal;
+                rcvDataCounterLastValue = rcvDataCounterTotal;
 
-                if (speed > maxSpeed)
-                    maxSpeed = speed;
+                if (speedKbps > maxSpeed)
+                    maxSpeed = speedKbps;
 
-                receptionGuiInfoGui.setData(rcvDataCounterTotal / 1024,
-                        sentDataCounterTotal, maxSpeed, speed);
+                receptionGuiInfoGui.setData(rcvDataCounterTotal / 1024, sentDataCounterTotal, maxSpeed, speedKbps);
+
+                transferInfoArrayList.add(new DataTransferInfo(elapsedDeltaRcvTimeNano, deltaBytes, currentNanoTime));
             }
         }
 
@@ -258,6 +274,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             }
         });
     }
+
 }
 
 
