@@ -13,8 +13,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 
 /**
- * Created by DR & AT on 20/05/2015.
- *
+ * Created by DR & AT on 20/05/2015
+ * .
  */
 public class CrForwardServerTCP extends Thread implements IStoppable {
     private int bufferSize;
@@ -22,7 +22,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
     ServerSocket serverSocket;
     boolean run = true;
     TextView textViewTransferedDataOrigDest, textViewTransferedDataDestOrig;
-    ArrayList<IStoppable> workingThreads = new ArrayList<IStoppable>();
+    ArrayList<IStoppable> workingThreads = new ArrayList<>();
 
     public CrForwardServerTCP(int portNumber, TextView textViewTransferedDataOrigDest
             , TextView textViewTransferedDataDestOrig, int bufferSize) {
@@ -118,10 +118,9 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 threadForwardDataOrigDest.join();
                 threadForwardDataDestOrig.join();
 
-
             } catch (Exception e) {
                 e.printStackTrace();
-            }finally {
+            } finally {
                 closeCloseable(destDOS);
                 closeCloseable(origDIS);
                 closeCloseable(originSocket);
@@ -137,7 +136,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
             }
         }
 
-        private Thread forwardData(final DataInputStream dis, final DataOutputStream dos, final TextView textView ) {
+        private Thread forwardData(final DataInputStream dis, final DataOutputStream dos, final TextView textView) {
             Thread thread = new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -158,8 +157,9 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                                 dos.write(buffer, 0, nBytesRead);
                                 forwardedData += nBytesRead;
                                 deltaForwardData += nBytesRead;
-                                long updatedLastTime = updateVisualDeltaInformation(forwardedData, deltaForwardData, lastUpdate, textView);
-                                if(updatedLastTime !=0) {
+                                long updatedLastTime = updateVisualDeltaInformation(
+                                        forwardedData, deltaForwardData, lastUpdate, textView);
+                                if (updatedLastTime != 0) {
                                     deltaForwardData = 0; // if updated clear delta counter
                                     lastUpdate = updatedLastTime; // new updated inf timestamp
                                 }
@@ -193,7 +193,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 // transfer speed B/s
                 double speed = (deltaForwardData / 1024) / elapsedDeltaRcvTimeSeconds;
                 //final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
-                final String msg = String.format("%d KB %4.2f KBps", forwardedData / 1024,  speed);
+                final String msg = String.format("%d KB %4.2f KBps", forwardedData / 1024, speed);
                 lastUpdate = currentNanoTime;
                 textView.post(new Runnable() {
                     @Override

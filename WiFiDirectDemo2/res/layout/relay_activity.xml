@@ -30,23 +30,25 @@
             </LinearLayout>
             <TextView android:layout_width="match_parent" android:layout_height="30dp"
                       android:id="@+id/textView24" android:gravity="center" android:background="#f7160a54"
-                      android:text="  "/>
+                      android:text="Relay Rules"/>
             <TableLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
+                    android:layout_height="wrap_content" android:layout_gravity="center_horizontal"
+                    android:id="@+id/tableLayoutRelayRules">
                 <TableRow
                         android:layout_width="fill_parent"
-                        android:layout_height="fill_parent">
+                        android:layout_height="fill_parent" android:id="@+id/tableRowHeader">
                     <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="Destination address"
+                            android:text="To Destination Address"
                             android:textStyle="bold" android:layout_gravity="center_horizontal"
-                            android:id="@+id/textView13" android:layout_weight="1"/>
+                            android:id="@+id/textView13" android:layout_weight="1" android:gravity="center_horizontal"/>
                     <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                              android:text="Next CR address"
+                              android:text="Use Next CR Address"
                               android:textStyle="bold" android:layout_gravity="center_horizontal"
-                              android:id="@+id/textView14" android:layout_weight="1"/>
+                              android:id="@+id/textView14" android:layout_weight="1"
+                              android:gravity="center_horizontal"/>
                 </TableRow>
                 <TableRow
                         android:layout_width="fill_parent"
@@ -64,31 +66,42 @@
                             android:layout_height="wrap_content"
                             android:id="@+id/editTextLn1CRelayIP" android:layout_weight="1"/>
                 </TableRow>
-                <TableRow
-                        android:layout_width="fill_parent"
-                        android:layout_height="fill_parent">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="192.168.49."
-                              android:id="@+id/textView17" android:layout_weight="1"/>
-                    <EditText android:layout_width="0dp" android:layout_height="wrap_content"
-                              android:id="@+id/editTextLn2DestIP" android:layout_weight="1"/>
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="192.168.49."
-                              android:id="@+id/textView18" android:layout_weight="1"/>
-                    <EditText android:layout_width="0dp" android:layout_height="wrap_content"
-                              android:id="@+id/editTextLn2CRelayIP" android:layout_weight="1"/>
-                </TableRow>
-                <TableRow
-                        android:layout_width="fill_parent"
-                        android:layout_height="fill_parent">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="192.168.49."
-                              android:id="@+id/textView19" android:layout_weight="1"/>
-                    <EditText android:layout_width="0dp" android:layout_height="wrap_content"
-                              android:id="@+id/editTextLn3DestIP" android:layout_weight="1"/>
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="192.168.49."
-                              android:id="@+id/textView20" android:layout_weight="1"/>
-                    <EditText android:layout_width="0dp" android:layout_height="wrap_content"
-                              android:id="@+id/editTextLn3CRelayIP" android:layout_weight="1"/>
-                </TableRow>
             </TableLayout>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView56"
+                      android:gravity="center" android:background="#316f33" android:text="New Rule"
+                      android:textAppearance="?android:attr/textAppearanceSmall"/>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:text="To:"
+                        android:id="@+id/textView40"/>
+                <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/editTextCRNewRuleTo" android:text="192.168.49.1" android:layout_weight="1"/>
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:text=" use "
+                        android:id="@+id/textView55"/>
+                <EditText
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/editTextCRNewRuleUse" android:text="192.168.49." android:layout_weight="1"/>
+                <Button
+                        style="?android:attr/buttonStyleSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Add rule"
+                        android:id="@+id/buttonCRAddNewCRRule" android:backgroundTint="#fc790872"
+                        android:backgroundTintMode="src_atop"/>
+            </LinearLayout>
             <TextView android:layout_width="match_parent" android:layout_height="30dp"
                       android:text=" "
                       android:id="@+id/textView25" android:gravity="center" android:background="#f7160a54"/>

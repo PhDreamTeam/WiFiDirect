@@ -2,14 +2,12 @@ package com.example.android.wifidirect;
 
 import android.app.Activity;
 import android.content.Context;
-import android.net.*;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -26,6 +24,10 @@ public class RelayActivity extends Activity {
     IStoppable crForwarder;
     Button btnStartStop, btnTcpUdp;
     boolean isTcp;
+    private Button btnNewRule;
+    private EditText etCRNewRuleTo;
+    private EditText etCRNewRuleUse;
+    private TableLayout tableLayoutCRRules;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -34,6 +36,12 @@ public class RelayActivity extends Activity {
         setContentView(R.layout.relay_activity);
         btnStartStop = (Button) findViewById(R.id.buttonStartStop);
         btnTcpUdp = (Button) findViewById(R.id.buttonRATcpUdp);
+
+        etCRNewRuleTo = (EditText) findViewById(R.id.editTextCRNewRuleTo);
+        etCRNewRuleUse = (EditText) findViewById(R.id.editTextCRNewRuleUse);
+
+        btnNewRule = (Button) findViewById(R.id.buttonCRAddNewCRRule);
+        tableLayoutCRRules = (TableLayout) findViewById(R.id.tableLayoutRelayRules);
 
         isTcp = btnTcpUdp.getText().toString().equals("TCP");
 
@@ -86,8 +94,33 @@ public class RelayActivity extends Activity {
                     }
                 });
 
+        btnNewRule.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addNewCRRule(etCRNewRuleTo.getText().toString(), etCRNewRuleUse.getText().toString());
+            }
+        });
+
         // avoid keyboard popping up
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+    }
+
+    /*
+     * VOU AQUI
+     */
+    private void addNewCRRule(String toAddress, String useCRAddress) {
+        TableRow tr = new TableRow(this);
+
+        TextView tvTo = new TextView(this);
+        tvTo.setText(toAddress);
+
+        TextView tvUse = new TextView(this);
+        tvUse.setText(useCRAddress);
+
+        tr.addView(tvTo);
+        tr.addView(tvUse);
+
+        tableLayoutCRRules.addView(tr);
     }
 
     @Override
