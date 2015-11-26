@@ -37,12 +37,18 @@ class ReceptionGuiInfo {
 
     ArrayList<DataTransferInfo> transferInfoArrayList;
 
-    public ReceptionGuiInfo(final LinearLayout parentLinearLayout, final String ipAddress, final int localPort, final ArrayList<DataTransferInfo> transferInfoArrayList) {
+    //debug
+    ClientDataReceiverServerSocketThreadTCP.ClientDataReceiverThreadTCP clientDataReceiverThreadTCP;
+
+    public ReceptionGuiInfo(final LinearLayout parentLinearLayout, final String ipAddress, final int localPort
+            , final ArrayList<DataTransferInfo> transferInfoArrayList
+            , final ClientDataReceiverServerSocketThreadTCP.ClientDataReceiverThreadTCP cliThread) {
         this.parentLinearLayout = parentLinearLayout;
         context = parentLinearLayout.getContext();
         this.ipAddress = ipAddress.substring(1);
         this.localPort = localPort;
         this.transferInfoArrayList = transferInfoArrayList;
+        this.clientDataReceiverThreadTCP = cliThread;
 
         parentLinearLayout.post(new Runnable() {
             @Override
@@ -79,15 +85,29 @@ class ReceptionGuiInfo {
                         sb.append("Speed(Mbps), dT(s), dB(MB)\n");
                         sbDetailed.append("Speed(Mbps), dT(s), dB(MB)\n");
                         for (DataTransferInfo dti : transferInfoArrayList) {
-                            if(dti != null) {
+                            if (dti != null) {
                                 sb.append(dti);
                                 sbDetailed.append(dti.toStringDetailed());
-                            }else{
+                            } else {
                                 sb.append("Totals:");
                                 sbDetailed.append("Totals:");
                             }
                             sb.append("\n");
                             sbDetailed.append("\n");
+                        }
+                        if (cliThread != null && cliThread.batteryInitial != null) {
+                            String initS = "Battery init: Level=" + cliThread.batteryInitial.batteryLevel +
+                                    ", pct=" + (cliThread.batteryInitial.batteryLevel / (double) cliThread.batteryInitial.batteryScale) * 100.0 + "%" +
+                                    ", voltage=" + cliThread.batteryInitial.batteryVoltage + "mV, temp=" + cliThread.batteryInitial.batteryTemperature / 10.0 + "ºC\n";
+                            sb.append(initS);
+                            sbDetailed.append(initS);
+                        }
+                        if (cliThread != null && cliThread.batteryFinal != null) {
+                            String finalS = "Battery Final: Level=" + cliThread.batteryFinal.batteryLevel +
+                                    ", pct=" + (cliThread.batteryFinal.batteryLevel / (double)cliThread.batteryFinal.batteryScale)  * 100.0 + "%" +
+                                    ", voltage=" + cliThread.batteryFinal.batteryVoltage+ "mV, temp=" + cliThread.batteryFinal.batteryTemperature / 10.0 + "ºC";
+                            sb.append(finalS);
+                            sbDetailed.append(finalS);
                         }
                         showYesNoDialog(context, "Transfer Information", sb.toString()
                                 , R.string.Save, android.R.string.cancel, new DialogInterface.OnClickListener() {
