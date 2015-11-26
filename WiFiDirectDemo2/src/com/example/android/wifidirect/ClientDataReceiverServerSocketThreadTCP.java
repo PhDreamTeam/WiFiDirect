@@ -1,6 +1,5 @@
 package com.example.android.wifidirect;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.BatteryManager;
@@ -8,8 +7,8 @@ import android.os.Environment;
 import android.util.Log;
 import android.widget.LinearLayout;
 import android.widget.Toast;
-import com.example.android.wifidirect.system.BatteryInfo;
-import com.example.android.wifidirect.system.SystemInfo;
+import com.example.android.wifidirect.utils.BatteryInfo;
+import com.example.android.wifidirect.utils.SystemInfo;
 
 import java.io.*;
 import java.net.ServerSocket;

@@ -1,4 +1,4 @@
-package com.example.android.wifidirect.system;
+package com.example.android.wifidirect.utils;
 
 /**
  * Created by DR AT on 26/11/2015

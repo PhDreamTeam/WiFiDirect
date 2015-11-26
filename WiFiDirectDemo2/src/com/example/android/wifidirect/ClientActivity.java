@@ -2,8 +2,6 @@ package com.example.android.wifidirect;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.LightingColorFilter;
@@ -15,7 +13,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.*;
-import com.example.android.wifidirect.system.SystemInfo;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;

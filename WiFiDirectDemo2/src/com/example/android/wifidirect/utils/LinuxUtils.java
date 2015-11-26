@@ -1,4 +1,4 @@
-package com.example.android.wifidirect;
+package com.example.android.wifidirect.utils;
 
 /**
  * Created by AT DR on 26-11-2015
@@ -351,17 +351,15 @@ public final class LinuxUtils {
     /*
      * Show this process info
      */
-    public static void showProcessInfo() {
+    public static ProcessInfo getProcessInfo() {
         int pid = android.os.Process.myPid();
-        showProcessInfo(pid);
+        return getProcessInfo(pid);
     }
 
     /*
      *
      */
-    public static void showProcessInfo(int pid) {
-
-        System.out.println("Showing information from pid = " + pid);
+    public static ProcessInfo getProcessInfo(int pid) {
 
         // read process stat file and store their elements in string arrayList
         String procStat = readProcessStat(pid);
@@ -375,13 +373,11 @@ public final class LinuxUtils {
         // (1) pid  %d
         // The process ID.
         int thePid = Integer.parseInt(pInfo.get(0));
-        System.out.println("pid = " + thePid);
 
         //(2) comm  %s
         // The filename of the executable, in parentheses.
         // This is visible whether or not the executable is swapped out.
         String filename = pInfo.get(1);
-        System.out.println("filename = " + filename);
 
         // 3) state  %c
         // One of the following characters, indicating process state:
@@ -389,21 +385,19 @@ public final class LinuxUtils {
         //  S  Sleeping in an interruptible wait
         //  D Waiting in uninterruptible disk sleep
         //  Z Zombie
-        //  T Stopped (on a signal)or(before Linux 2.6 .33) trace stopped
-        //  t Tracing stop(Linux 2.6 .33 onward)
-        //  W Paging (only before Linux 2.6 .0)
-        //  X Dead (from Linux 2.6 .0 onward)
-        //  x Dead (Linux 2.6 .33 to 3.13 only)
-        //  K Wakekill (Linux 2.6 .33 to 3.13 only)
-        //  W Waking (Linux 2.6 .33 to 3.13 only)
+        //  T Stopped (on a signal)or(before Linux 2.6.33) trace stopped
+        //  t Tracing stop(Linux 2.6.33 onward)
+        //  W Paging (only before Linux 2.6.0)
+        //  X Dead (from Linux 2.6.0 onward)
+        //  x Dead (Linux 2.6.33 to 3.13 only)
+        //  K Wakekill (Linux 2.6.33 to 3.13 only)
+        //  W Waking (Linux 2.6.33 to 3.13 only)
         //  P Parked (Linux 3.9 to 3.13 only)
         char state = pInfo.get(2).charAt(0);
-        System.out.println("state = " + state);
 
         // (4) ppid % d
         // The PID of the parent of this process.
         int ppid = Integer.parseInt(pInfo.get(3));
-        System.out.println("ppid = " + ppid);
 
         /*
         (5) pgrp % d
@@ -456,14 +450,14 @@ public final class LinuxUtils {
         // so that applications that are not aware of the guest time field do not lose that
         // time from their calculations.
         int utime = Integer.parseInt(pInfo.get(13));
-        System.out.println("utime = " + utime + " clock ticks, " + (utime * getSystemClockTickTimeInMs()) + "ms");
 
 
         // (15) stime % lu
         // Amount of time that this process has been scheduled in kernel mode,
         // measured in clock ticks(divide by sysconf(_SC_CLK_TCK)).
         int stime = Integer.parseInt(pInfo.get(14));
-        System.out.println("stime = " + stime + " clock ticks, " + (stime * getSystemClockTickTimeInMs()) + "ms");
+
+        return new ProcessInfo(pid, filename, state, ppid, utime, stime);
     }
 
     public static int getSystemClockTickTimeInMs() {
@@ -472,3 +466,4 @@ public final class LinuxUtils {
 
 
 }
+

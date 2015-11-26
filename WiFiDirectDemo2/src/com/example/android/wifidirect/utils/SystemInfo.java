@@ -1,16 +1,9 @@
-package com.example.android.wifidirect.system;
+package com.example.android.wifidirect.utils;
 
-import android.app.Activity;
-import android.app.admin.DeviceAdminReceiver;
-import android.app.admin.DevicePolicyManager;
 import android.content.*;
 import android.os.BatteryManager;
 import android.os.PowerManager;
-import android.os.SystemClock;
-import android.provider.Settings;
 import android.util.Log;
-import android.widget.Toast;
-import com.example.android.wifidirect.ClientActivity;
 import com.example.android.wifidirect.WiFiDirectActivity;
 
 import java.lang.reflect.InvocationTargetException;
@@ -24,8 +17,8 @@ public class SystemInfo {
 
     private static IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 
+    // unnecessary - from here
     private static Method getGoToSleepMethod = null;
-
 
     static {
         for (Method method : PowerManager.class.getDeclaredMethods()) {
@@ -36,6 +29,7 @@ public class SystemInfo {
             }
         }
     }
+    // to here
 
     /*
      *

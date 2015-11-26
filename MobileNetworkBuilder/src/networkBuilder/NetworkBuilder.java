@@ -21,13 +21,8 @@ import java.util.List;
  * IN Work:
  * DONE: individual timers, mover nós
  * <p/>
- * Scenario doesn't stop
- * Código dos APs
- * Optimizar (reorganizar a rede) / reconfigurar
- * Falha no algoritmo: dois GO com dois clientes estes não se connectam
- * UM GO que se mova e ficar perto de outro GO, nenhum deles volta a ser um Cliente (caso de ego)
- * <p/>
- * - load scenario and timer (what to do?)
+ *
+ * TODO falta depois colocar a informação visual dos delays de (latência) acesso à informação dos outros nós
  */
 public class NetworkBuilder extends JFrame {
 
@@ -343,9 +338,6 @@ public class NetworkBuilder extends JFrame {
         spinnerIndTimersMinTime.setFocusable(false);
         //spinnerIndTimersMinTime.setEditor(new JSpinner.DefaultEditor(spinnerIndTimersMinTime));
         panelIndTimers.add(spinnerIndTimersMinTime);
-
-        // TODO HERE vou aqui a colocar  a informação visual dos tempos dos timers
-        // TODO falta depois colocar a informação visual dos delays de (latência) acesso à informação dos outros nós
 
         // Spinner and SpinnerModel Ind Timers delta random Time
         spinnerIndTimersDeltaTimeModel = new SpinnerNumberModel(600, 100, 5000, 100); // value, min, max, step
@@ -777,6 +769,9 @@ public class NetworkBuilder extends JFrame {
         }
     }
 
+    /**
+     *
+     */
     private void saveTxtScenario(String scenarioPathName) {
 
         try {
@@ -803,7 +798,7 @@ public class NetworkBuilder extends JFrame {
         }
     }
 
-    /*
+    /**
      *
      */
     private void saveSerializedScenario(String scenarioPathName) {
@@ -878,9 +873,9 @@ public class NetworkBuilder extends JFrame {
         }
     }
 
-    /*
-    *
-    */
+    /**
+     *
+     */
     private void doStartIndividualTimerActions() {
         for (NodeAbstract node : nodes) {
             node.startTimer(getIndividualTimerDelay());
@@ -893,7 +888,7 @@ public class NetworkBuilder extends JFrame {
         btnStepTimer.setVisible(false);
     }
 
-    /*
+    /**
      *
      */
     private void doStopIndividualTimerActions() {
@@ -933,7 +928,7 @@ public class NetworkBuilder extends JFrame {
         btnStepTimer.setVisible(true);
     }
 
-    /*
+    /**
      *
      */
     private void doTimerActions() {
@@ -945,7 +940,7 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
-    /*
+    /**
      * Load txt scenario
      */
     protected void loadTxtScenario(String scenarioPathName, boolean toAdd) {
@@ -961,7 +956,7 @@ public class NetworkBuilder extends JFrame {
         }
     }
 
-    /*
+    /**
      *
      */
     public void writeInfoMsg(String msg) {
@@ -976,21 +971,21 @@ public class NetworkBuilder extends JFrame {
         }
     }
 
-    /*
+    /**
      *
      */
     public void setInfoMsgAsHTML(String txt) {
         writeInfoMsg("<html>" + txt + "</html>");
     }
 
-    /*
+    /**
      *
      */
     private void writeInfoErrorExceptionMsg(String msg, Exception ex) {
         writeInfoErrorMsg(msg + ": " + ex.getClass().getSimpleName() + ", " + ex.getMessage());
     }
 
-    /*
+    /**
      *
      */
     public void writeInfoErrorMsg(String msg) {
@@ -1003,7 +998,7 @@ public class NetworkBuilder extends JFrame {
         labelInfo.setForeground(MSG_ERROR_FOREGROUND_COLOR);
     }
 
-    /*
+    /**
      * create Scenario from list of scenario nodes
      */
     private void createScenario(ArrayList<ScenarioInfo> scenarioInfoNodes, boolean toAdd) {
@@ -1076,7 +1071,7 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
-    /*
+    /**
      * read Txt Scenario
      */
     private ArrayList<ScenarioInfo> readTxtScenario(String fileName, boolean toAdd)
@@ -1172,7 +1167,7 @@ public class NetworkBuilder extends JFrame {
         myPanel.repaint();
     }
 
-    /*
+    /**
      *
      */
     public static boolean isGOConnectedToGO(NodeAbstractAP ap1, NodeAbstractAP ap2) {
@@ -1185,7 +1180,7 @@ public class NetworkBuilder extends JFrame {
         return false;
     }
 
-    /*
+    /**
      *
      */
     public NodeAP transformNodeInAP(NodeAbstract node) {
@@ -1211,7 +1206,7 @@ public class NetworkBuilder extends JFrame {
         return ap;
     }
 
-    /*
+    /**
      *
      */
     public NodeGO transformNodeInGO(NodeAbstract node) {
@@ -1237,7 +1232,7 @@ public class NetworkBuilder extends JFrame {
         return go;
     }
 
-    /*
+    /**
      *
      */
     public NodeClient transformNodeGOAPInNodeClient(NodeAbstractAP nodeGO) {
@@ -1458,6 +1453,9 @@ public class NetworkBuilder extends JFrame {
 
     }
 
+    /**
+     *
+     */
     class ScenarioNode extends ScenarioInfo {
         int id, x, y;
         String role;
@@ -1480,6 +1478,9 @@ public class NetworkBuilder extends JFrame {
         }
     }
 
+    /**
+     *
+     */
     class ScenarioZoomInfo extends ScenarioInfo {
         int zoomFactor;
         int xScreenOffset, yScreenOffset;

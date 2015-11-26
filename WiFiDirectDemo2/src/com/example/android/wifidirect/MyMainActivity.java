@@ -17,6 +17,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.example.android.accesspoint.WiFiApActivity;
 import com.example.android.accesspoint.WifiApControl;
+import com.example.android.wifidirect.utils.AndroidUtils;
+import com.example.android.wifidirect.utils.LinuxUtils;
+import com.example.android.wifidirect.utils.ProcessInfo;
 
 import java.io.File;
 import java.io.IOException;
@@ -116,7 +119,7 @@ public class MyMainActivity extends Activity {
         String cmd = "logcat -v time -f " + "/storage/sdcard0/logs/" + timestamp + "_" + appName + ".txt";
 
         File logDir = new File("/storage/sdcard0/logs");
-        if(!logDir.exists())
+        if (!logDir.exists())
             logDir.mkdir();
 
         try {
@@ -133,7 +136,7 @@ public class MyMainActivity extends Activity {
         super.onResume();
         adjustWifiStateButtons();
 
-        if(receiver == null) {
+        if (receiver == null) {
             receiver = new BroadcastReceiver() {
 
                 @Override
@@ -170,8 +173,8 @@ public class MyMainActivity extends Activity {
         enableAllWiFiActivityButtons(wifiActive, p2pSupported);
     }
 
-    private void adjustWifiApControlButton (){
-        if(!WifiApControl.isSupported()) {
+    private void adjustWifiApControlButton() {
+        if (!WifiApControl.isSupported()) {
             btnMainWiFiTurnOff.setVisibility(View.GONE);
         }
     }
@@ -291,7 +294,10 @@ public class MyMainActivity extends Activity {
         btnShowInfo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                LinuxUtils.showProcessInfo();
+                ProcessInfo pInfo = LinuxUtils.getProcessInfo();
+                String pInfoStr = pInfo.getFormattedString();
+                AndroidUtils.toast(context, pInfoStr);
+                System.out.println("Showing current process information: " + pInfoStr);
             }
         });
 

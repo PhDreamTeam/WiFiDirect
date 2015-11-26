@@ -17,6 +17,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.*;
+import com.example.android.wifidirect.utils.AndroidUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -629,21 +630,14 @@ public class WiFiDirectControlActivity extends Activity {
     /*
      *
      */
-    private void toast(String msg) {
-        Toast.makeText(WiFiDirectControlActivity.this, msg, Toast.LENGTH_SHORT).show();
-    }
-
-    /*
-     *
-     */
     private void startDiscoverPeers() {
         p2pManager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
             public void onSuccess() {
-                toast("Discover peers started");
+                AndroidUtils.toast(context, "Discover peers started");
             }
 
             public void onFailure(int reasonCode) {
-                toast("Discover peers failed: " + reasonCode);
+                AndroidUtils.toast(context, "Discover peers failed: " + reasonCode);
             }
         });
     }
@@ -654,11 +648,11 @@ public class WiFiDirectControlActivity extends Activity {
     private void stopDiscoverPeers() {
         p2pManager.stopPeerDiscovery(channel, new WifiP2pManager.ActionListener() {
             public void onSuccess() {
-                toast("Stopping Discover peers");
+                AndroidUtils.toast(context, "Stopping Discover peers");
             }
 
             public void onFailure(int reasonCode) {
-                toast("Stopping Peer Discovery Failed: " + reasonCode);
+                AndroidUtils.toast(context, "Stopping Peer Discovery Failed: " + reasonCode);
             }
         });
     }
