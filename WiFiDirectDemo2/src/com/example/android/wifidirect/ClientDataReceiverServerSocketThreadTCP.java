@@ -1,9 +1,15 @@
 package com.example.android.wifidirect;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.os.Environment;
 import android.util.Log;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+import com.example.android.wifidirect.system.BatteryInfo;
+import com.example.android.wifidirect.system.SystemInfo;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -62,7 +68,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             stoppable.stopThread();
     }
 
-    private class ClientDataReceiverThreadTCP extends Thread implements IStoppable {
+    class ClientDataReceiverThreadTCP extends Thread implements IStoppable {
         private int bufferSize;
         boolean run = true;
         Socket originSocket;
@@ -72,10 +78,14 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         long lastUpdate = 0;
         double maxSpeed = 0;
 
+        BatteryInfo batteryInitial;
+        BatteryInfo batteryFinal;
+
         ReplyMode replyMode;
         ReceptionGuiInfo receptionGuiInfoGui;
 
         ArrayList<DataTransferInfo> transferInfoArrayList = new ArrayList<>();
+
 
         public ClientDataReceiverThreadTCP(Socket cliSock, int bufferSize, LinearLayout llReceptionZone, ReplyMode replyMode) {
             originSocket = cliSock;
@@ -84,7 +94,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             this.replyMode = replyMode;
 
             receptionGuiInfoGui = new ReceptionGuiInfo(llReceptionZone, cliSock.getRemoteSocketAddress().toString(),
-                    cliSock.getLocalPort(), transferInfoArrayList);
+                    cliSock.getLocalPort(), transferInfoArrayList, this);
         }
 
         public long getRcvDataCounterTotal() {
@@ -134,6 +144,9 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     myToast("Receiving file on server: " + f.getAbsolutePath());
 
                 }
+
+                // get battery levels
+                batteryInitial = SystemInfo.getBatteryInfo(llReceptionZone.getContext());
 
                 initialNanoTime = lastUpdate = System.nanoTime();
                 Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSize);
@@ -216,6 +229,12 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     e.printStackTrace();
                 }
                 close(fos);
+                IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+                Intent batteryStatus = llReceptionZone.getContext().registerReceiver(null, ifilter);
+                batteryFinal = new BatteryInfo(batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                        , batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                        , batteryStatus.getIntExtra("voltage", 0)
+                        , batteryStatus.getIntExtra("temperature", 0));
             }
         }
 

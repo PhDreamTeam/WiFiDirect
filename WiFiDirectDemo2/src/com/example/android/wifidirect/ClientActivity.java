@@ -2,6 +2,8 @@ package com.example.android.wifidirect;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.LightingColorFilter;
@@ -13,6 +15,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.*;
+import com.example.android.wifidirect.system.SystemInfo;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -163,6 +166,7 @@ public class ClientActivity extends Activity {
                         if (btnStartStopTransmitting.getText().toString().equals("Start Transmitting")) {
                             transmitData(null); // send dummy data for tests
                             btnStartStopTransmitting.setText("Stop Transmitting");
+//                            SystemInfo.goToSleep(ClientActivity.this , ClientActivity.this); // TEST turn off screen
                         } else {
                             clientTransmitter.stopThread();
                             btnStartStopTransmitting.setText("Start Transmitting");

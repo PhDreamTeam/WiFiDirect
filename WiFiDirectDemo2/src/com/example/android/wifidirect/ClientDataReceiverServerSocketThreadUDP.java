@@ -43,7 +43,7 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
             serverDatagramSocket = new DatagramSocket(portNumber);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
-            receptionGuiInfoGui = new ReceptionGuiInfo(llReceptionZone, "...", portNumber, transferInfoArrayList);
+            receptionGuiInfoGui = new ReceptionGuiInfo(llReceptionZone, "...", portNumber, transferInfoArrayList, null);
 
             while (run) {
                 // wait connections
