@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Created by DR & AT on 20/05/2015
@@ -23,13 +24,15 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
     boolean run = true;
     TextView textViewTransferedDataOrigDest, textViewTransferedDataDestOrig;
     ArrayList<IStoppable> workingThreads = new ArrayList<>();
+    private HashMap<String, String> relayRulesMap;
 
     public CrForwardServerTCP(int portNumber, TextView textViewTransferedDataOrigDest
-            , TextView textViewTransferedDataDestOrig, int bufferSize) {
+            , TextView textViewTransferedDataDestOrig, int bufferSize, HashMap<String, String> relayRulesMap) {
         this.portNumber = portNumber;
         this.textViewTransferedDataOrigDest = textViewTransferedDataOrigDest;
         this.textViewTransferedDataDestOrig = textViewTransferedDataDestOrig;
         this.bufferSize = bufferSize;
+        this.relayRulesMap = relayRulesMap;
     }
 
 
@@ -87,6 +90,8 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
             });
 
             byte buffer[] = new byte[bufferSize];
+            String destIpAddress = null;
+            int destPortNumber = 0;
 
             try {
                 // read initial destination data...
@@ -98,9 +103,14 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 String addressInfo = new String(buffer, 0, addressInfoLen);
                 String aia[] = addressInfo.split(";");
 
-                String destIpAddress = aia[0];
-                int destPortNumber = Integer.parseInt(aia[1]);
+                destIpAddress = aia[0];
+                destPortNumber = Integer.parseInt(aia[1]);
 
+                String relayAddress = relayRulesMap.get(destIpAddress);
+                if (relayAddress != null) {
+                    destIpAddress = relayAddress;
+                    destPortNumber = 30000; //default CR PORT TODO CHANGE THIS TO A DINAMIC PORT
+                }
                 // open destination socket
                 destSocket = new Socket(destIpAddress, destPortNumber);
                 destDOS = new DataOutputStream(destSocket.getOutputStream());
@@ -119,6 +129,8 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 threadForwardDataDestOrig.join();
 
             } catch (Exception e) {
+                Log.d(WiFiDirectActivity.TAG, "Error opening relay channel to: " + destIpAddress + ":" + destPortNumber);
+
                 e.printStackTrace();
             } finally {
                 closeCloseable(destDOS);
@@ -130,7 +142,8 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
 
         public void closeCloseable(Closeable closeable) {
             try {
-                closeable.close();
+                if(closeable != null)
+                    closeable.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }

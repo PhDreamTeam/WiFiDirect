@@ -5,6 +5,7 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.*;
@@ -14,10 +15,11 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 
 /**
- * Created by DR & AT on 20/05/2015.
- *
+ * Created by DR & AT on 20/05/2015
+ * .
  */
 public class RelayActivity extends Activity {
     RelayActivity myThis;
@@ -28,6 +30,7 @@ public class RelayActivity extends Activity {
     private EditText etCRNewRuleTo;
     private EditText etCRNewRuleUse;
     private TableLayout tableLayoutCRRules;
+    private HashMap<String,String> relayRulesMap = new HashMap<>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -65,7 +68,7 @@ public class RelayActivity extends Activity {
                                 crForwarder = new CrForwardServerTCP(Integer.parseInt(CRPort)
                                         , ((TextView) findViewById(R.id.textViewTransferedDataOrigDest))
                                         , ((TextView) findViewById(R.id.textViewTransferedDataDestOrig))
-                                        , bufferSize);
+                                        , bufferSize, relayRulesMap);
                             else
                                 crForwarder = new CrForwardServerUDP(Integer.parseInt(CRPort)
                                         , ((TextView) findViewById(R.id.textViewTransferedDataOrigDest))
@@ -106,21 +109,30 @@ public class RelayActivity extends Activity {
     }
 
     /*
-     * VOU AQUI
+     *
      */
     private void addNewCRRule(String toAddress, String useCRAddress) {
         TableRow tr = new TableRow(this);
 
+        TableRow.LayoutParams trp = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT
+                , TableRow.LayoutParams.WRAP_CONTENT, 1.0f);
+
         TextView tvTo = new TextView(this);
+        tvTo.setGravity(Gravity.CENTER);
+        tvTo.setLayoutParams(trp);
         tvTo.setText(toAddress);
+        tr.addView(tvTo);
 
         TextView tvUse = new TextView(this);
+        tvUse.setGravity(Gravity.CENTER);
+        tvUse.setLayoutParams(trp);
         tvUse.setText(useCRAddress);
-
-        tr.addView(tvTo);
         tr.addView(tvUse);
 
         tableLayoutCRRules.addView(tr);
+
+        // Save rule
+        relayRulesMap.put(toAddress, useCRAddress);
     }
 
     @Override

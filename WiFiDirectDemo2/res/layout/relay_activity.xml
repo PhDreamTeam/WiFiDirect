@@ -50,22 +50,6 @@
                               android:id="@+id/textView14" android:layout_weight="1"
                               android:gravity="center_horizontal"/>
                 </TableRow>
-                <TableRow
-                        android:layout_width="fill_parent"
-                        android:layout_height="fill_parent">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="192.168.49."
-                              android:id="@+id/textView15" android:layout_weight="1"/>
-                    <EditText
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:id="@+id/editTextLn1DestIP" android:layout_weight="1"/>
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="192.168.49."
-                              android:id="@+id/textView16" android:layout_weight="1"/>
-                    <EditText
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:id="@+id/editTextLn1CRelayIP" android:layout_weight="1"/>
-                </TableRow>
             </TableLayout>
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView56"
                       android:gravity="center" android:background="#316f33" android:text="New Rule"
@@ -83,17 +67,19 @@
                 <EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:id="@+id/editTextCRNewRuleTo" android:text="192.168.49.1" android:layout_weight="1"/>
+                        android:id="@+id/editTextCRNewRuleTo" android:text="192.168.49.1" android:layout_weight="1"
+                        android:textAppearance="?android:attr/textAppearanceSmall"/>
                 <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textAppearance="?android:attr/textAppearanceSmall"
-                        android:text=" use "
+                        android:text=" use: "
                         android:id="@+id/textView55"/>
                 <EditText
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:id="@+id/editTextCRNewRuleUse" android:text="192.168.49." android:layout_weight="1"/>
+                        android:id="@+id/editTextCRNewRuleUse" android:text="192.168.49." android:layout_weight="1"
+                        android:textAppearance="?android:attr/textAppearanceSmall"/>
                 <Button
                         style="?android:attr/buttonStyleSmall"
                         android:layout_width="wrap_content"
