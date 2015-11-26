@@ -123,6 +123,14 @@ public class RelayActivity extends Activity {
         tvTo.setText(toAddress);
         tr.addView(tvTo);
 
+
+
+//        android:layout_width="0dp"
+//        android:layout_height="wrap_content"
+//        android:text="To Destination Address"
+//        android:textStyle="bold" android:layout_gravity="center_horizontal"
+//        android:id="@+id/textView13" android:layout_weight="1" android:gravity="center_horizontal"/>
+
         TextView tvUse = new TextView(this);
         tvUse.setGravity(Gravity.CENTER);
         tvUse.setLayoutParams(trp);

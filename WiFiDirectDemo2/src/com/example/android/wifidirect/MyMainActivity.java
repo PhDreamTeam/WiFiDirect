@@ -47,6 +47,7 @@ public class MyMainActivity extends Activity {
     private final IntentFilter intentFilter = new IntentFilter();
     BroadcastReceiver receiver;
     private Button btnMainWiFiAP;
+    private Button btnShowInfo;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -82,6 +83,8 @@ public class MyMainActivity extends Activity {
         btnClient = (Button) findViewById(R.id.buttonMainClient);
 
         btnMainWiFiAP = (Button) findViewById(R.id.buttonMainWiFiAP);
+
+        btnShowInfo = (Button) findViewById(R.id.buttonShowInfo);
 
         if (!isWifiOnDevice()) {
             tvMainWiFiState.setText("WiFI not supported");
@@ -284,6 +287,13 @@ public class MyMainActivity extends Activity {
                         startActivity(intent);
                     }
                 });
+
+        btnShowInfo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LinuxUtils.showProcessInfo();
+            }
+        });
 
     }
 

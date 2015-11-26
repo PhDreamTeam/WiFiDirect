@@ -84,13 +84,15 @@ public class NetworkBuilder extends JFrame {
     // zoom data
     private int zoomFactor = 1;
     private SpinnerNumberModel spinnerZoomModel;
-    private JSpinner spinnerZoom;
 
     private int xScreenOffset = 0, yScreenOffset = 0;
     private JLabel labelInfo;
     private KeyEventDispatcher ked;
     private JToggleButton btnAutoMove;
     private boolean lastInfoMsgHasError = false;
+
+    private SpinnerNumberModel spinnerIndTimersMinTimeModel;
+    private SpinnerNumberModel spinnerIndTimersDeltaTimeModel;
 
 
     /**
@@ -190,7 +192,7 @@ public class NetworkBuilder extends JFrame {
         panelZoom.add(new JLabel("Zoom: "));
         // Spinner and SpinnerModel
         spinnerZoomModel = new SpinnerNumberModel(1, 1, 4, 1); // value, min, max, step
-        spinnerZoom = new JSpinner(spinnerZoomModel);
+        JSpinner spinnerZoom = new JSpinner(spinnerZoomModel);
         spinnerZoom.addChangeListener(new ChangeListener() {
             public void stateChanged(ChangeEvent e) {
                 setZoomFactor(spinnerZoomModel.getNumber().intValue());
@@ -320,11 +322,44 @@ public class NetworkBuilder extends JFrame {
         KeyboardFocusManager.getCurrentKeyboardFocusManager()
                 .addKeyEventDispatcher(getKeyEventDispatcher());
 
+        buildTimersInfoOnMainPanel();
+
 
         // puts the frame visible (is not visible at start)
         setVisible(true);
     }
 
+    /*
+     *
+     */
+    private void buildTimersInfoOnMainPanel() {
+        // Zoom area
+        JPanel panelIndTimers = new JPanel();
+        panelIndTimers.setBorder(BorderFactory.createLineBorder(Color.gray));
+        panelIndTimers.add(new JLabel("Ind timers time: min and delta: "));
+        // Spinner and SpinnerModel Ind Timers Min Time
+        spinnerIndTimersMinTimeModel = new SpinnerNumberModel(800, 100, 5000, 100); // value, min, max, step
+        JSpinner spinnerIndTimersMinTime = new JSpinner(spinnerIndTimersMinTimeModel);
+        spinnerIndTimersMinTime.setFocusable(false);
+        //spinnerIndTimersMinTime.setEditor(new JSpinner.DefaultEditor(spinnerIndTimersMinTime));
+        panelIndTimers.add(spinnerIndTimersMinTime);
+
+        // TODO HERE vou aqui a colocar  a informação visual dos tempos dos timers
+        // TODO falta depois colocar a informação visual dos delays de (latência) acesso à informação dos outros nós
+
+        // Spinner and SpinnerModel Ind Timers delta random Time
+        spinnerIndTimersDeltaTimeModel = new SpinnerNumberModel(600, 100, 5000, 100); // value, min, max, step
+        JSpinner spinnerIndTimersDeltaTime = new JSpinner(spinnerIndTimersDeltaTimeModel);
+        spinnerIndTimersDeltaTime.setFocusable(false);
+        //spinnerIndTimersDeltaTime.setEditor(new JSpinner.DefaultEditor(spinnerIndTimersDeltaTime));
+        panelIndTimers.add(spinnerIndTimersDeltaTime);
+
+        buttonsPanel.add(panelIndTimers);
+    }
+
+    /*
+     *
+     */
     private KeyEventDispatcher getKeyEventDispatcher() {
         if (ked == null) {
 
@@ -1246,7 +1281,9 @@ public class NetworkBuilder extends JFrame {
     }
 
     public int getIndividualTimerDelay() {
-        return TIMER_STEP + rg.nextInt((int) (TIMER_STEP * 0.2));
+        // return TIMER_STEP + rg.nextInt((int) (TIMER_STEP * 0.2));
+        return spinnerIndTimersMinTimeModel.getNumber().intValue() +
+                rg.nextInt(spinnerIndTimersDeltaTimeModel.getNumber().intValue());
     }
 
     public int getXScreenOffset() {
