@@ -1,0 +1,7 @@
+
+- Colocar latência na obtenção dos dados dos outros nós
+- Corrigir o funcionamento do layout com os botões
+- Colocar os parâmteros do movimento visíveis na GUI (tempo de espera, movimento, nº de movimentos)
+
+- Talvez: conseguir gravar e fazer play de um cenário com Churn
+- Talvez: melhorar o movimento dos nós

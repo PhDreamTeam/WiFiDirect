@@ -1,9 +1,9 @@
 package layouts;
 
 /**
- * Center layout - este layout coloca o único componente no centro e packed
+ * Center layout - este layout coloca o ï¿½nico componente no centro e packed
  * 
- * By: António Teófilo
+ * By: Antï¿½nio Teï¿½filo
  */
 
 import java.awt.Component;
@@ -67,21 +67,7 @@ public class CenterLayout implements LayoutManager2 {
 
 	/* Required by LayoutManager. */
 	public Dimension minimumLayoutSize(Container parent) {
-		// System.out.println("CL: minimumLayoutSize called");
-		Dimension dim = new Dimension(0, 0);
-		Component c = parent.getComponent(0);
-
-		// setSizes(parent);
-		if (c != null) {
-			dim = c.getPreferredSize();
-		}
-
-		// Always add the container's insets!
-		Insets insets = parent.getInsets();
-		dim.width += insets.left + insets.right;
-		dim.height += insets.top + insets.bottom;
-
-		return dim;
+		return preferredLayoutSize(parent);
 	}
 
 	/* Required by LayoutManager. */
@@ -99,20 +85,20 @@ public class CenterLayout implements LayoutManager2 {
 
 		// the component
 		if (comp != null && comp.isVisible()) {
-			Dimension preferedSize = comp.getPreferredSize();
-			if (dimParent.width < preferedSize.width + insets.left
+			Dimension preferredSize = comp.getPreferredSize();
+			if (dimParent.width < preferredSize.width + insets.left
 					+ insets.right)
-				preferedSize.width = dimParent.width - insets.left
+				preferredSize.width = dimParent.width - insets.left
 						- insets.right;
-			if (dimParent.height < preferedSize.height + insets.top
+			if (dimParent.height < preferredSize.height + insets.top
 					+ insets.bottom)
-				preferedSize.height = dimParent.height - insets.top
+				preferredSize.height = dimParent.height - insets.top
 						- insets.bottom;
-			int x = (dimParent.width - insets.left - insets.right - preferedSize.width) / 2;
-			int y = (dimParent.height - insets.top - insets.bottom - preferedSize.height) / 2;
+			int x = (dimParent.width - insets.left - insets.right - preferredSize.width) / 2;
+			int y = (dimParent.height - insets.top - insets.bottom - preferredSize.height) / 2;
 			// Set the component's size and position.
-			comp.setBounds(x + insets.left, y + insets.top, preferedSize.width,
-					preferedSize.height);
+			comp.setBounds(x + insets.left, y + insets.top, preferredSize.width,
+					preferredSize.height);
 		}
 	}
 

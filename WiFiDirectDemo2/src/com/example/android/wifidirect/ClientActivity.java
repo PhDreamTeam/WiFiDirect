@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.*;
+import com.example.android.wifidirect.utils.AndroidUtils;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -86,7 +87,7 @@ public class ClientActivity extends Activity {
         context = getApplicationContext();
         wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 
-        //Toast.makeText(context, "onCreate", Toast.LENGTH_SHORT).show();
+        //AndroidUtils.toast(this, "onCreate");
         setContentView(R.layout.client_activity);
 
         btnStartStopTransmitting = (Button) findViewById(R.id.buttonStartStopTransmitting);
@@ -180,7 +181,7 @@ public class ClientActivity extends Activity {
                         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                         intent.setType("image/*");
                         startActivityForResult(intent, CHOOSE_FILE_RESULT_CODE);
-                        toast("Choose image!!");
+                        AndroidUtils.toast(ClientActivity.this, "Choose image!!");
                     }
                 });
 
@@ -196,7 +197,7 @@ public class ClientActivity extends Activity {
                             String rcvPortNumber = editTextServerPortNumber.getText().toString();
                             int bufferSize = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
 
-                            toast("Start Receiving!!!!!");
+                            AndroidUtils.toast(ClientActivity.this, "Start Receiving!!!!!");
 
                             setEnabledRadioButtonsReplyMode(false);
 
@@ -272,7 +273,7 @@ public class ClientActivity extends Activity {
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     boolean isTdlsSupported() {
         boolean isTDLSSupported = wifiManager.isTdlsSupported();
-        //toast("TDLS supported -> " + isTDLSSupported);
+        //AndroidUtils.toast(this, "TDLS supported -> " + isTDLSSupported);
         return isTDLSSupported;
     }
 
@@ -283,15 +284,11 @@ public class ClientActivity extends Activity {
         try {
             remoteIPAddress = InetAddress.getByName(crIpAddressStr);
             wifiManager.setTdlsEnabled(remoteIPAddress, enable);
-            //toast("setTdlsEnabled " + enable + " on " + crIpAddressStr + " with success");
+            //AndroidUtils.toast(this, "setTdlsEnabled " + enable + " on " + crIpAddressStr + " with success");
 
         } catch (UnknownHostException e) {
             Log.e("ClientActivity", "setTdlsEnabled " + enable + " on " + crIpAddressStr, e);
         }
-    }
-
-    void toast(String msg) {
-        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
     }
 
     private void transmitData(Uri fileToSend) {
@@ -303,7 +300,7 @@ public class ClientActivity extends Activity {
         String delay = editTextDelay.getText().toString();
         int bufferSize = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
 
-        toast("Start transmitting!!!!!");
+        AndroidUtils.toast(this, "Start transmitting!!!!!");
 
         if (isTcp)
             clientTransmitter = new ClientSendDataThreadTCP(destIpAddress,
@@ -332,14 +329,14 @@ public class ClientActivity extends Activity {
         if (requestCode == CHOOSE_FILE_RESULT_CODE && resultCode == RESULT_OK && null != data) {
             Uri uriFileToSend = data.getData();
             Log.d(WiFiDirectActivity.TAG, "Start transmitting image: " + uriFileToSend.toString());
-            toast("Start transmitting image: " + uriFileToSend.toString());
+            AndroidUtils.toast(ClientActivity.this, "Start transmitting image: " + uriFileToSend.toString());
             transmitData(uriFileToSend); // send file
         }
     }
 
     @Override
     protected void onDestroy() {
-        //toast("onDestroy");
+        //AndroidUtils.toast(this, "onDestroy");
 
         if (clientTransmitter != null)
             clientTransmitter.stopThread();
@@ -352,37 +349,37 @@ public class ClientActivity extends Activity {
 
     public void onStop() {
         super.onStop();
-        //toast("onStop");
+        //AndroidUtils.toast(this, "onStop");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        //toast("onPause");
+        //AndroidUtils.toast(this, "onPause");
     }
 
     @Override
     protected void onRestart() {
         super.onRestart();
-        //toast("onRestart");
+        //AndroidUtils.toast(this, "onRestart");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        //toast("onResume");
+        //AndroidUtils.toast(this, "onResume");
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        //toast("onStart");
+        //AndroidUtils.toast(this, "onStart");
     }
 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        toast("onBackPressed");
+        AndroidUtils.toast(this, "onBackPressed");
     }
 
     public ReplyMode getReplyMode(){

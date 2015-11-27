@@ -27,7 +27,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * Created by AT DR on 08-05-2015.
+ * Created by AT DR on 08-05-2015
  * .
  */
 public class MyMainActivity extends Activity {
@@ -52,6 +52,9 @@ public class MyMainActivity extends Activity {
     private Button btnMainWiFiAP;
     private Button btnShowInfo;
 
+    /**
+     *
+     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,7 +72,7 @@ public class MyMainActivity extends Activity {
 
         intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
 
-        //check if WiFIDirect is supported
+        //checking if WiFIDirect is supported
         p2pSupported = isWifiDirectSupported(context);
 
         tvMainWiFiState = (TextView) findViewById(R.id.textViewMainWiFiState);
@@ -98,7 +101,7 @@ public class MyMainActivity extends Activity {
         }
 
         if (!p2pSupported) {
-            enableAllWiFiActivityButtons(true, p2pSupported);
+            enableAllWiFiActivityButtons(true, false);
             btnP2PWFDClient.setText("P2P not supported");
         }
 
@@ -131,6 +134,9 @@ public class MyMainActivity extends Activity {
         }
     }
 
+    /**
+     *
+     */
     @Override
     public void onResume() {
         super.onResume();
@@ -153,12 +159,18 @@ public class MyMainActivity extends Activity {
         registerReceiver(receiver, intentFilter);
     }
 
+    /**
+     *
+     */
     @Override
     public void onPause() {
         super.onPause();
         unregisterReceiver(receiver);
     }
 
+    /**
+     *
+     */
     private void adjustWifiStateButtons() {
         boolean wifiActive = isWifiActive();
         if (wifiActive) {
@@ -173,12 +185,18 @@ public class MyMainActivity extends Activity {
         enableAllWiFiActivityButtons(wifiActive, p2pSupported);
     }
 
+    /**
+     *
+     */
     private void adjustWifiApControlButton() {
         if (!WifiApControl.isSupported()) {
             btnMainWiFiTurnOff.setVisibility(View.GONE);
         }
     }
 
+    /**
+     *
+     */
     private void setButtonsListeners() {
 
         btnMainWiFiTurnOn.setOnClickListener(
@@ -198,7 +216,6 @@ public class MyMainActivity extends Activity {
                         wifiManager.setWifiEnabled(false);
                     }
                 });
-
 
         btnWFDGroupOwner.setOnClickListener(
                 new View.OnClickListener() {
@@ -303,6 +320,9 @@ public class MyMainActivity extends Activity {
 
     }
 
+    /**
+     *
+     */
     private boolean isWifiDirectSupported(Context ctx) {
         PackageManager pm = ctx.getPackageManager();
         FeatureInfo[] features = pm.getSystemAvailableFeatures();
@@ -314,6 +334,9 @@ public class MyMainActivity extends Activity {
         return false;
     }
 
+    /**
+     *
+     */
     private boolean isWifiOnDevice() {
         if (connManager == null)
             return false;
@@ -321,10 +344,16 @@ public class MyMainActivity extends Activity {
         return wifiNetworkInfo != null;
     }
 
+    /**
+     *
+     */
     private boolean isWifiActive() {
         return wifiManager.isWifiEnabled();
     }
 
+    /**
+     *
+     */
     private void enableAllWiFiActivityButtons(boolean enable, boolean p2pSuported) {
         btnWFDGroupOwner.setEnabled(enable && p2pSuported);
         btnWFDClient.setEnabled(enable && p2pSuported);

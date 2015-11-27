@@ -22,7 +22,6 @@ import java.util.List;
  * DONE: individual timers, mover nós
  * <p/>
  *
- * TODO falta depois colocar a informação visual dos delays de (latência) acesso à informação dos outros nós
  */
 public class NetworkBuilder extends JFrame {
 
@@ -91,7 +90,7 @@ public class NetworkBuilder extends JFrame {
 
 
     /**
-     * Este método cria toda a frame e coloca-a visível
+     * Build main GUI e set it visible
      */
     public void init() {
         // set title
@@ -319,12 +318,14 @@ public class NetworkBuilder extends JFrame {
 
         buildTimersInfoOnMainPanel();
 
+//        mainPanel.doLayout();
+//        mainPanel.revalidate();
 
         // puts the frame visible (is not visible at start)
         setVisible(true);
     }
 
-    /*
+    /**
      *
      */
     private void buildTimersInfoOnMainPanel() {
@@ -349,7 +350,7 @@ public class NetworkBuilder extends JFrame {
         buttonsPanel.add(panelIndTimers);
     }
 
-    /*
+    /**
      *
      */
     private KeyEventDispatcher getKeyEventDispatcher() {
@@ -387,6 +388,9 @@ public class NetworkBuilder extends JFrame {
         return ked;
     }
 
+    /**
+     *
+     */
     private void addScreenOffset(int deltaXOffset, int deltaYOffset) {
         deltaXOffset *= OFFSET_SCREEN_FACTOR;
         deltaYOffset *= OFFSET_SCREEN_FACTOR;
@@ -396,11 +400,14 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
+    /**
+     *
+     */
     public boolean isAutoMoveActivated() {
         return btnAutoMove.isSelected();
     }
 
-    /*
+    /**
      *
      */
     private void moveNodeTO(NodeAbstract node, int x, int y) {
@@ -408,7 +415,7 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
-    /*
+    /**
      *
      */
     public void updateInfoLabel() {
@@ -420,7 +427,7 @@ public class NetworkBuilder extends JFrame {
         nodesLabel.setText(msgBuilder.toString());
     }
 
-    /*
+    /**
      *
      */
     private void selectAction(int x, int y) {
@@ -450,6 +457,9 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
+    /**
+     *
+     */
     public void setSelectedNode(NodeAbstract node) {
         if (currentSelectedNode != null) {
             currentSelectedNode.setSelected(false);
@@ -464,10 +474,16 @@ public class NetworkBuilder extends JFrame {
         currentSelectedNode = node;
     }
 
+    /**
+     *
+     */
     public int getZoomFactor() {
         return zoomFactor;
     }
 
+    /**
+     *
+     */
     public void setZoomFactor(int zoomFactor) {
         // TODO  this is not correct
 //        xScreenOffset = (int)((double)xScreenOffset / this.zoomFactor + xScreenOffset * zoomFactor);
@@ -552,6 +568,9 @@ public class NetworkBuilder extends JFrame {
         return menuBar;
     }
 
+    /**
+     *
+     */
     ActionListener getMenuListener() {
         // Menu Action Listener
         return new ActionListener() {
@@ -590,6 +609,9 @@ public class NetworkBuilder extends JFrame {
         };
     }
 
+    /**
+     *
+     */
     private void centerScenarioActions() {
         if (nodes.size() == 0)
             return;
@@ -630,7 +652,7 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
-    /*
+    /**
      * ReNumbering the nodes starting at 1 and updates nextNodeID
      */
     private void reNumberingNodesActions() {
@@ -646,7 +668,7 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
-    /*
+    /**
      *
      */
     private void deleteSelectedNodeActions() {
@@ -663,7 +685,7 @@ public class NetworkBuilder extends JFrame {
         repaint();
     }
 
-    /*
+    /**
      * help actions
      */
     private void helpActions() {
@@ -680,7 +702,7 @@ public class NetworkBuilder extends JFrame {
                 strHelp, "Help", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    /*
+    /**
      * about actions
      */
     private void aboutActions() {
@@ -693,6 +715,9 @@ public class NetworkBuilder extends JFrame {
         JOptionPane.showMessageDialog(this, strAbout, "About", JOptionPane.INFORMATION_MESSAGE);
     }
 
+    /**
+     *
+     */
     private void exitActions() {
         // stop timers and dispose frame
         doStopTimerActions();
@@ -902,7 +927,6 @@ public class NetworkBuilder extends JFrame {
         btnStopIndTimers.setVisible(false);
         btnStepTimer.setVisible(true);
     }
-
 
     /**
      *
@@ -1275,20 +1299,32 @@ public class NetworkBuilder extends JFrame {
         System.out.println("End of main...");
     }
 
+    /**
+     *
+     */
     public int getIndividualTimerDelay() {
         // return TIMER_STEP + rg.nextInt((int) (TIMER_STEP * 0.2));
         return spinnerIndTimersMinTimeModel.getNumber().intValue() +
                 rg.nextInt(spinnerIndTimersDeltaTimeModel.getNumber().intValue());
     }
 
+    /**
+     *
+     */
     public int getXScreenOffset() {
         return xScreenOffset;
     }
 
+    /**
+     *
+     */
     public int getYScreenOffset() {
         return yScreenOffset;
     }
 
+    /**
+     *
+     */
     public void updateCurrentSelectedNodeInfo(NodeAbstract node) {
         setInfoMsgAsHTML(node == null ? "" : node.getNodeInfo());
     }
