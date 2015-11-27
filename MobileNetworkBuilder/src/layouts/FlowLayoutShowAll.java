@@ -17,6 +17,7 @@ public class FlowLayoutShowAll extends FlowLayout {
 
         int nMembers = target.getComponentCount();
         int parentWidth = target.getWidth();
+        int parentHeight = target.getHeight();
         int hGap = getHgap();
         int vGap = getVgap();
 
@@ -24,19 +25,29 @@ public class FlowLayoutShowAll extends FlowLayout {
         int currentLineWidth = 0;
         int currentLineHeight = 0;
 
-        int parentAvailableLineWidth = parentWidth; //- target.getInsets().left - target.getInsets().right;
+        int parentAvailableLineWidth = parentWidth - target.getInsets().left - target.getInsets().right - hGap * 2;
 
         System.out.println(
-                "FlowLayoutShowAll called with parent with width -> " + parentWidth);
+                "FlowLayoutShowAll called with parent with width -> " + parentWidth + ", height: " + parentHeight);
         System.out.println(
                 "FlowLayoutShowAll called with hgap, vgap -> " + hGap + ", " + vGap);
+        System.out.println(
+                "FlowLayoutShowAll called with insets: v: " + target.getInsets().top +
+                        ", b: " + target.getInsets().bottom + ", l: " + target.getInsets().left +
+                        ", r: " + target.getInsets().right);
+
 
         // do it for all components
         for (int i = 0; i < nMembers; i++) {
             Component c = target.getComponent(i);
+            if (!c.isVisible())
+                continue;
 
             int compPrefWidth = (int) c.getPreferredSize().getWidth();
             int compPrefHeight = (int) c.getPreferredSize().getHeight();
+
+            System.out.println("Current total height = " + totalNeededHeight +
+                    ", currentLine height = " + currentLineHeight);
 
             System.out.println("Component: (x, y) = (" + c.getX() + ", " + c.getY() + "), " +
                     "pref (w, h) = (" + compPrefWidth + ", " + compPrefHeight + ")");
@@ -64,6 +75,8 @@ public class FlowLayoutShowAll extends FlowLayout {
 
                 // reset current line used width and height
                 currentLineWidth = currentLineHeight = 0;
+                System.out.println(
+                        "FlowLayoutShowAll new height -> " + totalNeededHeight);
             }
 
             // add current component to current line
@@ -74,7 +87,7 @@ public class FlowLayoutShowAll extends FlowLayout {
             currentLineWidth += compPrefWidth;
 
             // adjust necessary line height
-            if (currentLineHeight < compPrefHeight)
+            if (compPrefHeight > currentLineHeight)
                 currentLineHeight = compPrefHeight;
         }
 
@@ -88,7 +101,7 @@ public class FlowLayoutShowAll extends FlowLayout {
         }
 
         // add vertical insets
-        totalNeededHeight += target.getInsets().top + target.getInsets().bottom;
+        totalNeededHeight += target.getInsets().top + target.getInsets().bottom + 2 * vGap;
 
         System.out.println(
                 "FlowLayoutShowAll final Height -> " + totalNeededHeight);

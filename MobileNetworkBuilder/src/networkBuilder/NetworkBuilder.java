@@ -318,11 +318,11 @@ public class NetworkBuilder extends JFrame {
 
         buildTimersInfoOnMainPanel();
 
-//        mainPanel.doLayout();
-//        mainPanel.revalidate();
-
         // puts the frame visible (is not visible at start)
         setVisible(true);
+
+        // to adjust the layout
+        mainPanel.doLayout();
     }
 
     /**
