@@ -1,8 +1,9 @@
 package com.example.android.wifidirect.utils;
 
-import android.content.*;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.BatteryManager;
-import android.os.PowerManager;
 import android.util.Log;
 import com.example.android.wifidirect.WiFiDirectActivity;
 
@@ -16,33 +17,38 @@ import java.lang.reflect.Method;
 public class SystemInfo {
 
     private static IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+    private static Intent batteryStatus = null;
 
     // unnecessary - from here
-    private static Method getGoToSleepMethod = null;
-
-    static {
-        for (Method method : PowerManager.class.getDeclaredMethods()) {
-            switch (method.getName()) {
-                case "goToSleep":
-                    getGoToSleepMethod = method;
-                    break;
-            }
-        }
-    }
+//    private static Method getGoToSleepMethod = null;
+//
+//    static {
+//        for (Method method : PowerManager.class.getDeclaredMethods()) {
+//            switch (method.getName()) {
+//                case "goToSleep":
+//                    getGoToSleepMethod = method;
+//                    break;
+//            }
+//        }
+//    }
     // to here
+
 
     /*
      *
      */
     public static BatteryInfo getBatteryInfo(Context context) {
-        Intent batteryStatus = context.registerReceiver(null, ifilter);
-        if (batteryStatus == null)
-            return null;
+        if (batteryStatus == null) {
+            batteryStatus = context.registerReceiver(null, ifilter);
+            if (batteryStatus == null)
+                return null;
+        }
 
-        return new BatteryInfo(batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        return new BatteryInfo(
+                batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
                 , batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-                , batteryStatus.getIntExtra("voltage", 0)
-                , batteryStatus.getIntExtra("temperature", 0));
+                , batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0)
+                , batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0));
     }
 
     /*
@@ -59,15 +65,15 @@ public class SystemInfo {
 }
 
 //    public static void goToSleep(Context context, Activity act) {
-        // version 1 NOT WORKING
+// version 1 NOT WORKING
 //        PowerManager mPowerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
 //        invokeQuietly(getGoToSleepMethod, mPowerManager, SystemClock.uptimeMillis(), 0, 0 );
 
-        // version 2 NOT WORKING
-        //Settings.System.getInt(context.getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, 10);
+// version 2 NOT WORKING
+//Settings.System.getInt(context.getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, 10);
 //        Settings.System.putInt(context.getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, 10_000);
 
-        // version 3 NOT WORKING
+// version 3 NOT WORKING
 //        ComponentName compName = new ComponentName(context, MyAdmin.class);
 //        Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
 //        intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, compName);
@@ -79,7 +85,7 @@ public class SystemInfo {
 //        deviceManager.lockNow();
 //    }
 
-    // Sets screenOn:
+// Sets screenOn:
 //    public void setScreenOn(final boolean screenOn, Activity activity) {
 //        PowerManager mPowerManager = (PowerManager) activity.getSystemService(Context.POWER_SERVICE);
 //
@@ -94,7 +100,6 @@ public class SystemInfo {
 //        } else {
 //            mPowerManager.goToSleep(SystemClock.uptimeMillis());
 //        }
-
 
 
 //

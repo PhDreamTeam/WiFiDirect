@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+    <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Battery info"
+            android:id="@+id/textView16" android:background="#f7054692" android:gravity="center_vertical|center_horizontal"/>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="Level / Scale"
+                android:id="@+id/textView17" android:layout_weight="1" android:gravity="center_vertical|center_horizontal"
+                android:background="#8a0542ad"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:text="Voltage"
+                  android:id="@+id/textView18" android:layout_weight="1"
+                  android:background="#8a0542ad" android:gravity="center_vertical|center_horizontal"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:text="Temperature"
+                  android:id="@+id/textView19" android:layout_weight="1"
+                  android:gravity="center_vertical|center_horizontal" android:background="#8a0542ad"/>
+    </LinearLayout>
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                  android:layout_height="wrap_content">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall"
+                  android:id="@+id/textViewLevelScale" android:layout_weight="1"
+                  android:gravity="center_vertical|center_horizontal"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall"
+                  android:id="@+id/textViewVoltage" android:layout_weight="1"
+                  android:gravity="center_vertical|center_horizontal"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall"
+                  android:id="@+id/textViewTemperature" android:layout_weight="1"
+                  android:gravity="center_vertical|center_horizontal"/>
+    </LinearLayout>
+    <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:id="@+id/textView20"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+              android:textAppearance="?android:attr/textAppearanceMedium" android:text="Process and CPU info"
+              android:id="@+id/textView57" android:background="#f7054692"
+              android:gravity="center_vertical|center_horizontal"/>
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                  android:layout_height="wrap_content">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:text="PID"
+                  android:id="@+id/textView63" android:layout_weight="1"
+                  android:gravity="center_vertical|center_horizontal" android:background="#8a0542ad"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:text="PPID"
+                  android:id="@+id/textView64" android:layout_weight="1" android:background="#8a0542ad"
+                  android:gravity="center_vertical|center_horizontal"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:text="UserTime"
+                  android:id="@+id/textView65" android:layout_weight="1"
+                  android:gravity="center_vertical|center_horizontal" android:background="#8a0542ad"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:text="SystemTime"
+                  android:id="@+id/textView66" android:layout_weight="1"
+                  android:gravity="center_vertical|center_horizontal" android:background="#8a0542ad"/>
+    </LinearLayout>
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                  android:layout_height="wrap_content">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:id="@+id/textViewMAPID"
+                  android:layout_weight="1" android:gravity="center_vertical|center_horizontal"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:id="@+id/textViewMAPPID"
+                  android:layout_weight="1" android:gravity="center_vertical|center_horizontal"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:id="@+id/textViewMAUTime"
+                  android:layout_weight="1" android:gravity="center_vertical|center_horizontal"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:id="@+id/textViewMASTime"
+                  android:layout_weight="1" android:gravity="center_vertical|center_horizontal"/>
+    </LinearLayout>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+              android:textAppearance="?android:attr/textAppearanceMedium" android:id="@+id/textView58"/>
+    <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Update battery info"
+            android:id="@+id/btnUpdateBatteryInfo"/>
+    <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Get CPU info"
+            android:id="@+id/btnGetCPUInfo"/>
+</LinearLayout>

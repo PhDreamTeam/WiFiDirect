@@ -17,9 +17,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.example.android.accesspoint.WiFiApActivity;
 import com.example.android.accesspoint.WifiApControl;
-import com.example.android.wifidirect.utils.AndroidUtils;
-import com.example.android.wifidirect.utils.LinuxUtils;
-import com.example.android.wifidirect.utils.ProcessInfo;
 
 import java.io.File;
 import java.io.IOException;
@@ -311,10 +308,8 @@ public class MyMainActivity extends Activity {
         btnShowInfo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ProcessInfo pInfo = LinuxUtils.getProcessInfo();
-                String pInfoStr = pInfo.getFormattedString();
-                AndroidUtils.toast(context, pInfoStr);
-                System.out.println("Showing current process information: " + pInfoStr);
+                Intent intent = new Intent(myThis, MeteringActivity.class);
+                startActivity(intent);
             }
         });
 

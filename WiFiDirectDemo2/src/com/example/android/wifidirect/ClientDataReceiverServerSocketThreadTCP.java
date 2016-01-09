@@ -1,12 +1,12 @@
 package com.example.android.wifidirect;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.BatteryManager;
 import android.os.Environment;
 import android.util.Log;
 import android.widget.LinearLayout;
-import android.widget.Toast;
+import com.example.android.wifidirect.utils.AndroidUtils;
 import com.example.android.wifidirect.utils.BatteryInfo;
 import com.example.android.wifidirect.utils.SystemInfo;
 
@@ -29,6 +29,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
     ReplyMode replyMode;
 
     LinearLayout llReceptionZone;
+    Context context;
     ArrayList<IStoppable> workingThreads = new ArrayList<IStoppable>();
 
     public ClientDataReceiverServerSocketThreadTCP(int portNumber,
@@ -37,6 +38,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         this.bufferSize = bufferSize;
         this.llReceptionZone = llReceptionZone;
         this.replyMode = replyMode;
+        context = llReceptionZone.getContext();
     }
 
     @Override
@@ -47,7 +49,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             while (run) {
                 // wait connections
                 Socket cliSock = serverSocket.accept();
-                myToast("Received a connection...");
+                AndroidUtils.toast(llReceptionZone, "Received a connection...");
                 IStoppable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize, llReceptionZone, replyMode);
                 workingThreads.add(t);
                 t.start();
@@ -132,7 +134,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     String timestamp = sdf.format(new Date());
 
                     final File f = new File(Environment.getExternalStorageDirectory() + "/"
-                            + llReceptionZone.getContext().getPackageName() + "/" + timestamp + "_" + filename); // add filename
+                            + context.getPackageName() + "/" + timestamp + "_" + filename); // add filename
                     File dirs = new File(f.getParent());
                     if (!dirs.exists())
                         dirs.mkdirs();
@@ -140,12 +142,12 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     Log.d(WiFiDirectActivity.TAG, "Server: saving file: " + f.toString());
                     fos = new FileOutputStream(f);
 
-                    myToast("Receiving file on server: " + f.getAbsolutePath());
+                    AndroidUtils.toast(llReceptionZone, "Receiving file on server: " + f.getAbsolutePath());
 
                 }
 
                 // get battery levels
-                batteryInitial = SystemInfo.getBatteryInfo(llReceptionZone.getContext());
+                batteryInitial = SystemInfo.getBatteryInfo(context);
 
                 initialNanoTime = lastUpdate = System.nanoTime();
                 Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSize);
@@ -184,7 +186,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 // final actions
                 updateVisualDeltaInformation(true);
-                myToast("File received successfully on server.");
+                AndroidUtils.toast(llReceptionZone, "File received successfully on server.");
                 Log.d(WiFiDirectActivity.TAG,
                         "File received successfully on server, bytes received: " + rcvDataCounterTotal);
 
@@ -217,7 +219,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 //                } else {
                 // terminated with error
                 Log.e(WiFiDirectActivity.TAG, "Error receiving file on server: " + e.getMessage());
-                myToast("Error receiving file on server: " + e.getMessage());
+                AndroidUtils.toast(llReceptionZone, "Error receiving file on server: " + e.getMessage());
                 e.printStackTrace();
 //                }
             } finally {
@@ -229,11 +231,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 }
                 close(fos);
                 IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-                Intent batteryStatus = llReceptionZone.getContext().registerReceiver(null, ifilter);
-                batteryFinal = new BatteryInfo(batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-                        , batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-                        , batteryStatus.getIntExtra("voltage", 0)
-                        , batteryStatus.getIntExtra("temperature", 0));
+                Intent batteryStatus = context.registerReceiver(null, ifilter);
+                batteryFinal = SystemInfo.getBatteryInfo(context);
             }
         }
 
@@ -276,7 +275,6 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             }
         }
 
-
         @Override
         public void stopThread() {
             run = false;
@@ -284,14 +282,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         }
     }
 
-    private void myToast(final String s) {
-        llReceptionZone.post(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(llReceptionZone.getContext(), s, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
+
 
 }
 

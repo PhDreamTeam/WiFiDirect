@@ -16,4 +16,10 @@ public class BatteryInfo {
         this.batteryVoltage = batteryVoltage;
         this.batteryTemperature = batteryTemperature;
     }
+
+    @Override
+    public String toString() {
+        return "level " + batteryLevel + ", scale " + batteryScale +
+                ", voltage " + batteryVoltage/1000.0 + "V, temperature " + batteryTemperature / 10.0 + "ºC";
+    }
 }

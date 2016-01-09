@@ -32,7 +32,7 @@
             android:text="Wi-Fi Direct - Group Owner"
             android:id="@+id/buttonMainWFDGroupOwner" android:layout_gravity="center_horizontal"/>
     <Button
-            android:layout_width="fill_parent"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Wi-Fi Direct - Client"
             android:id="@+id/buttonMainWFDClient" android:layout_gravity="center_horizontal"/>
