@@ -65,7 +65,7 @@ import java.util.Scanner;
  * }
  * </pre>
  */
-public final class LinuxUtils {
+public class LinuxUtils {
 
     // Warning: there appears to be an issue with the column index with android linux:
     // it was observed that on most present devices there are actually

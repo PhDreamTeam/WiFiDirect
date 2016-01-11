@@ -7,25 +7,31 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.media.AudioManager;
+import android.graphics.Color;
 import android.media.RingtoneManager;
-import android.media.ToneGenerator;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import com.example.android.wifidirect.utils.BatteryInfo;
-import com.example.android.wifidirect.utils.LinuxUtils;
-import com.example.android.wifidirect.utils.ProcessInfo;
-import com.example.android.wifidirect.utils.SystemInfo;
+import com.example.android.wifidirect.utils.*;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Created by AT DR on 08-01-2016
  * .
  */
 public class MeteringActivity extends Activity {
+    public static String TAG = "MeteringActivity";
+
     private TextView tvLevelScale;
     private TextView tvVoltage;
     private TextView tvTemperature;
@@ -36,6 +42,13 @@ public class MeteringActivity extends Activity {
     private TextView tvPPID;
     private TextView tvUTime;
     private TextView tvSTime;
+    private PowerManager.WakeLock wakeLock;
+    private Button btnRunBackgroundTask;
+    private NotificationManager notificationManager;
+    private Uri soundUri;
+    private TextView tvTurnScreenOFF;
+    private BroadcastReceiver screenOffBroadcastReceiver = null;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -44,8 +57,11 @@ public class MeteringActivity extends Activity {
 
         context = this;
 
-        // Battery info ===============================================
+        // used with Notifications ============================================
+        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
+        // Battery info ===============================================
         tvLevelScale = (TextView) findViewById(R.id.textViewLevelScale);
         tvVoltage = (TextView) findViewById(R.id.textViewVoltage);
         tvTemperature = (TextView) findViewById(R.id.textViewTemperature);
@@ -53,7 +69,6 @@ public class MeteringActivity extends Activity {
         btnUpdateBatteryInfo = (Button) findViewById(R.id.btnUpdateBatteryInfo);
 
         // process cpu info ===============================================
-
         tvPID = (TextView) findViewById(R.id.textViewMAPID);
         tvPPID = (TextView) findViewById(R.id.textViewMAPPID);
         tvUTime = (TextView) findViewById(R.id.textViewMAUTime);
@@ -61,8 +76,11 @@ public class MeteringActivity extends Activity {
 
         btnGetCPUInfo = (Button) findViewById(R.id.btnGetCPUInfo);
 
-        // listeners ===============================================
+        // run background task ===============================================
+        btnRunBackgroundTask = (Button) findViewById(R.id.btnMARunBackgroundTask);
+        tvTurnScreenOFF = (TextView) findViewById(R.id.textViewMATurnScreenOFF);
 
+        // listeners ===============================================
         btnUpdateBatteryInfo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -83,96 +101,174 @@ public class MeteringActivity extends Activity {
                 tvUTime.setText("" + pInfo.utime * 100);
                 tvSTime.setText("" + pInfo.stime * 100);
                 String pInfoStr = pInfo.getFormattedString();
-                Log.i("MeteringActivity", "Process info -> " + pInfoStr);
+                Log.i(TAG, "Process info -> " + pInfoStr);
+            }
+        });
 
-                runScreenOffTask(new Runnable() {
+        btnRunBackgroundTask.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                // create it
+                Runnable backgroundTask = new Runnable() {
                     @Override
                     public void run() {
                         testSystemClockTick();
                     }
-                }, 3000);
+                };
+
+                // run it
+                runScreenOffTask(backgroundTask, 3000);
             }
         });
     }
 
-    BroadcastReceiver screenOffBrdcstReceiver = null;
 
     /*
      * This method runs Runnable in a new thread, after startTime time.
      * Plays notification sound before and after the Runnable
      */
-    public void runScreenOffTask(final Runnable run, final int startTime) {
+    public void runScreenOffTask(final Runnable backgroundTask, final int startTime) {
+
+        // avoid nested calls
+        btnRunBackgroundTask.setEnabled(false);
+
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_OFF);
 
-        screenOffBrdcstReceiver = new BroadcastReceiver() {
-            // only call runnable once
-            boolean firstTime = true;
+        // acquire a partial wake lock, to stay with cpu running when screen off
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WFDMeterActivity");
+        wakeLock.acquire();
+
+        screenOffBroadcastReceiver = new BroadcastReceiver() {
 
             @Override
-            public void onReceive(Context context, Intent intent) {
-                Log.i("MeteringActivity", "Screen off");
-                unregisterReceiver(screenOffBrdcstReceiver);
+            public void onReceive(final Context context, Intent intent) {
+                Log.i(TAG, "Screen off");
+                unregisterReceiver(screenOffBroadcastReceiver);
 
-                if (firstTime && run != null) {
-                    firstTime = false;
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                Thread.sleep(startTime);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
+                // hide turn screen off notification textView
+                tvTurnScreenOFF.setVisibility(View.GONE);
 
-                            //soundNotification();
-                            notification(0, "Test", "Started...");
-                            run.run();
-                            //soundNotification();
-                            notification(0, "Test", "Finished...");
+                // create a new thread to run delayed and background task
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        // pause for the initial time, to stabilize system
+                        try {
+                            Thread.sleep(startTime);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
                         }
-                    }).start();
 
-                }
+                        // start notification
+                        doNotificationStart();
+
+                        // meter battery consumption
+                        final BatteryHelper bh = new BatteryHelper();
+                        bh.startReadingBattery(context);
+
+                        // execute background task
+                        backgroundTask.run();
+
+                        // end of battery metering
+                        bh.stopReadingBattery();
+
+                        // end Notification
+                        doNotificationEnd();
+
+                        // activate button
+                        btnRunBackgroundTask.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                String msg = "Running time (ms) = " + bh.getRunningTimeMs() +
+                                        ", consumed power (mcWh) = " + bh.getConsumedPowerMicroWh();
+
+                                // show dialog to screen
+                                AndroidUtils.showDialog(context, "Final values", msg, null);
+
+                                // save values to file
+                                writeValuesToFile(msg, "batteryData.txt");
+
+                                // activate button to enable next text
+                                btnRunBackgroundTask.setEnabled(true);
+                            }
+                        });
+
+                        // release wake lock
+                        wakeLock.release();
+                    }
+                }).start();
             }
         };
 
-        registerReceiver(screenOffBrdcstReceiver, filter);
+        // register broadcast receiver for screen off
+        registerReceiver(screenOffBroadcastReceiver, filter);
+
+        // warn user to turn screen off
+        tvTurnScreenOFF.setVisibility(View.VISIBLE);
     }
+
+    /*
+     *
+     */
+    public void doNotificationStart() {
+        notification(0, "Test", "Started...", Color.RED, 100, 1000);
+    }
+
+    private void writeValuesToFile(String msg, String filename) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd_HH'h'mm'm'ss's'");
+        String timestamp = sdf.format(new Date());
+
+        final File f = new File(Environment.getExternalStorageDirectory() + "/"
+                + context.getPackageName() + "/" + timestamp + "_" + filename); // add filename
+        File dirs = new File(f.getParent());
+        if (!dirs.exists())
+            dirs.mkdirs();
+        //f.createNewFile();
+        Log.d(TAG, "Saving final battery values to file: " + f.toString());
+
+        try {
+            PrintWriter fos = new PrintWriter(f);
+            fos.println(msg);
+            fos.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    /*
+     *
+     */
+    public void doNotificationEnd() {
+        // led slow flashing
+        // notification(0, "Test", "Finished...", Notification.FLAG_SHOW_LIGHTS, 1000, 500);
+
+        // led on
+        notification(0, "Test", "Finished...", Color.RED, 1, 0);
+    }
+
 
     /*
      * Create and launch a notification with sound
      */
-    public void notification(int notificationID, String title, String text) {
-        Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+    public void notification(int notificationID, String title, String text, int lightArg, int ledOnMs, int ledOffMs) {
 
-        Notification noti = new Notification.Builder(context)
+        Notification notification = new Notification.Builder(context)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setSmallIcon(R.drawable.icon)
                 .setSound(soundUri)
-                //.setLargeIcon(R.drawable.icon)
+                .setLights(lightArg, ledOnMs, ledOffMs)
+                .setPriority(Notification.PRIORITY_HIGH)
                 .build();
 
-
-        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-
-        // hide the notification after its selected
-        //noti.flags |= Notification.FLAG_AUTO_CANCEL;
-
-        notificationManager.notify(notificationID, noti);
-
+        notificationManager.notify(notificationID, notification);
     }
 
-    /*
-     * can be delete, not used anymore
-     */
-    public void soundNotification() {
-
-        final ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
-        tg.startTone(ToneGenerator.TONE_PROP_BEEP);
-        //tg.release();
-    }
 
     /*
      *

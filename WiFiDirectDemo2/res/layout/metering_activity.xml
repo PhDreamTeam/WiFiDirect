@@ -9,7 +9,7 @@
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceMedium"
             android:text="Battery info"
-            android:id="@+id/textView16" android:background="#f7054692" android:gravity="center_vertical|center_horizontal"/>
+            android:id="@+id/textView16" android:background="#f7054692" android:gravity="center"/>
     <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
@@ -53,7 +53,7 @@
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
               android:textAppearance="?android:attr/textAppearanceMedium" android:text="Process and CPU info"
               android:id="@+id/textView57" android:background="#f7054692"
-              android:gravity="center_vertical|center_horizontal"/>
+              android:gravity="center"/>
     <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
                   android:layout_height="wrap_content">
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -100,4 +100,13 @@
             android:layout_height="wrap_content"
             android:text="Get CPU info"
             android:id="@+id/btnGetCPUInfo"/>
+    <Button android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Run taskground task"
+            android:id="@+id/btnMARunBackgroundTask"/>
+    <TextView
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Turn screen off"
+            android:id="@+id/textViewMATurnScreenOFF"
+            android:background="#de0513" android:gravity="center" android:visibility="gone"/>
 </LinearLayout>

@@ -77,7 +77,9 @@ public class WiFiControlActivity extends Activity {
     private ScrollView scrollViewConsole;
     private WifiManager.WifiLock wlock;
 
-
+    /*
+         *
+         */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -238,6 +240,9 @@ public class WiFiControlActivity extends Activity {
 
     }
 
+    /*
+     *
+     */
     private void toggleLinearLayoutsWeight(LinearLayout ll, LinearLayout ll2, LinearLayout ll3) {
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) ll.getLayoutParams();
         lp.weight = lp.weight == 1 ? (0.6f) : 1;//(lp.weight == (1/3f) ? (1/3f) : 1);
@@ -251,6 +256,9 @@ public class WiFiControlActivity extends Activity {
         ll3.setLayoutParams(lp3);
     }
 
+    /*
+     *
+     */
     // create a broadcast receives to receive wifi scan notifications
     BroadcastReceiver scanReceiver = new BroadcastReceiver() {
         @Override
@@ -268,6 +276,9 @@ public class WiFiControlActivity extends Activity {
         // TODO
     }
 
+    /*
+     *
+     */
     void consoleAppend(String msg) {
         tvConsole.append("\n   " + msg);
 
@@ -277,7 +288,9 @@ public class WiFiControlActivity extends Activity {
         scrollViewConsole.fullScroll(View.FOCUS_DOWN);
     }
 
-
+    /*
+         *
+         */
     public void scanComplete() {
         expListViewAdapterScannedNetworks.clear();
         scannedResults.clear();
@@ -294,15 +307,24 @@ public class WiFiControlActivity extends Activity {
         stopScan();
     }
 
+    /*
+     *
+     */
     private void stopScan() {
         unregisterReceiver(scanReceiver);
     }
 
+    /*
+     *
+     */
     private void startScan() {
         registerReceiver(scanReceiver, intentFilter);
         wiFiManager.startScan();
     }
 
+    /*
+     *
+     */
     static class CmpByPriority implements Comparator<WifiConfiguration> {
 
         static Comparator<WifiConfiguration> CMP = new CmpByPriority();
@@ -318,6 +340,9 @@ public class WiFiControlActivity extends Activity {
         }
     }
 
+    /*
+     *
+     */
     void getConfiguredNetworks() {
         expListViewAdapterConfiguredNetworks.clear();
         listConfiguredNetworks = wiFiManager.getConfiguredNetworks();
@@ -335,6 +360,9 @@ public class WiFiControlActivity extends Activity {
         }
     }
 
+    /*
+     *
+     */
     WifiConfiguration buildWifiConfiguration(String ssid, String key) {
         WifiConfiguration wifiConfig = new WifiConfiguration();
         wifiConfig.SSID = String.format("\"%s\"", ssid);
@@ -356,6 +384,9 @@ public class WiFiControlActivity extends Activity {
         return wifiConfig;
     }
 
+    /*
+     *
+     */
     void connectToWifi(String ssid, String key) {
         WifiConfiguration wifiConfig = buildWifiConfiguration(ssid, key);
 
@@ -388,6 +419,9 @@ public class WiFiControlActivity extends Activity {
         }
     }
 
+    /*
+     *
+     */
     void wifiDisconnect() {
         wiFiManager.disconnect();
     }
@@ -421,6 +455,9 @@ public class WiFiControlActivity extends Activity {
         invokeQuietly(connectWithWifiConfigurationMethod, wiFiManager, wifiConfig, null);
     }
 
+    /*
+     *
+     */
     boolean isConnectedWifi() {
         WifiInfo ci = wiFiManager.getConnectionInfo();
         return ci != null;
@@ -436,6 +473,9 @@ public class WiFiControlActivity extends Activity {
         return networkInfo.isConnected();
     }
 
+    /*
+     *
+     */
     // TODO: if the selected network is the network with maximum priority it should use its priority (not more than that)
     private int getMaximumPriorityConfiguredNetwork() {
         if (listConfiguredNetworks == null)

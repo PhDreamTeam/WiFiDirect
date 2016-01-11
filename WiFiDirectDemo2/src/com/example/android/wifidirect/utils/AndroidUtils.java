@@ -1,6 +1,8 @@
 package com.example.android.wifidirect.utils;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.view.View;
 import android.widget.Toast;
 
@@ -27,6 +29,15 @@ public class AndroidUtils {
                 toast(view.getContext(), msg);
             }
         });
+    }
+
+    /*
+    *
+    */
+    public static void showDialog(Context context, String tittle, String msg, DialogInterface.OnClickListener onClickListener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(tittle).setMessage(msg).setCancelable(false);
+        builder.setNeutralButton(android.R.string.ok, onClickListener).show();
     }
 
 }
