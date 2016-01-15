@@ -31,8 +31,8 @@ class ReceptionGuiInfo {
 
     private TextView tvReceivedData;
     private TextView tvSentData;
-    private TextView tvMaxRcvSpeed;
-    private TextView tvCurAvgRcvSpeed;
+    private TextView tvMaxRcvSpeedMbps;
+    private TextView tvCurAvgRcvSpeedMbps;
     private TextView tvLabel;
 
     ArrayList<DataTransferInfo> transferInfoArrayList;
@@ -128,7 +128,7 @@ class ReceptionGuiInfo {
                 ll1.setLayoutParams(params);
 
                 TextView tv1_ll1 = new TextView(context);
-                tv1_ll1.setText("Rcv Data (KB): ");
+                tv1_ll1.setText("Data: Rcv (KB): ");
                 ll1.addView(tv1_ll1);
 
                 tvReceivedData = new TextView(context);
@@ -137,7 +137,7 @@ class ReceptionGuiInfo {
                 ll1.addView(tvReceivedData);
 
                 TextView tv2_ll1 = new TextView(context);
-                tv2_ll1.setText(" /  Sent Data (B): ");
+                tv2_ll1.setText(", Sent (B): ");
                 ll1.addView(tv2_ll1);
 
                 tvSentData = new TextView(context);
@@ -157,19 +157,19 @@ class ReceptionGuiInfo {
                 tv1_ll2.setText("Speed (Mbps):  Max: ");
                 ll2.addView(tv1_ll2);
 
-                tvMaxRcvSpeed = new TextView(context);
-                tvMaxRcvSpeed.setTextAppearance(context, android.R.style.TextAppearance_Medium);
-                tvMaxRcvSpeed.setText("0000");
-                ll2.addView(tvMaxRcvSpeed);
+                tvMaxRcvSpeedMbps = new TextView(context);
+                tvMaxRcvSpeedMbps.setTextAppearance(context, android.R.style.TextAppearance_Medium);
+                tvMaxRcvSpeedMbps.setText("0000");
+                ll2.addView(tvMaxRcvSpeedMbps);
 
                 TextView tv2_ll2 = new TextView(context);
-                tv2_ll2.setText(" /  Avg: ");
+                tv2_ll2.setText(", Avg: ");
                 ll2.addView(tv2_ll2);
 
-                tvCurAvgRcvSpeed = new TextView(context);
-                tvCurAvgRcvSpeed.setTextAppearance(context, android.R.style.TextAppearance_Medium);
-                tvCurAvgRcvSpeed.setText("0000");
-                ll2.addView(tvCurAvgRcvSpeed);
+                tvCurAvgRcvSpeedMbps = new TextView(context);
+                tvCurAvgRcvSpeedMbps.setTextAppearance(context, android.R.style.TextAppearance_Medium);
+                tvCurAvgRcvSpeedMbps.setText("0000");
+                ll2.addView(tvCurAvgRcvSpeedMbps);
 
                 thisLinearLayout.addView(ll2);
 
@@ -203,12 +203,12 @@ class ReceptionGuiInfo {
         }
     }
 
-    public String getTvCurAvgRcvSpeed() {
-        return tvCurAvgRcvSpeed.getText().toString();
+    public String getTvCurAvgRcvSpeedMbps() {
+        return tvCurAvgRcvSpeedMbps.getText().toString();
     }
 
-    public String getTvMaxRcvSpeed() {
-        return tvMaxRcvSpeed.getText().toString();
+    public String getTvMaxRcvSpeedMbps() {
+        return tvMaxRcvSpeedMbps.getText().toString();
     }
 
     public String getTvReceivedData() {
@@ -245,32 +245,33 @@ class ReceptionGuiInfo {
         });
     }
 
-    public void setMaxRcvSpeed(final double maxRcvSpeed) {
+    public void setMaxRcvSpeed(final double maxRcvSpeedMbps) {
         parentLinearLayout.post(new Runnable() {
             @Override
             public void run() {
-                ReceptionGuiInfo.this.tvMaxRcvSpeed.setText(String.format("%4.3f", maxRcvSpeed * 8 / 1024));
+                ReceptionGuiInfo.this.tvMaxRcvSpeedMbps.setText(String.format("%4.3f", maxRcvSpeedMbps));
             }
         });
     }
 
-    public void setCurAvgRcvSpeed(final double curAvgRcvSpeed) {
+    public void setCurAvgRcvSpeed(final double curAvgRcvSpeedMbps) {
         parentLinearLayout.post(new Runnable() {
             @Override
             public void run() {
-                ReceptionGuiInfo.this.tvCurAvgRcvSpeed.setText(String.format("%4.3f", curAvgRcvSpeed * 8 / 1024));
+                ReceptionGuiInfo.this.tvCurAvgRcvSpeedMbps.setText(String.format("%4.3f", curAvgRcvSpeedMbps));
             }
         });
     }
 
-    public void setData(final long receivedData, final long sentData, final double maxRcvSpeed, final double curAvgRcvSpeed) {
+    public void setData(final double receivedDataKB, final long sentDataB, final double maxRcvSpeedMbps,
+                        final double curAvgRcvSpeedMbps) {
         parentLinearLayout.post(new Runnable() {
             @Override
             public void run() {
-                ReceptionGuiInfo.this.tvReceivedData.setText(Long.toString(receivedData));
-                ReceptionGuiInfo.this.tvSentData.setText(Long.toString(sentData));
-                ReceptionGuiInfo.this.tvMaxRcvSpeed.setText(String.format("%4.3f", maxRcvSpeed * 8 / 1024));
-                ReceptionGuiInfo.this.tvCurAvgRcvSpeed.setText(String.format("%4.3f", curAvgRcvSpeed * 8 / 1024));
+                ReceptionGuiInfo.this.tvReceivedData.setText(String.format("%4.3f", receivedDataKB));
+                ReceptionGuiInfo.this.tvSentData.setText(Long.toString(sentDataB));
+                ReceptionGuiInfo.this.tvMaxRcvSpeedMbps.setText(String.format("%4.3f", maxRcvSpeedMbps));
+                ReceptionGuiInfo.this.tvCurAvgRcvSpeedMbps.setText(String.format("%4.3f", curAvgRcvSpeedMbps));
             }
         });
     }

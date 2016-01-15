@@ -8,6 +8,7 @@ import android.util.Log;
 import android.widget.LinearLayout;
 import com.example.android.wifidirect.utils.AndroidUtils;
 import com.example.android.wifidirect.utils.BatteryInfo;
+import com.example.android.wifidirect.utils.LoggerSession;
 import com.example.android.wifidirect.utils.SystemInfo;
 
 import java.io.*;
@@ -49,7 +50,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             while (run) {
                 // wait connections
                 Socket cliSock = serverSocket.accept();
-                AndroidUtils.toast(llReceptionZone, "Received a connection...");
+                AndroidUtils.toast(llReceptionZone, "Received a connection from " + cliSock.getInetAddress());
                 IStoppable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize, llReceptionZone, replyMode);
                 workingThreads.add(t);
                 t.start();
@@ -74,10 +75,10 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         boolean run = true;
         Socket originSocket;
         byte buffer[];
-        long rcvDataCounterTotal = 0, rcvDataCounterLastValue = 0, sentDataCounterTotal = 0;
+        long nBytesReceived = 0, rcvDataCounterLastValue = 0, sentDataCounterTotal = 0;
         long initialNanoTime;
         long lastUpdate = 0;
-        double maxSpeed = 0;
+        double maxSpeedMbps = 0;
 
         BatteryInfo batteryInitial;
         BatteryInfo batteryFinal;
@@ -98,8 +99,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     cliSock.getLocalPort(), transferInfoArrayList, this);
         }
 
-        public long getRcvDataCounterTotal() {
-            return rcvDataCounterTotal;
+        public long getnBytesReceived() {
+            return nBytesReceived;
         }
 
         public long getInitialNanoTime() {
@@ -146,10 +147,16 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 }
 
-                // get battery levels
+                // TODO: log get battery levels
                 batteryInitial = SystemInfo.getBatteryInfo(context);
 
+                // start log session and log initial time
+                LoggerSession logSession = MyMainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName() +
+                        " Receiving TCP data from " + originSocket.getInetAddress().toString().substring(1));
+                logSession.logTime("Initial time");
+
                 initialNanoTime = lastUpdate = System.nanoTime();
+
                 Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSize);
 
                 // Receive client data
@@ -165,8 +172,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     if (fos != null) {
                         fos.write(buffer, 0, readDataLen);
                     }
-
-                    rcvDataCounterTotal += readDataLen;
+                    nBytesReceived += readDataLen;
 
                     //send reply
                     if (replyMode == ReplyMode.OK) {
@@ -184,19 +190,31 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 long finalNanoTime = System.nanoTime();
 
+                // log initial time
+                logSession.logTime("Final time");
+
                 // final actions
                 updateVisualDeltaInformation(true);
                 AndroidUtils.toast(llReceptionZone, "File received successfully on server.");
                 Log.d(WiFiDirectActivity.TAG,
-                        "File received successfully on server, bytes received: " + rcvDataCounterTotal);
+                        "File received successfully on server, bytes received: " + nBytesReceived);
 
-                // calculate avg speed  based on time
-                long deltaNanoTime = finalNanoTime - initialNanoTime;
-                receptionGuiInfoGui.setCurAvgRcvSpeed((rcvDataCounterTotal / 1024.0) /
-                        (deltaNanoTime / 1_000_000_000.0));
-                // record total transfer data info
-                transferInfoArrayList.add(null);
-                transferInfoArrayList.add(new DataTransferInfo(deltaNanoTime, rcvDataCounterTotal, finalNanoTime));
+                // calculate avg speed based on time
+                double deltaTimeSegs = (finalNanoTime - initialNanoTime) / 1_000_000_000.0;
+                double globalRcvSpeedMbps = (nBytesReceived * 8) / (1024.0 * 1024) / deltaTimeSegs;
+
+                receptionGuiInfoGui.setCurAvgRcvSpeed(globalRcvSpeedMbps);
+
+                // log data information and close log session
+                logSession.logMsg("\nBytes received: " + nBytesReceived);
+                logSession.logMsg("Time elapsed (s): " + String.format("%5.3f", deltaTimeSegs));
+                logSession.logMsg("Global average speed (Mbps): " + String.format("%5.3f", globalRcvSpeedMbps));
+                logSession.logMsg("Max rcv speed (Mbps): " + String.format("%5.3f", maxSpeedMbps));
+                logSession.logMsg("Bytes sent: " + sentDataCounterTotal);
+                logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
+                for (DataTransferInfo data : transferInfoArrayList)
+                    logSession.logMsg("  " + data);
+                logSession.close();
 
                 // remove this thread from the container of threads
                 workingThreads.remove(this);
@@ -215,7 +233,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 //                    // terminated with success
 //                    updateVisualDeltaInformation(true);
 //                    Log.d(WiFiDirectActivity.TAG,
-//                            "File received successfully on server, (end by exception), bytes received: " + rcvDataCounterTotal);
+//                            "File received successfully on server, (end by exception), bytes received: " + nBytesReceived);
 //                } else {
                 // terminated with error
                 Log.e(WiFiDirectActivity.TAG, "Error receiving file on server: " + e.getMessage());
@@ -232,6 +250,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 close(fos);
                 IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
                 Intent batteryStatus = context.registerReceiver(null, ifilter);
+
                 batteryFinal = SystemInfo.getBatteryInfo(context);
             }
         }
@@ -260,18 +279,19 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
                 double elapsedDeltaRcvTimeSeconds = elapsedDeltaRcvTimeNano / 1_000_000_000.0;
-                // transfer speed B/s
-                long deltaBytes = rcvDataCounterTotal - rcvDataCounterLastValue;
-                final double speedKbps = (deltaBytes / 1024.0) / elapsedDeltaRcvTimeSeconds;
+                long deltaReceivedBytes = nBytesReceived - rcvDataCounterLastValue;
+                final double speedMbps = ((deltaReceivedBytes * 8) / (1024.0 * 1024)) / elapsedDeltaRcvTimeSeconds;
                 lastUpdate = currentNanoTime;
-                rcvDataCounterLastValue = rcvDataCounterTotal;
+                rcvDataCounterLastValue = nBytesReceived;
 
-                if (speedKbps > maxSpeed)
-                    maxSpeed = speedKbps;
+                if (speedMbps > maxSpeedMbps)
+                    maxSpeedMbps = speedMbps;
 
-                receptionGuiInfoGui.setData(rcvDataCounterTotal / 1024, sentDataCounterTotal, maxSpeed, speedKbps);
+                // send data to GUI
+                receptionGuiInfoGui.setData(nBytesReceived / 1024.0, sentDataCounterTotal, maxSpeedMbps, speedMbps);
 
-                transferInfoArrayList.add(new DataTransferInfo(elapsedDeltaRcvTimeNano, deltaBytes, currentNanoTime));
+                transferInfoArrayList.add(new DataTransferInfo(speedMbps, elapsedDeltaRcvTimeSeconds,
+                        deltaReceivedBytes, currentNanoTime));
             }
         }
 
@@ -281,7 +301,6 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             this.interrupt();
         }
     }
-
 
 
 }

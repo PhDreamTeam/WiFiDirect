@@ -8,9 +8,22 @@
             android:layout_width="match_parent"
             android:layout_height="30dp"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="Wifi:"
+            android:text="WF con:"
             android:id="@+id/textViewWifiState" android:background="#ff1e1cff"
             android:gravity="center"/>
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="25dp"
+                  android:id="@+id/linearLayout" android:background="#ff1e1c95" android:gravity="center">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Me: "
+                  android:id="@+id/textView59"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:text=" "
+                  android:id="@+id/textViewWFCADeviceIP"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:text=" "
+                  android:id="@+id/textView67"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Status"
+                  android:id="@+id/textViewWFCAStatus"/>
+    </LinearLayout>
     <LinearLayout
             android:orientation="horizontal"
             android:layout_width="fill_parent"
@@ -39,23 +52,14 @@
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="SSID: "
                 android:id="@+id/textViewWFSSID"/>
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="ANDROID-AP1"
-                android:id="@+id/textViewSelectedNetwork" android:textAppearance="?android:attr/textAppearanceMedium"/>
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="  /  PSK:"
-                android:id="@+id/textViewWFPSK" android:textAppearance="?android:attr/textAppearanceMedium"/>
-        <EditText
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/editTextSelectedNetworkPassword" android:text="01234567"/>
+                android:id="@+id/textViewSelectedNetwork" android:textAppearance="?android:attr/textAppearanceSmall"/>
     </LinearLayout>
     <LinearLayout
             android:orientation="horizontal"
@@ -64,19 +68,35 @@
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="PSK:"
+                android:id="@+id/textViewWFPSK" android:textAppearance="?android:attr/textAppearanceSmall"/>
+        <EditText
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/editTextSelectedNetworkPassword" android:text="h0EgWoFR"
+                android:textAppearance="?android:attr/textAppearanceSmall"/>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="Link Speed (Mbps): "
                 android:id="@+id/textViewWFLinkSpeed"/>
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textAppearance="?android:attr/textAppearanceSmall"
                 android:id="@+id/textViewWFLinkSpeedValue"/>
         <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Connect directly"
-                android:id="@+id/btnWifiConnectDirectly" android:visibility="invisible"/>
+                android:id="@+id/btnWifiConnectDirectly" android:visibility="invisible"
+                android:textAppearance="?android:attr/textAppearanceSmall" style="?android:attr/buttonStyleSmall"/>
     </LinearLayout>
     <LinearLayout
             android:orientation="horizontal"

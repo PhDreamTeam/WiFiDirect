@@ -5,24 +5,24 @@ package com.example.android.wifidirect;
  * .
  */
 class DataTransferInfo {
+    double speedMbps;
     double deltaTimeSegs;
     double deltaMBytes;
     long currentNanoTime;
 
-    public DataTransferInfo(long deltaTimeNanoSegs, double deltaBytes, long currentNanoTime) {
-        this.deltaTimeSegs = deltaTimeNanoSegs  / 1000_000_000.0;
+    public DataTransferInfo(double speedMbps, double deltaTimeSegs, double deltaBytes, long currentNanoTime) {
+        this.speedMbps = speedMbps;
+        this.deltaTimeSegs = deltaTimeSegs;
         this.deltaMBytes = deltaBytes / (1024.0 * 1024);
         this.currentNanoTime = currentNanoTime;
     }
 
     @Override
     public String toString() {
-        double speedMbps = (deltaMBytes * 8) / deltaTimeSegs;
         return String.format("%5.2f, %3.1f, %5.2f", speedMbps, deltaTimeSegs, deltaMBytes);
     }
 
     public String toStringDetailed() {
-        double speedMbps = (deltaMBytes * 8) / deltaTimeSegs;
         return String.format("%5.9f, %3.9f, %5.9f", speedMbps, deltaTimeSegs, deltaMBytes);
     }
 }

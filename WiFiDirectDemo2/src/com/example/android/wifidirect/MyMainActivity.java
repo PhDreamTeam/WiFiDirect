@@ -17,19 +17,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.example.android.accesspoint.WiFiApActivity;
 import com.example.android.accesspoint.WifiApControl;
-
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import com.example.android.wifidirect.utils.Logger;
 
 /**
  * Created by AT DR on 08-05-2015
  * .
  */
 public class MyMainActivity extends Activity {
-    MyMainActivity myThis;
-    Context context;
+    public static Logger logger = new Logger("WFD APP");
+
+    private MyMainActivity myThis;
+    private Context context;
     private ConnectivityManager connManager;
     private NetworkInfo wifiNetworkInfo;
     private Button btnWFDGroupOwner;
@@ -56,11 +54,12 @@ public class MyMainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // set log also to file
-        setLogToFile();
+        context = getApplicationContext();
+
+        // set logcat also to file
+        // Logger.setLogCatToFile(context);
 
         setContentView(R.layout.my_main_activity);
-        context = getApplicationContext();
         myThis = this;
 
         connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -107,29 +106,7 @@ public class MyMainActivity extends Activity {
         setButtonsListeners();
     }
 
-    /**
-     * Add log to file
-     */
-    private void setLogToFile() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd_HH'h'mm'm'ss's'");
-        String timestamp = sdf.format(new Date());
 
-        String appName = getResources().getString(R.string.app_name);
-        appName = appName.replace(' ', '-');
-        String cmd = "logcat -v time -f " + "/storage/sdcard0/logs/" + timestamp + "_" + appName + ".txt";
-
-        File logDir = new File("/storage/sdcard0/logs");
-        if (!logDir.exists())
-            logDir.mkdir();
-
-        try {
-            Runtime.getRuntime().exec(cmd);
-//            if(btnMainWiFiTurnOff == null)
-//                throw new RuntimeException("ehhhhhh");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      *

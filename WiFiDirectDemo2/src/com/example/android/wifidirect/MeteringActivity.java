@@ -141,6 +141,8 @@ public class MeteringActivity extends Activity {
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WFDMeterActivity");
         wakeLock.acquire();
 
+
+
         screenOffBroadcastReceiver = new BroadcastReceiver() {
 
             @Override

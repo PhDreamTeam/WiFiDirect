@@ -6,8 +6,9 @@ import android.net.Uri;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
+import com.example.android.wifidirect.utils.LoggerSession;
 
 import java.io.*;
 import java.net.*;
@@ -26,8 +27,8 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     long dataLimit = 0;
     long rcvData = 0;
 
-    EditText editTextSentData;
-    EditText editTextRcvData;
+    TextView tvSentData;
+    TextView tvRcvData;
     Button startStopButton;
 
     boolean runSender = true, runReceiver = true;
@@ -37,23 +38,21 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
 
     Thread rcvThread;
 
-    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
-            , EditText editTextSentData, EditText editTextRcvData, Button startStopButton, int bufferSize, Uri sourceUri) {
-        this(destIpAddress, destPortNumber, crIpAddress, crPortNumber, 0, 0, editTextSentData, editTextRcvData,
-                startStopButton, bufferSize, sourceUri);
-    }
 
+    /*
+     *
+     */
     public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
-            , long speed, long dataLimit, EditText editTextSentData, EditText editTextRcvData, Button startStopButton, int bufferSize
+            , long speed, long dataLimitKB, TextView tvSentData, TextView tvRcvData, Button startStopButton, int bufferSize
             , Uri sourceUri) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
         this.crIpAddress = crIpAddress;
         this.crPortNumber = crPortNumber;
         this.speed = speed;
-        this.dataLimit = dataLimit * 1024;
-        this.editTextSentData = editTextSentData;
-        this.editTextRcvData = editTextRcvData;
+        this.dataLimit = dataLimitKB * 1024;
+        this.tvSentData = tvSentData;
+        this.tvRcvData = tvRcvData;
         this.startStopButton = startStopButton;
         this.bufferSize = bufferSize;
         this.sourceUri = sourceUri;
@@ -61,6 +60,9 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
 
     static NetworkInterface wifiInterface = null;
 
+    /*
+     *
+     */
     static NetworkInterface getWLan0NetworkInterface() {
         if (wifiInterface == null) {
 //            try {
@@ -92,43 +94,45 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
      */
     private InetAddress getInetAddress(String destAddress) {
         try {
-
             // AT this code is working in ISEL - IPv6 experiments
-//            InetAddress dest1 = Inet6Address.getByName(destAddress);
-//            Inet6Address dest = Inet6Address.getByAddress(destAddress, dest1.getAddress(), getWLan0NetworkInterface());
+            // InetAddress dest1 = Inet6Address.getByName(destAddress);
+            // Inet6Address dest = Inet6Address.getByAddress(destAddress, dest1.getAddress(), getWLan0NetworkInterface());
 
             // AT this code worked in ISEL (with the ipv6 address)
-//            InetAddress dest = Inet6Address.getByName(destAddress);
+            // InetAddress dest = Inet6Address.getByName(destAddress);
 
             // to work with ipv4 and ipv6
-            InetAddress dest = InetAddress.getByName(destAddress);
-            return dest;
-
+            return InetAddress.getByName(destAddress);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
-
         return null;
     }
 
+    /*
+     *
+     */
     @Override
     public void run() {
-        editTextSentData.post(new Runnable() {
+        tvSentData.post(new Runnable() {
             @Override
             public void run() {
                 CharSequence text = "" + bufferSize + "KB, ClientSendDataThreadTCP";
-                Toast.makeText(editTextSentData.getContext(), text, Toast.LENGTH_SHORT).show();
+                Toast.makeText(tvSentData.getContext(), text, Toast.LENGTH_SHORT).show();
             }
         });
 
-        // Send data
-        byte buffer[] = new byte[bufferSize];
-        byte b = 0;
+        // start log session and log initial time
+        LoggerSession logSession = MyMainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName());
+        logSession.logMsg("Send data to CR: " + crIpAddress + ":" + crPortNumber);
+        logSession.logMsg("Send data to dest: " + destIpAddress + ":" + destPortNumber + "\n");
+        long initialTxTimeMs = logSession.logTime("Initial time");
 
-        // if no input stream, fill dummy data
+        // Send data buffer, filled with numbers if not file to be transmitted
+        byte buffer[] = new byte[bufferSize];
         if (sourceUri == null) {
-            for (int i = 0; i < buffer.length; i++, b++) {
-                buffer[i] = b;
+            for (int i = 0; i < buffer.length; i++) {
+                buffer[i] = (byte) i;
             }
         }
 
@@ -143,7 +147,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         try {
 
             if (sourceUri != null) {
-                cr = editTextSentData.getContext().getContentResolver();
+                cr = tvSentData.getContext().getContentResolver();
                 is = cr.openInputStream(sourceUri);
                 // get file size
                 fileSize = cr.openTypedAssetFileDescriptor(sourceUri, "*/*", null).getLength();
@@ -167,7 +171,6 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             if (sourceUri != null) {
                 addressData += ";" + fileName + ";" + fileSize;
             }
-            //
             dos.writeInt(addressData.getBytes().length);
             dos.write(addressData.getBytes());
 
@@ -200,16 +203,32 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
 
             cliSocket.shutdownOutput();
 
+            // log end writing time
+            long finalTxTimeMs = logSession.logTime("Final sent time");
+
+            // wait for received thread to terminate and log time
+            rcvThread.join();
+            logSession.logTime("Final receive time");
+
+            // log final sent and receive bytes
+            logSession.logMsg("Data sent (B): " + sentData + ", (MB): " + sentData / (1024.0 * 1024));
+            logSession.logMsg("Data received (B): " + rcvData + ", (MB): " + rcvData / (1024.0 * 1024));
+            double sentDataMb = ((double) (sentData * 8)) / (1024 * 1204);
+            double deltaTimeSegs = (finalTxTimeMs - initialTxTimeMs) / 1000.0;
+            double dataSentSpeedMbps = sentDataMb / deltaTimeSegs;
+            logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", dataSentSpeedMbps));
+            logSession.close();
+
         } catch (Exception e) {
             Log.e(WiFiDirectActivity.TAG, "Error transmitting data.");
             e.printStackTrace();
         } finally {
             // close streams
             close(is);
-           // close(dos);
+            // close(dos);
         }
 
-        if(sourceUri == null) {
+        if (sourceUri == null) {
             startStopButton.post(new Runnable() {
                 @Override
                 public void run() {
@@ -219,6 +238,9 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         }
     }
 
+    /*
+    *
+    */
     private void close(Closeable closeable) {
         if (closeable != null) {
             try {
@@ -229,9 +251,12 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         }
     }
 
+    /*
+     *
+     */
     private String getFileNameFromURI(Uri returnUri) {
         Cursor returnCursor =
-                editTextSentData.getContext().getContentResolver().query(returnUri, null, null, null, null);
+                tvSentData.getContext().getContentResolver().query(returnUri, null, null, null, null);
 
         int nameIndex = returnCursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
         //int sizeIndex = returnCursor.getColumnIndex(OpenableColumns.SIZE);
@@ -245,6 +270,9 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         return fileName;
     }
 
+    /*
+     *
+     */
     private Thread createRcvThread(final DataInputStream dis) {
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -270,8 +298,8 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
 //                        Log.d(WiFiDirectActivity.TAG,
 //                                "File received successfully on server, (end by exception), bytes received: " + rcvData);
 //                    } else {
-                        Log.d(WiFiDirectActivity.TAG, "Error receiving responses...");
-                        e.printStackTrace();
+                    Log.d(WiFiDirectActivity.TAG, "Error receiving responses...");
+                    e.printStackTrace();
 //                    }
                 } finally {
                     close(dis);
@@ -282,30 +310,39 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         return thread;
     }
 
+    /*
+     *
+     */
     private void updateSentData(final long sentData, boolean forceUpdate) {
         long currentNanoTime = System.nanoTime();
 
         if ((currentNanoTime > lastUpdate + 1_000_000_000) || forceUpdate) {
             lastUpdate = currentNanoTime;
-            editTextSentData.post(new Runnable() {
+            tvSentData.post(new Runnable() {
                 @Override
                 public void run() {
-                    editTextSentData.setText("" + (sentData / 1024) + " KB");
+                    tvSentData.setText("" + (sentData / 1024));
                 }
             });
             updateRcvData();
         }
     }
 
+    /*
+     *
+     */
     private void updateRcvData() {
-        editTextRcvData.post(new Runnable() {
+        tvRcvData.post(new Runnable() {
             @Override
             public void run() {
-                editTextRcvData.setText("" + rcvData + " B");
+                tvRcvData.setText("" + rcvData);
             }
         });
     }
 
+    /*
+     *
+     */
     @Override
     public void stopThread() {
         runSender = runReceiver = false;

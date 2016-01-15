@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.*;
+import com.example.android.wifidirect.utils.AndroidUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -59,7 +60,7 @@ public class WiFiControlActivity extends Activity {
     private Button btnWifiDisconnect;
     private Button btnWifiGetStatus;
     private Button btnWifiConnectDirectly;
-    private TextView tvWifiStatus;
+    private TextView tvWFMainState;
 
     static {
         for (Method method : WifiManager.class.getDeclaredMethods()) {
@@ -76,6 +77,9 @@ public class WiFiControlActivity extends Activity {
 
     private ScrollView scrollViewConsole;
     private WifiManager.WifiLock wlock;
+    private TextView tvDeviceName;
+    private TextView tvDeviceIPAddress;
+    private TextView tvDeviceStatus;
 
     /*
          *
@@ -89,6 +93,11 @@ public class WiFiControlActivity extends Activity {
         wiFiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
 
         tvConsole = ((TextView) findViewById(R.id.tvConsole));
+
+        // Blue info zone ===========================================
+        tvWFMainState = (TextView) findViewById(R.id.textViewWifiState);
+        tvDeviceIPAddress = (TextView) findViewById(R.id.textViewWFCADeviceIP);
+        tvDeviceStatus = (TextView) findViewById(R.id.textViewWFCAStatus);
 
         intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
@@ -171,7 +180,7 @@ public class WiFiControlActivity extends Activity {
         });
 
         tvWFLinkSpeedValue = (TextView) findViewById(R.id.textViewWFLinkSpeedValue);
-        tvWifiStatus = (TextView) findViewById(R.id.textViewWifiState);
+
 
         btnWifiDisconnect = (Button) findViewById(R.id.btnWifiDisconnect);
         btnWifiGetStatus = (Button) findViewById(R.id.btnWifiGetStatus);
@@ -221,11 +230,22 @@ public class WiFiControlActivity extends Activity {
                 if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
                     NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                     NetworkInfo.State wifiState = info.getState();
-                    String msg = "Wifi: " + wifiState.toString();
+                    String msg = "WF con: ";
                     if (wifiState == NetworkInfo.State.CONNECTING || wifiState == NetworkInfo.State.CONNECTED) {
-                        msg += " " + wiFiManager.getConnectionInfo().getSSID();
+                        msg += wiFiManager.getConnectionInfo().getSSID();
+                    } else {
+                        msg += wifiState;
                     }
-                    tvWifiStatus.setText(msg);
+                    tvWFMainState.setText(msg);
+
+                    // device IP
+                    if (wifiState == NetworkInfo.State.CONNECTED) {
+                        WifiInfo conInfo = wiFiManager.getConnectionInfo();
+                        tvDeviceIPAddress.setText("" + AndroidUtils.intToIp(conInfo.getIpAddress()));
+                    } else tvDeviceIPAddress.setText("");
+
+                    // connection state
+                    tvDeviceStatus.setText(wifiState.toString());
                 }
             }
         };

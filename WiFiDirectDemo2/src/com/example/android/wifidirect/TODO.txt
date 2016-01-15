@@ -1,2 +1,5 @@
+Client Activity: Reception zone: insert Clear Log button
 
-Base scenario: CL - GO - CR - GO - CL
+EM MyMainActivity estamos a indicar para que o Log seja escrito em ficheiro - desactivar isto
+
+Estavamos na relay activity: alterar os campos para nome do device, testar
