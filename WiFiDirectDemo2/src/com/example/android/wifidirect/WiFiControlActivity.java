@@ -80,6 +80,7 @@ public class WiFiControlActivity extends Activity {
     private TextView tvDeviceName;
     private TextView tvDeviceIPAddress;
     private TextView tvDeviceStatus;
+    private BroadcastReceiver wifiBroadcastReceiver;
 
     /*
          *
@@ -222,7 +223,7 @@ public class WiFiControlActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
         // broadcast broadcastReceiver to receive wifi state changed events
-        BroadcastReceiver wifiBroadcastReceiver = new BroadcastReceiver() {
+        wifiBroadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 final String action = intent.getAction();
@@ -505,5 +506,11 @@ public class WiFiControlActivity extends Activity {
             return 0;
 
         return listConfiguredNetworks.get(0).priority;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(wifiBroadcastReceiver);
     }
 }

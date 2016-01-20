@@ -11,19 +11,26 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.example.android.accesspoint.WiFiApActivity;
 import com.example.android.accesspoint.WifiApControl;
 import com.example.android.wifidirect.utils.Logger;
+import com.example.android.wifidirect.utils.LoggerSession;
+
+import java.io.File;
 
 /**
  * Created by AT DR on 08-05-2015
  * .
  */
 public class MyMainActivity extends Activity {
+    public static String APP_MAIN_FILES_DIR_PATH = "/sdcard/Android/data/com.hyrax.atdr";
     public static Logger logger = new Logger("WFD APP");
 
     private MyMainActivity myThis;
@@ -46,6 +53,9 @@ public class MyMainActivity extends Activity {
     BroadcastReceiver receiver;
     private Button btnMainWiFiAP;
     private Button btnShowInfo;
+    private Button btnLogMsg;
+    private TextView etLogMsg;
+    private TextView etLogDir;
 
     /**
      *
@@ -88,6 +98,10 @@ public class MyMainActivity extends Activity {
 
         btnShowInfo = (Button) findViewById(R.id.buttonShowInfo);
 
+        etLogDir = (TextView) findViewById(R.id.etMALogDir);
+        etLogMsg = (TextView) findViewById(R.id.editTextLogMsg);
+        btnLogMsg = (Button) findViewById(R.id.btnMALogMsg);
+
         if (!isWifiOnDevice()) {
             tvMainWiFiState.setText("WiFI not supported");
             btnMainWiFiTurnOn.setVisibility(View.GONE);
@@ -104,8 +118,55 @@ public class MyMainActivity extends Activity {
         adjustWifiApControlButton();
 
         setButtonsListeners();
+
+        // avoid keyboard popping up
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
+        getDir_withGetExternalFilesDir("logs");
+
+//        try {
+//            PrintWriter pw = new PrintWriter(openFileOutput("f2.txt", MODE_WORLD_READABLE));
+//            pw.println("olá");
+//            pw.close();
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+
+        getFile2(this, "logs2");
     }
 
+
+
+    public File getFile2(Context context, String fileName) {
+        // Get the directory for the app's private pictures directory.
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
+        if (!file.mkdirs()) {
+            Log.e("Logger", "Directory not created");
+        }
+        return file;
+    }
+
+    private void getDir_withGetExternalFilesDir(String dirName) {
+        File fileDir = getFile(this, dirName);
+        Log.d("New File", "Get dir: " + fileDir.toString());
+
+//        try {
+//            PrintWriter pw = new PrintWriter(fileDir);
+//            pw.println("Olá");
+//            pw.close();
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+    }
+
+    public File getFile(Context context, String fileName) {
+        // Get the directory for the app's private pictures directory.
+        File file = new File(context.getExternalFilesDir(null), fileName);
+        if (!file.mkdirs()) {
+            Log.e("Logger", "Directory not created");
+        }
+        return file;
+    }
 
 
     /**
@@ -140,6 +201,13 @@ public class MyMainActivity extends Activity {
     public void onPause() {
         super.onPause();
         unregisterReceiver(receiver);
+    }
+
+    /**
+     *
+     */
+    public String getLogDir() {
+        return etLogDir.getText().toString();
     }
 
     /**
@@ -264,10 +332,7 @@ public class MyMainActivity extends Activity {
                         Toast.makeText(context, "Simple Client!!!!!", Toast.LENGTH_SHORT).show();
 
                         Intent intent = new Intent(myThis, ClientActivity.class);
-//                        intent.putExtra("role", "Client");
-//                        intent.putExtra("CrPortNumber", ((EditText) findViewById(R.id.editTextCRPortNumber2)).getText().toString());
-//                        intent.putExtra("CrIpAddress", ((EditText) findViewById(R.id.editTextCrIpAddress)).getText().toString());
-                        //TODO...
+                        intent.putExtra("logDir", getLogDir());
                         startActivity(intent);
                     }
                 });
@@ -290,6 +355,13 @@ public class MyMainActivity extends Activity {
             }
         });
 
+        btnLogMsg.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                String msg = etLogMsg.getText().toString();
+                LoggerSession ls = logger.getNewLoggerSession(msg);
+                ls.close();
+            }
+        });
     }
 
     /**

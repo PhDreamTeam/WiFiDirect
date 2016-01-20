@@ -4,7 +4,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.LightingColorFilter;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -24,21 +23,22 @@ import java.net.UnknownHostException;
  * <p/>
  * DONE: adapt GUI to collapse transmission or receiving section
  * DONE: enable several receptions simultaneously
- * DONE: controlar o final da transmiss�o
- * DONE: colocar a velocidade m�dia como delta de inicio e fim, na recep��o
+ * DONE: controlar o final da transmissão
+ * DONE: colocar a velocidade média como delta de inicio e fim, na recepção
  * DONE: controlar os bytes recebidos (pode estar relacionado com o ponto seguinte)
- * porque os bytes recebidos n�o s�o iguais aos transmitidos
- * DONE: controlar o fim da recep��o: por fim dos dados, ou detec��o do fecho do canal
- * DONE: dura��o da transmiss�o, na recep��o
+ * porque os bytes recebidos não são iguais aos transmitidos
+ * DONE: controlar o fim da recepção: por fim dos dados, ou detecção do fecho do canal
+ * DONE: duração da transmissão, na recepção
  * Done: UDP
  * DONE: send image TCP and UDP (not considered as an image)
  * <p/>
- * - gravar resultados em ficheiro - talvez n�o seja necess�rio
- * TODO:  .
- * - place button to close reception result
+  * -
  * <p/>
- * -
- * <p/>
+ *
+ * Frame transmitted TCP & UDP:
+ * 4 bytes: address length
+ * 4 bytes: buffer number, decreasing and 0 is the last one
+ * address string: destination ID; port [;filename]
  */
 public class ClientActivity extends Activity {
     ClientActivity myThis;
@@ -62,7 +62,7 @@ public class ClientActivity extends Activity {
     private EditText editTextMaxBufferSize;
     private EditText editTextServerPortNumber;
 
-    private Button btnStartStopServer, btnStartStopTransmitting, btnTcp;
+    private Button btnStartServer, btnStartTransmitting, btnTcp;
     private Button btnRegCrTdls, btnUnRegCrTdls, btnSendImage;
     private Button btnTdls;
     private TextView tvTransmissionZone;
@@ -77,9 +77,13 @@ public class ClientActivity extends Activity {
     private RadioButton rbSentKBytes;
     private RadioButton rbSentMBytes;
     private Button btnUdp;
-
-
-    // TODO - clear  gui elements that are no more necessary (wait for a while)
+    private Button btnClearReceptionLogs;
+    private LinearLayout llReceptionLogs;
+    private Button btnStopServer;
+    private Button btnStopTransmitting;
+    private Button btnStopSendingImage;
+    private LinearLayout llTransmissionInputZone;
+    private String logDir;
 
     /*
      *
@@ -95,43 +99,49 @@ public class ClientActivity extends Activity {
         //AndroidUtils.toast(this, "onCreate");
         setContentView(R.layout.client_activity);
 
-        btnStartStopTransmitting = (Button) findViewById(R.id.buttonStartStopTransmitting);
-        btnStartStopServer = (Button) findViewById(R.id.buttonStartStopServer);
-        btnSendImage = (Button) findViewById(R.id.buttonSendImage);
-        btnTcp = (Button) findViewById(R.id.buttonCATCP);
-        btnUdp = (Button) findViewById(R.id.buttonCAUDP);
+        btnStartTransmitting = findViewByIdAndCast(R.id.buttonCAStartTransmitting);
+        btnStopTransmitting = findViewByIdAndCast(R.id.buttonCAStopTransmitting);
+        btnStartServer = findViewByIdAndCast(R.id.buttonStartServer);
+        btnStopServer = findViewByIdAndCast(R.id.buttonStopServer);
+        btnSendImage = findViewByIdAndCast(R.id.buttonCASendImage);
+        btnStopSendingImage = findViewByIdAndCast(R.id.buttonCAStopSendingImage);
+        btnTcp = findViewByIdAndCast(R.id.buttonCATCP);
+        btnUdp = findViewByIdAndCast(R.id.buttonCAUDP);
 
-        btnTdls = (Button) findViewById(R.id.buttonTdls);
-        btnRegCrTdls = (Button) findViewById(R.id.buttonRegCrTdls);
-        btnUnRegCrTdls = (Button) findViewById(R.id.buttonUnRegCrTdls);
+        btnTdls = findViewByIdAndCast(R.id.buttonTdls);
+        btnRegCrTdls = findViewByIdAndCast(R.id.buttonRegCrTdls);
+        btnUnRegCrTdls = findViewByIdAndCast(R.id.buttonUnRegCrTdls);
 
         isTcp = btnTcp.getText().toString().equals("TCP");
 
         // Transmission zone =====================================
-        tvTransmissionZone = (TextView) findViewById(R.id.textViewTransmissionZone);
-        llTransmissionZone = (LinearLayout) findViewById(R.id.LinearLayoutTransmission);
+        tvTransmissionZone = findViewByIdAndCast(R.id.textViewTransmissionZone);
+        llTransmissionZone = findViewByIdAndCast(R.id.LinearLayoutTransmission);
+        llTransmissionInputZone = findViewByIdAndCast(R.id.linearLayoutTransmissionInputData);
 
-        editTextCrIpAddress = (EditText) findViewById(R.id.editTextCrIpAddress);
-        editTextCrPortNumber = (EditText) findViewById(R.id.editTextCrPortNumber);
-        editTextDestIpAddress = (EditText) findViewById(R.id.editTextDestIpAddress);
-        editTextDestPortNumber = (EditText) findViewById(R.id.editTextDestPortNumber);
-        editTextTotalBytesToSend = (EditText) findViewById(R.id.editTextTotalBytesToSend);
-        editTextDelay = (EditText) findViewById(R.id.editTextDelay);
-        editTextMaxBufferSize = (EditText) findViewById(R.id.editTextMaxBufferSize);
-        editTextServerPortNumber = (EditText) findViewById(R.id.editTextServerPortNumber);
-        tvTxThrdSentData = (TextView) findViewById(R.id.textViewCATxThrdSentData);
-        tvTxThrdRcvData = (TextView) findViewById(R.id.textViewCATxThrdRcvData);
+        editTextCrIpAddress = findViewByIdAndCast(R.id.editTextCrIpAddress);
+        editTextCrPortNumber = findViewByIdAndCast(R.id.editTextCrPortNumber);
+        editTextDestIpAddress = findViewByIdAndCast(R.id.editTextDestIpAddress);
+        editTextDestPortNumber = findViewByIdAndCast(R.id.editTextDestPortNumber);
+        editTextTotalBytesToSend = findViewByIdAndCast(R.id.editTextTotalBytesToSend);
+        editTextDelay = findViewByIdAndCast(R.id.editTextDelay);
+        editTextMaxBufferSize = findViewByIdAndCast(R.id.editTextMaxBufferSize);
+        editTextServerPortNumber = findViewByIdAndCast(R.id.editTextServerPortNumber);
+        tvTxThrdSentData = findViewByIdAndCast(R.id.textViewCATxThrdSentData);
+        tvTxThrdRcvData = findViewByIdAndCast(R.id.textViewCATxThrdRcvData);
 
-        rbSentKBytes = (RadioButton) findViewById(R.id.radioButtonCAKBytesToSend);
-        rbSentMBytes = (RadioButton) findViewById(R.id.radioButtonCAMBytesToSend);
+        rbSentKBytes = findViewByIdAndCast(R.id.radioButtonCAKBytesToSend);
+        rbSentMBytes = findViewByIdAndCast(R.id.radioButtonCAMBytesToSend);
 
         // reception zone ========================================
-        tvReceptionZone = (TextView) findViewById(R.id.textViewReceptionZone);
-        llReceptionZone = (LinearLayout) findViewById(R.id.LinearLayoutReception);
+        tvReceptionZone = findViewByIdAndCast(R.id.textViewReceptionZone);
+        llReceptionZone = findViewByIdAndCast(R.id.LinearLayoutReception);
+        llReceptionLogs = findViewByIdAndCast(R.id.linearLayoutReceptionLogs);
+        btnClearReceptionLogs = findViewByIdAndCast(R.id.buttonCAClearReceptionLogs);
 
-        rbReplyInfoNone = (RadioButton) findViewById(R.id.radioButtonClientReplyInfoNone);
-        rbReplyInfoOKs = (RadioButton) findViewById(R.id.radioButtonClientReplyInfoOKs);
-        rbReplyInfoEcho = (RadioButton) findViewById(R.id.radioButtonClientReplyInfoEcho);
+        rbReplyInfoNone = findViewByIdAndCast(R.id.radioButtonClientReplyInfoNone);
+        rbReplyInfoOKs = findViewByIdAndCast(R.id.radioButtonClientReplyInfoOKs);
+        rbReplyInfoEcho = findViewByIdAndCast(R.id.radioButtonClientReplyInfoEcho);
 
 
         // Remove TDLS buttons on devices that doesn't support it
@@ -145,10 +155,11 @@ public class ClientActivity extends Activity {
             int addColor = 0xFF006600; // supported color
             if (!isTdlsSupported())
                 addColor = 0xFF880000;  // unsupported color
-            LightingColorFilter lcf = new LightingColorFilter(0xFFFFFFFF, addColor);
-            btnTdls.getBackground().setColorFilter(lcf);
+            AndroidUtils.setBtnBackgroundColor(btnTdls, addColor);
         }
 
+        Intent intent = getIntent();
+        logDir = intent.getStringExtra("logDir");
 
         // set listeners on buttons
 
@@ -168,26 +179,33 @@ public class ClientActivity extends Activity {
             }
         });
 
-        btnStartStopTransmitting.setOnClickListener(
+        btnStartTransmitting.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (btnStartStopTransmitting.getText().toString().equals("Start Transmitting")) {
-                            transmitData(null); // send dummy data for tests
-                            btnStartStopTransmitting.setText("Stop Transmitting");
-                            // SystemInfo.goToSleep(ClientActivity.this , ClientActivity.this); // TEST turn off screen
-                        } else {
-                            // stop transmitting
-                            clientTransmitter.stopThread();
-                            btnStartStopTransmitting.setText("Start Transmitting");
-                        }
+                        startTransmittingGuiActions(false);
+                        // start transmitting
+                        transmitData(null); // send dummy data for tests
                     }
                 });
+
+        btnStopTransmitting.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        // stop transmitting
+                        clientTransmitter.stopThread();
+                        stopTransmittingGuiActions(null);
+                    }
+                }
+        );
 
         btnSendImage.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        startTransmittingGuiActions(true);
+
                         // Allow user to pick an image from Gallery or other
                         // registered apps
                         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -195,35 +213,48 @@ public class ClientActivity extends Activity {
                         startActivityForResult(intent, CHOOSE_FILE_RESULT_CODE);
                         AndroidUtils.toast(ClientActivity.this, "Choose image!!");
                     }
-                });
+                }
+        );
 
-        btnStartStopServer.setOnClickListener(
+        btnStartServer.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (btnStartStopServer.getText().toString().equals("Start Receiving")) {
-                            setEnabledRadioButtonsReplyMode(false);
-                            btnStartStopServer.setText("Stop Receiving!!!");
-
-                            AndroidUtils.toast(ClientActivity.this, "Start Receiving!!!!!");
-                            startReceiverServer();
-                        } else {
-                            clientReceiver.stopThread();
-                            btnStartStopServer.setText("Start Receiving");
-                            setEnabledRadioButtonsReplyMode(true);
-                        }
+                        startReceivingGuiActions();
                     }
                 }
+        );
 
+        btnStopServer.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        // stop receiving server
+                        clientReceiver.stopThread();
+                        endReceivingGuiActions();
+                    }
+                }
+        );
+
+        btnClearReceptionLogs.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        llReceptionLogs.removeAllViews();
+                    }
+                }
         );
 
         btnTcp.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        // change to UDP mode
                         isTcp = false;
                         btnTcp.setVisibility(View.GONE);
                         btnUdp.setVisibility(View.VISIBLE);
+                        setEnabledRadioButtonsReplyMode(false);
+                        btnSendImage.setEnabled(false);
                     }
                 }
         );
@@ -232,42 +263,114 @@ public class ClientActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        // change to TCP mode
                         isTcp = true;
                         btnUdp.setVisibility(View.GONE);
                         btnTcp.setVisibility(View.VISIBLE);
+                        setEnabledRadioButtonsReplyMode(true);
+                        btnSendImage.setEnabled(true);
                     }
                 }
         );
 
-        btnTdls.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (btnRegCrTdls.getVisibility() == View.GONE) {
-                    btnRegCrTdls.setVisibility(View.VISIBLE);
-                    btnUnRegCrTdls.setVisibility(View.VISIBLE);
-                } else {
-                    btnRegCrTdls.setVisibility(View.GONE);
-                    btnUnRegCrTdls.setVisibility(View.GONE);
+        btnTdls.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (btnRegCrTdls.getVisibility() == View.GONE) {
+                            btnRegCrTdls.setVisibility(View.VISIBLE);
+                            btnUnRegCrTdls.setVisibility(View.VISIBLE);
+                        } else {
+                            btnRegCrTdls.setVisibility(View.GONE);
+                            btnUnRegCrTdls.setVisibility(View.GONE);
+                        }
+                    }
                 }
-            }
-        });
+        );
 
-        btnRegCrTdls.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                setTdlsEnabled(editTextCrIpAddress.getText().toString(), true);
-            }
-        });
+        btnRegCrTdls.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        setTdlsEnabled(editTextCrIpAddress.getText().toString(), true);
+                    }
+                }
+        );
 
-        btnUnRegCrTdls.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                setTdlsEnabled(editTextCrIpAddress.getText().toString(), false);
-            }
-        });
+        btnUnRegCrTdls.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        setTdlsEnabled(editTextCrIpAddress.getText().toString(), false);
+                    }
+                }
+        );
 
         // avoid keyboard popping up
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+    }
+
+    /**
+     *
+     */
+    public void startReceivingGuiActions() {
+        setEnabledRadioButtonsReplyMode(false);
+        editTextServerPortNumber.setEnabled(false);
+        btnStartServer.setVisibility(View.GONE);
+        btnStopServer.setVisibility(View.VISIBLE);
+        btnClearReceptionLogs.setEnabled(false);
+
+        // start receiving
+        startReceiverServer();
+    }
+
+    /**
+     *
+     */
+    public void endReceivingGuiActions() {
+        btnStopServer.setVisibility(View.GONE);
+        btnStartServer.setVisibility(View.VISIBLE);
+        editTextServerPortNumber.setEnabled(true);
+        btnClearReceptionLogs.setEnabled(true);
+        if (isTcp)
+            setEnabledRadioButtonsReplyMode(true);
+    }
+
+    /**
+     *
+     */
+    public void startTransmittingGuiActions(boolean sendingFile) {
+        if (!sendingFile) {
+            btnStartTransmitting.setVisibility(View.GONE);
+            btnStopTransmitting.setVisibility(View.VISIBLE);
+            btnSendImage.setEnabled(false);
+        } else {
+            btnSendImage.setVisibility(View.GONE);
+            btnStopSendingImage.setVisibility(View.VISIBLE);
+            btnStartTransmitting.setEnabled(false);
+        }
+        setEnabledTransmissionInputViews(false);
+    }
+
+    /**
+     * @param sourceUri null Sending dummy data, not null sending a file
+     */
+    public void stopTransmittingGuiActions(Uri sourceUri) {
+        if (sourceUri == null) {
+            btnStartTransmitting.setVisibility(View.VISIBLE);
+            btnStopTransmitting.setVisibility(View.GONE);
+            if (isTcp)
+                btnSendImage.setEnabled(true);
+        } else {
+            btnStopSendingImage.setVisibility(View.GONE);
+            btnSendImage.setVisibility(View.VISIBLE);
+            btnStartTransmitting.setEnabled(true);
+        }
+        setEnabledTransmissionInputViews(true);
+    }
+
+    public String getLogDir() {
+        return logDir;
     }
 
     /**
@@ -307,12 +410,10 @@ public class ClientActivity extends Activity {
 
         if (isTcp)
             clientReceiver = new ClientDataReceiverServerSocketThreadTCP(
-                    Integer.parseInt(rcvPortNumber)
-                    , llReceptionZone, bufferSize, getReplyMode());
+                    Integer.parseInt(rcvPortNumber), llReceptionLogs, bufferSize, getReplyMode(), this);
         else
             clientReceiver = new ClientDataReceiverServerSocketThreadUDP(
-                    Integer.parseInt(rcvPortNumber)
-                    , llReceptionZone, bufferSize);
+                    Integer.parseInt(rcvPortNumber), llReceptionLogs, bufferSize, this);
 
         clientReceiver.start();
     }
@@ -331,8 +432,6 @@ public class ClientActivity extends Activity {
         long delayMs = Long.parseLong(editTextDelay.getText().toString());
         int bufferSizeBytes = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
 
-        AndroidUtils.toast(this, "Start transmitting!!!!!");
-
         if (isTcp) {
             clientTransmitter = new ClientSendDataThreadTCP(destIpAddress,
                     destPortNumber
@@ -340,7 +439,7 @@ public class ClientActivity extends Activity {
                     , delayMs, totalBytesToSend
                     , tvTxThrdSentData
                     , tvTxThrdRcvData
-                    , fileToSend == null ? btnStartStopTransmitting : null
+                    , this
                     , bufferSizeBytes, fileToSend);
         } else {
             clientTransmitter = new ClientSendDataThreadUDP(destIpAddress,
@@ -348,7 +447,7 @@ public class ClientActivity extends Activity {
                     , crIpAddress, crPortNumber
                     , delayMs, totalBytesToSend
                     , tvTxThrdSentData
-                    , btnStartStopTransmitting
+                    , this
                     , bufferSizeBytes);
         }
 
@@ -452,6 +551,26 @@ public class ClientActivity extends Activity {
         rbReplyInfoNone.setEnabled(enable);
         rbReplyInfoOKs.setEnabled(enable);
         rbReplyInfoEcho.setEnabled(enable);
+    }
+
+    /*
+     *
+     */
+    private void setEnabledTransmissionInputViews(boolean enable) {
+        editTextCrIpAddress.setEnabled(enable);
+        editTextCrPortNumber.setEnabled(enable);
+        editTextDestIpAddress.setEnabled(enable);
+        editTextDestPortNumber.setEnabled(enable);
+        editTextMaxBufferSize.setEnabled(enable);
+        editTextDelay.setEnabled(enable);
+        editTextTotalBytesToSend.setEnabled(enable);
+        rbSentKBytes.setEnabled(enable);
+        rbSentMBytes.setEnabled(enable);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T findViewByIdAndCast(int id) {
+        return (T) findViewById(id);
     }
 }
 

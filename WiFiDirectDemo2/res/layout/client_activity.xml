@@ -55,97 +55,112 @@
                     android:orientation="vertical"
                     android:layout_width="fill_parent"
                     android:layout_height="fill_parent" android:id="@+id/LinearLayoutTransmission">
-                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
-                              android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-                    <TextView android:layout_width="0px" android:layout_height="wrap_content"
-                              android:text="CR Address:"
-                              android:id="@+id/textView80" android:layout_weight="25"/>
-                    <EditText android:layout_width="0dp" android:layout_height="wrap_content"
-                              android:id="@+id/editTextCrIpAddress" android:text="192.168.49.1" android:layout_weight="50"/>
-                    <EditText android:layout_width="0px" android:layout_height="wrap_content" android:inputType="number"
-                              android:ems="10" android:id="@+id/editTextCrPortNumber" android:text="30000"
-                              android:layout_weight="25"/>
-                </LinearLayout>
-                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
-                              android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                              android:text="Dest:" android:id="@+id/textView82" android:layout_weight="25"/>
-                    <EditText android:layout_width="0dp" android:layout_height="wrap_content"
-                              android:id="@+id/editTextDestIpAddress"
-                              android:layout_weight="50" android:text="Rt"/>
-                    <EditText android:layout_width="0dp" android:layout_height="wrap_content" android:inputType="number"
-                              android:ems="10" android:id="@+id/editTextDestPortNumber" android:text="30000"
-                              android:layout_weight="25"/>
+                <LinearLayout
+                        android:orientation="vertical"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" android:id="@+id/linearLayoutTransmissionInputData">
+                    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                                  android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
+                        <TextView android:layout_width="0px" android:layout_height="wrap_content"
+                                  android:text="CR Address:"
+                                  android:id="@+id/textView80" android:layout_weight="25"/>
+                        <EditText android:layout_width="0dp" android:layout_height="wrap_content"
+                                  android:id="@+id/editTextCrIpAddress" android:text="192.168.49.1" android:layout_weight="50"/>
+                        <EditText android:layout_width="0px" android:layout_height="wrap_content" android:inputType="number"
+                                  android:ems="10" android:id="@+id/editTextCrPortNumber" android:text="30000"
+                                  android:layout_weight="25"/>
+                    </LinearLayout>
+                    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                                      android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                  android:text="Dest:" android:id="@+id/textView82" android:layout_weight="25"/>
+                        <EditText android:layout_width="0dp" android:layout_height="wrap_content"
+                                  android:id="@+id/editTextDestIpAddress"
+                                  android:layout_weight="50" android:text="Rt"/>
+                        <EditText android:layout_width="0dp" android:layout_height="wrap_content" android:inputType="number"
+                                  android:ems="10" android:id="@+id/editTextDestPortNumber" android:text="30000"
+                                  android:layout_weight="25"/>
+                    </LinearLayout>
+                    <LinearLayout
+                            android:orientation="horizontal"
+                            android:layout_width="fill_parent"
+                            android:layout_height="fill_parent">
+                        <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:text="Buffer (KB):"
+                                android:id="@+id/textView8" android:layout_weight="1"/>
+                        <EditText
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:inputType="number"
+                                android:ems="10"
+                                android:id="@+id/editTextMaxBufferSize" android:text="32" android:layout_weight="1"/>
+                        <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:text="Delay (ms):"
+                                android:id="@+id/textView2" android:layout_weight="1"/>
+                        <EditText
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:text="0" android:id="@+id/editTextDelay" android:inputType="number"
+                                android:layout_weight="1"/>
+                    </LinearLayout>
+                    <LinearLayout
+                            android:orientation="horizontal" android:layout_width="match_parent"
+                            android:layout_height="wrap_content">
+                        <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Bytes to send:"
+                                android:id="@+id/textView" android:gravity="center_vertical"/>
+                        <RadioGroup
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:orientation="horizontal">
+                            <RadioButton
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="KB"
+                                    android:id="@+id/radioButtonCAKBytesToSend" android:checked="false"/>
+                            <RadioButton
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="MB"
+                                    android:id="@+id/radioButtonCAMBytesToSend" android:checked="true"/>
+                        </RadioGroup>
+                        <EditText
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/editTextTotalBytesToSend" android:text="100"
+                                android:inputType="number"/>
+                    </LinearLayout>
                 </LinearLayout>
                 <LinearLayout
                         android:orientation="horizontal"
                         android:layout_width="fill_parent"
-                        android:layout_height="fill_parent">
-                    <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:text="Buffer (KB):"
-                            android:id="@+id/textView8" android:layout_weight="1"/>
-                    <EditText
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:ems="10"
-                            android:id="@+id/editTextMaxBufferSize" android:text="32" android:layout_weight="1"/>
-                    <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:text="Delay (ms):"
-                            android:id="@+id/textView2" android:layout_weight="1"/>
-                    <EditText
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:text="0" android:id="@+id/editTextDelay" android:inputType="number"
-                            android:layout_weight="1"/>
-                </LinearLayout>
-                <LinearLayout
-                        android:orientation="horizontal" android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-                    <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Bytes to send:"
-                            android:id="@+id/textView" android:gravity="center_vertical"/>
-                    <RadioGroup
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" android:orientation="horizontal">
-                        <RadioButton
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="KB"
-                                android:id="@+id/radioButtonCAKBytesToSend" android:checked="false"/>
-                        <RadioButton
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="MB"
-                                android:id="@+id/radioButtonCAMBytesToSend" android:checked="true"/>
-                    </RadioGroup>
-                    <EditText
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:id="@+id/editTextTotalBytesToSend" android:text="100"
-                            android:inputType="number"/>
-                </LinearLayout>
-                <LinearLayout
-                        android:orientation="horizontal"
-                        android:layout_width="fill_parent"
-                        android:layout_height="fill_parent">
+                        android:layout_height="fill_parent" android:id="@+id/linearLayoutTransmissionControl">
                     <Button
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Start Transmitting"
-                            android:id="@+id/buttonStartStopTransmitting" android:layout_gravity="center_horizontal"
-                            android:layout_weight="1"/>
+                            android:id="@+id/buttonCAStartTransmitting" android:layout_gravity="center_horizontal"
+                            android:layout_weight="1" android:visibility="visible"/>
+                    <Button android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:text="Stop Transmitting" android:id="@+id/buttonCAStopTransmitting"
+                            android:layout_gravity="center_horizontal" android:layout_weight="1"
+                            android:visibility="gone" android:backgroundTint="#dc650e"
+                            android:backgroundTintMode="src_atop"/>
                     <Button
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Send Image"
-                            android:id="@+id/buttonSendImage" android:layout_weight="1"/>
+                            android:id="@+id/buttonCASendImage" android:layout_weight="1"
+                    />
+                    <Button android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:text="Send Image" android:id="@+id/buttonCAStopSendingImage" android:layout_weight="1"
+                            android:backgroundTint="#dc650e" android:visibility="gone"
+                            android:backgroundTintMode="src_atop"/>
                 </LinearLayout>
                 <LinearLayout
                         android:orientation="horizontal"
@@ -184,10 +199,20 @@
                     android:textAppearance="?android:attr/textAppearanceSmall"
                     android:text=" "
                     android:id="@+id/textView23"/>
-            <TextView android:layout_width="match_parent" android:layout_height="40dp"
-                      android:text="Reception Zone"
-                      android:id="@+id/textViewReceptionZone" android:gravity="center" android:background="#f7160a54"
-                      android:textAppearance="?android:attr/textAppearanceMedium"/>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:id="@+id/linearLayoutReceptionControl">
+                <TextView android:layout_width="match_parent" android:layout_height="40dp"
+                          android:text="Reception Zone"
+                          android:id="@+id/textViewReceptionZone" android:gravity="center" android:background="#f7160a54"
+                          android:textAppearance="?android:attr/textAppearanceMedium" android:layout_weight="1"/>
+                <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/buttonCAClearReceptionLogs"
+                        android:drawableLeft="@android:drawable/ic_menu_delete" android:text="Clear"/>
+            </LinearLayout>
             <LinearLayout
                     android:orientation="vertical"
                     android:layout_width="fill_parent"
@@ -254,7 +279,18 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Start Receiving"
-                        android:id="@+id/buttonStartStopServer" android:layout_gravity="center_horizontal"/>
+                        android:id="@+id/buttonStartServer" android:layout_gravity="center_horizontal"/>
+                <Button android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Stop Receiving" android:id="@+id/buttonStopServer"
+                        android:layout_gravity="center_horizontal"
+                        android:visibility="gone"
+                        android:singleLine="false"
+                        android:backgroundTintMode="src_atop" android:backgroundTint="#dc650e"/>
+                <LinearLayout
+                        android:orientation="vertical"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" android:id="@+id/linearLayoutReceptionLogs">
+                </LinearLayout>
                 <LinearLayout
                         android:orientation="vertical"
                         android:layout_width="fill_parent"

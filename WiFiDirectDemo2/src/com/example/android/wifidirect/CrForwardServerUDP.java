@@ -3,18 +3,18 @@ package com.example.android.wifidirect;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
 /**
  * Created by DR AT on 28/05/2015.
- *
- *
  */
-public class CrForwardServerUDP  extends Thread implements IStoppable {
+public class CrForwardServerUDP extends Thread implements IStoppable {
     private int bufferSize;
     int portNumber;
-    DatagramSocket forwardRxSocket, forwardTxSocket ;
+    DatagramSocket forwardRxSocket, forwardTxSocket;
     boolean run = true;
     TextView editTextTransferedData;
     long forwardedData = 0;
@@ -41,7 +41,6 @@ public class CrForwardServerUDP  extends Thread implements IStoppable {
         });
 
 
-
         // forward Server
         try {
             forwardRxSocket = new DatagramSocket(portNumber);
@@ -52,16 +51,17 @@ public class CrForwardServerUDP  extends Thread implements IStoppable {
             while (run) {
                 forwardRxSocket.receive(packet);
 //                Log.d(WiFiDirectActivity.TAG, "Received a UDP datagram");
-                byte bufferRcv [] = packet.getData();
+                byte bufferRcv[] = packet.getData();
                 ByteBuffer bufferInt = ByteBuffer.wrap(bufferRcv, 0, 4);
                 int addressLen = bufferInt.getInt();
-                String addressInfo = new String(bufferRcv,4, addressLen);
+                String addressInfo = new String(bufferRcv, 4, addressLen);
                 String aa[] = addressInfo.split(";");
 //                Log.d(WiFiDirectActivity.TAG, "Received packet with destination address: " + addressInfo);
 
                 forwardedData += bufferRcv.length;
                 deltaForwardData += bufferRcv.length;
-                DatagramPacket sendPacket = new DatagramPacket(bufferRcv, bufferRcv.length, InetAddress.getByName(aa[0]), Integer.parseInt(aa[1]));
+                DatagramPacket sendPacket = new DatagramPacket(bufferRcv, bufferRcv.length,
+                        InetAddress.getByName(aa[0]), Integer.parseInt(aa[1]));
                 forwardTxSocket.send(sendPacket);
                 updateVisualDeltaInformation(); // this may slow down reception. may want to get data only when necessary
             }
@@ -100,6 +100,7 @@ public class CrForwardServerUDP  extends Thread implements IStoppable {
         }
 
     }
+
     void updateVisualInformation() {
         // elapsed time
         long currentNanoTime = System.nanoTime();

@@ -40,7 +40,7 @@ class ReceptionGuiInfo {
     //debug
     ClientDataReceiverServerSocketThreadTCP.ClientDataReceiverThreadTCP clientDataReceiverThreadTCP;
 
-    public ReceptionGuiInfo(final LinearLayout parentLinearLayout, final String ipAddress, final int localPort
+    public ReceptionGuiInfo(final String tcpUdp, final LinearLayout parentLinearLayout, final String ipAddress, final int localPort
             , final ArrayList<DataTransferInfo> transferInfoArrayList
             , final ClientDataReceiverServerSocketThreadTCP.ClientDataReceiverThreadTCP cliThread) {
         this.parentLinearLayout = parentLinearLayout;
@@ -71,7 +71,8 @@ class ReceptionGuiInfo {
                 // id text view
                 tvLabel = new TextView(context);
                 tvLabel.setText(
-                        "Rec: " + ReceptionGuiInfo.this.ipAddress + " at port " + ReceptionGuiInfo.this.localPort);
+                        tcpUdp + ":" + ReceptionGuiInfo.this.localPort + " from " +
+                                ReceptionGuiInfo.this.ipAddress);
                 tvLabel.setBackgroundColor(0xff285523);
                 tvLabel.setTextAppearance(context, android.R.style.TextAppearance_Medium);
                 tvLabel.setGravity(Gravity.CENTER);
@@ -104,8 +105,8 @@ class ReceptionGuiInfo {
                         }
                         if (cliThread != null && cliThread.batteryFinal != null) {
                             String finalS = "Battery Final: Level=" + cliThread.batteryFinal.batteryLevel +
-                                    ", pct=" + (cliThread.batteryFinal.batteryLevel / (double)cliThread.batteryFinal.batteryScale)  * 100.0 + "%" +
-                                    ", voltage=" + cliThread.batteryFinal.batteryVoltage+ "mV, temp=" + cliThread.batteryFinal.batteryTemperature / 10.0 + "ºC";
+                                    ", pct=" + (cliThread.batteryFinal.batteryLevel / (double) cliThread.batteryFinal.batteryScale) * 100.0 + "%" +
+                                    ", voltage=" + cliThread.batteryFinal.batteryVoltage + "mV, temp=" + cliThread.batteryFinal.batteryTemperature / 10.0 + "ºC";
                             sb.append(finalS);
                             sbDetailed.append(finalS);
                         }

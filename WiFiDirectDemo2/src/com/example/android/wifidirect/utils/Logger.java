@@ -1,6 +1,7 @@
 package com.example.android.wifidirect.utils;
 
 import android.content.Context;
+import com.example.android.wifidirect.MyMainActivity;
 import com.example.android.wifidirect.R;
 
 import java.io.File;
@@ -20,8 +21,8 @@ public class Logger {
     static public SimpleDateFormat dateFormatLog = new SimpleDateFormat("HH'h'mm'm'ss's'SSS'ms'");
     static public SimpleDateFormat dateFormatDate = new SimpleDateFormat("yy/MM/dd");
 
-    // TODO build path npt working with com.hyrax.atdr
-    static private final String LOG_DIR_PATH = "/storage/sdcard0/Android/data/com.hyrax.atdr/logs";
+    static private String LOG_DIR_BASE_PATH = MyMainActivity.APP_MAIN_FILES_DIR_PATH + "/logs";
+    static private String LOG_DIR_PATH = LOG_DIR_BASE_PATH;
 
     private ArrayList<LoggerSession> logSessions = new ArrayList<>();
     private Date initialLogTime;
@@ -33,7 +34,7 @@ public class Logger {
      */
     public Logger(String mainLogName) {
         // ensure log dir path exists
-        buildPath(LOG_DIR_PATH);
+        AndroidUtils.buildPath(LOG_DIR_PATH);
 
         this.mainLogName = mainLogName;
     }
@@ -51,6 +52,21 @@ public class Logger {
         ++activeLogSessions;
         return ls;
     }
+
+    /**
+     *
+     */
+    public LoggerSession getNewLoggerSession(String loggerSessionName, String logSubDir) {
+        if(!(logSubDir.trim().equals("") || logSubDir.trim().equals("."))) {
+            // ensure log dir path exists
+            LOG_DIR_PATH = LOG_DIR_BASE_PATH + "/" + logSubDir;
+            AndroidUtils.buildPath(LOG_DIR_PATH);
+        }
+        return getNewLoggerSession(loggerSessionName);
+    }
+
+
+
 
     /**
      *
@@ -92,33 +108,6 @@ public class Logger {
         }
     }
 
-    /**
-     * Creates the received path. The path has to be constructed segment by
-     * segment because some segments could have dots and those segment must
-     * be create separately from others
-     */
-    public static void buildPath(String path) {
-
-        String[] components = path.split("/");
-
-        String buildPath = "";
-        for (String s : components) {
-            if (s.equals("")) {
-                if(buildPath.length() != 0)
-                    throw new IllegalStateException("Error creating LOG directory: " + buildPath);
-                buildPath += '/';
-            }
-            else {
-                if(buildPath.charAt(buildPath.length()-1) != '/')
-                    buildPath += '/';
-                buildPath += s;
-                File logDir = new File(buildPath);
-                if (!logDir.mkdir() && !logDir.exists())
-                    throw new IllegalStateException("Error creating LOG directory: " + buildPath);
-            }
-        }
-    }
-
 
     /**
      * Log also to file
@@ -130,7 +119,7 @@ public class Logger {
         appName = appName.replace(' ', '-');
         String cmd = "logcat -v time -f " + LOG_DIR_PATH + "/logcat_" + timestamp + "_" + appName + ".txt";
 
-        buildPath(LOG_DIR_PATH);
+        AndroidUtils.buildPath(LOG_DIR_PATH);
 
         try {
             Runtime.getRuntime().exec(cmd);

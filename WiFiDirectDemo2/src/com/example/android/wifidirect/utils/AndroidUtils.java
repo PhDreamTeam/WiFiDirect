@@ -3,8 +3,14 @@ package com.example.android.wifidirect.utils;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.LightingColorFilter;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Created by AT DR on 26-11-2015
@@ -48,6 +54,54 @@ public class AndroidUtils {
                 ((i >> 8) & 0xFF) + "." +
                 ((i >> 16) & 0xFF) + "." +
                 ((i >> 24) & 0xFF);
+    }
+
+    /*
+     * Not correct
+     */
+    public static void setBtnBackgroundColor(Button btn, int bgColor) {
+        LightingColorFilter lcf = new LightingColorFilter(0xFFFFFFFF, bgColor);
+        btn.getBackground().setColorFilter(lcf);
+    }
+
+    /*
+    *
+    */
+    public static void close(Closeable closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Creates the received path. The path has to be constructed segment by
+     * segment because some segments could have dots and those segment must
+     * be create separately from others
+     */
+    public static void buildPath(String path) {
+
+        String[] components = path.split("/");
+
+        String buildPath = "";
+        for (String s : components) {
+            if (s.equals("")) {
+                if(buildPath.length() != 0)
+                    throw new IllegalStateException("Error creating LOG directory: " + buildPath);
+                buildPath += '/';
+            }
+            else {
+                if(buildPath.charAt(buildPath.length()-1) != '/')
+                    buildPath += '/';
+                buildPath += s;
+                File logDir = new File(buildPath);
+                if (!logDir.mkdir() && !logDir.exists())
+                    throw new IllegalStateException("Error creating LOG directory: " + buildPath);
+            }
+        }
     }
 
 }

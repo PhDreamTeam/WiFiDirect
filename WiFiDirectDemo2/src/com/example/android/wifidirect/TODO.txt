@@ -1,5 +1,17 @@
-Client Activity: Reception zone: insert Clear Log button
+DONE: TCP stop receiving now with the sending of a dummy socket from local loop to wake up from accept
+DONE: stopping TCP receiving client treads by socket.close
+DONE: UDP stop receiving by sending dummy datagram from local loop
+DONE: TCP signaling error when trying to connect to not available server
+DONE: Botão de clear reception logs
+DONE: TCP/UDP in reception logs
+DONE: Reception zone: insert Clear Log button
+DONE: CLIENT ACTIVITY: Reception zone: When stopping a reception, signling it as terminated by user
 
-EM MyMainActivity estamos a indicar para que o Log seja escrito em ficheiro - desactivar isto
+TO DO:
+Estavamos na relay activity: alterar os campos para nome do device, testar. Retido em espera.
 
-Estavamos na relay activity: alterar os campos para nome do device, testar
+Onde estava 20-01-2016: devo ter de repetir os testes efectuados hoje na garagem. Havia directorias sem qualquer resultado.
+Corrigi a parte dos registos no cancelamento em UDP. Mas pode haver ainda situações que ficaram por resolver.
+
+Não consegui aceder aos ficheiros no PC. Pode não ser possível e ter-se que criar um procedimento para os enviar
+por correio ou exportá-los para o PC.

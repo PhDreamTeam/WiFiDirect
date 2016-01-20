@@ -1,8 +1,8 @@
 package com.example.android.wifidirect;
 
 import android.util.Log;
-import android.widget.Button;
 import android.widget.TextView;
+import com.example.android.wifidirect.utils.AndroidUtils;
 import com.example.android.wifidirect.utils.LoggerSession;
 
 import java.net.DatagramPacket;
@@ -26,14 +26,14 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     TextView tvSentDataKB;
     boolean run = true;
     double lastUpdate;
-    Button startStopTransmitting;
+    ClientActivity clientActivity;
 
     /**
      *
      */
     public ClientSendDataThreadUDP(String destIpAddress, int destPortNumber, String crIpAddress,
                                    int crPortNumber, long delayInterDatagramsMs, long dataLimitKB,
-                                   TextView tvSentDataKB, Button startStopTransmitting, int bufferSizeBytes) {
+                                   TextView tvSentDataKB, ClientActivity clientActivity, int bufferSizeBytes) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
         this.crIpAddress = crIpAddress;
@@ -41,22 +41,25 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
         this.delayInterDatagramsMs = delayInterDatagramsMs;
         this.dataLimitBytes = dataLimitKB * 1024;
         this.tvSentDataKB = tvSentDataKB;
-        this.startStopTransmitting = startStopTransmitting;
+        this.clientActivity = clientActivity;
         this.bufferSizeBytes = bufferSizeBytes;
     }
 
 
     @Override
     public void run() {
+
+        AndroidUtils.toast(tvSentDataKB, "Start transmitting!!!!!");
+
         // get number of buffers to send
         int nBuffersToSend = (int) (dataLimitBytes / bufferSizeBytes) +
                 (dataLimitBytes % bufferSizeBytes != 0 ? 1 : 0);
 
         // start log session and log initial time
-        LoggerSession logSession = MyMainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName());
+        LoggerSession logSession = MyMainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName(),
+                clientActivity.getLogDir());
         logSession.logMsg("Send data to CR: " + crIpAddress + ":" + crPortNumber);
         logSession.logMsg("Send data to dest: " + destIpAddress + ":" + destPortNumber + "\n");
-        long initialTxTimeMs = logSession.logTime("Initial time");
 
         // Send data buffer and fill with some values
         byte buffer[] = new byte[bufferSizeBytes];
@@ -64,10 +67,12 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             buffer[i] = (byte) i;
         }
 
+        DatagramSocket cliSocket = null;
+
         try {
             InetAddress iadCrIpAddress = InetAddress.getByName(crIpAddress);
 
-            DatagramSocket cliSocket = new DatagramSocket();
+            cliSocket = new DatagramSocket();
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
 
             // first 4 bytes contains the string length
@@ -81,6 +86,9 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSizeBytes);
 
             DatagramPacket packet;
+
+            logSession.logTime("Initial time");
+            long initialTxTimeNs = System.nanoTime();
 
             while (run) {
                 // second 4 bytes contains the number fo the datagram, reverse order, last will be zero
@@ -106,28 +114,37 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
                 }
             }
 
+            // log end writing time
+            logSession.logTime("Final sent time");
+            long finalTxTimeNs = System.nanoTime();
+
             // update gui with last results and state button
             updateSentData(nBytesSent, true);
 
-            // log end writing time
-            long finalTxTimeMs = logSession.logTime("Final sent time");
-
             // log final sent and receive bytes
             logSession.logMsg("Data sent (B): " + nBytesSent + ", (MB): " + nBytesSent / (1024.0 * 1024));
-            double deltaTimeSegs = (finalTxTimeMs - initialTxTimeMs) / 1000.0;
-            double sentDataMb = ((double) (nBytesSent * 8)) / (1024 * 1204);
-            double globalSentSpeedMbps =  sentDataMb / deltaTimeSegs;
+            double deltaTimeSegs = (finalTxTimeNs - initialTxTimeNs) / 1_000_000_000.0;
+            double sentDataMb = (nBytesSent * 8.0) / (1024.0 * 1024.0);
+            double globalSentSpeedMbps = sentDataMb / deltaTimeSegs;
             logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", globalSentSpeedMbps));
             logSession.close();
 
+            cliSocket.close();
+
             tvSentDataKB.post(new Runnable() {
                 public void run() {
-                    startStopTransmitting.setText("Start Transmitting");
+                    clientActivity.stopTransmittingGuiActions(null);
                 }
             });
 
         } catch (Exception e) {
+            Log.e(WiFiDirectActivity.TAG, "Error transmitting data: " + e.getMessage());
             e.printStackTrace();
+            AndroidUtils.toast(tvSentDataKB, "Error transmitting data: " + e.getMessage());
+            logSession.logMsg("Transmission stopped by user - GUI");
+            logSession.close();
+        } finally {
+            AndroidUtils.close(cliSocket);
         }
     }
 

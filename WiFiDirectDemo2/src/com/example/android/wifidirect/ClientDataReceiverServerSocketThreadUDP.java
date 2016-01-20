@@ -2,11 +2,13 @@ package com.example.android.wifidirect;
 
 import android.util.Log;
 import android.widget.LinearLayout;
+import com.example.android.wifidirect.utils.AndroidUtils;
 import com.example.android.wifidirect.utils.LoggerSession;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -18,22 +20,23 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
     private int bufferSizeKB;
     int portNumber;
     DatagramSocket serverDatagramSocket;
-    boolean run = true;
     LinearLayout llReceptionZone;
     byte buffer[];
     long nBytesReceived, rcvDataCounterLastValue;
     long lastUpdate;
     private ReceptionGuiInfo receptionGuiInfoGui;
     double maxSpeedMbps;
+    ClientActivity clientActivity;
 
     ArrayList<DataTransferInfo> transferInfoArrayList = new ArrayList<>();
 
-    public ClientDataReceiverServerSocketThreadUDP(int portNumber,
-                                                   LinearLayout llReceptionZone, int bufferSizeKB) {
+    public ClientDataReceiverServerSocketThreadUDP(int portNumber, LinearLayout llReceptionZone,
+                                                   int bufferSizeKB, ClientActivity clientActivity) {
         this.llReceptionZone = llReceptionZone;
         this.portNumber = portNumber;
         this.bufferSizeKB = bufferSizeKB;
         buffer = new byte[bufferSizeKB];
+        this.clientActivity = clientActivity;
     }
 
 
@@ -44,10 +47,10 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
             // to catch different transmissions
-            while (run) {
+            while (true) {
 
                 int nBuffersReceived = 0;
-                long initialTimeMs = 0;
+                long initialTimeNs = 0;
                 maxSpeedMbps = lastUpdate = 0;
                 nBytesReceived = rcvDataCounterLastValue = 0;
 
@@ -57,27 +60,53 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
 
                 // to process successive datagrams from one transmission
                 // it is supposed that transmissions do not overlap
-                while (run) {
+                while (true) {
                     // wait connections
                     serverDatagramSocket.receive(packet);
 
+                    if (packet.getAddress().toString().equals("/127.0.0.1")) {
+                        AndroidUtils.toast(llReceptionZone, "Reception stopped");
+                        // close datagram socket
+                        serverDatagramSocket.close();
+                        if (logSession != null) {
+                            logSession.logMsg("Transmission stopped by user - GUI");
+                            logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
+                            for (DataTransferInfo data : transferInfoArrayList)
+                                logSession.logMsg("  " + data);
+                            logSession.close();
+                        }
+                        return;
+                    }
+
                     if (++nBuffersReceived == 1) {
+                        // create gui session
+                        receptionGuiInfoGui = new ReceptionGuiInfo("UDP", llReceptionZone,
+                                packet.getAddress().toString() +
+                                        ":" + packet.getPort(), portNumber, transferInfoArrayList, null);
+
                         // start counting for gui update
                         lastUpdate = System.nanoTime();
-                        // create gui session
-                        receptionGuiInfoGui = new ReceptionGuiInfo(llReceptionZone, packet.getAddress().toString() +
-                                ":" + packet.getPort(), portNumber, transferInfoArrayList, null);
+                        initialTimeNs = lastUpdate;
 
                         // start log session and log initial time
                         logSession = MyMainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName() +
-                                " Receiving UDP data ");
-                        initialTimeMs = logSession.logTime("Initial time");
-                        logSession.logMsg("Sender address: " + packet.getAddress().toString() + ":" + packet.getPort());
+                                " Receiving UDP data ", clientActivity.getLogDir());
+                        logSession.logMsg("Sender address: " + packet.getAddress().toString().substring(1) +
+                                ":" + packet.getPort());
                         Log.d("FWD Receiver UDP", "Received a datagram from: " +
-                                packet.getAddress().toString());
+                                packet.getAddress().toString().substring(1));
                     }
 
                     bufferRcv = packet.getData();
+
+                    if (nBuffersReceived == 1) {
+                        String addressInfo = new String(bufferRcv, 8, ByteBuffer.wrap(bufferRcv, 0, 4).getInt());
+                        String dataStr[] = addressInfo.split(";");
+                        logSession.logMsg("Destination: " + dataStr[0] + ":" + dataStr[1] + "\n");
+
+                        logSession.logMsg("Initial time: " + initialTimeNs);
+                    }
+
                     // extract datagram number
                     bufferInt = ByteBuffer.wrap(bufferRcv, 4, 4);
                     int datagramNumber = bufferInt.getInt();
@@ -87,25 +116,43 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
 
                     nBytesReceived += bufferRcv.length;
 
-                    updateVisualDeltaInformation(false);
-
                     // termination condition
                     if (datagramNumber == 0) {
-                        Log.d("FWD Receiver UDP", "Ended reception from: " + packet.getAddress().toString());
                         break;
                     }
+
+                    updateVisualDeltaInformation(false, logSession);
                 }
 
-                updateVisualDeltaInformation(true);
+                updateVisualDeltaInformation(true, logSession);
+                long finalTimeNs = lastUpdate;
+                logSession.logMsg("Final time: " + finalTimeNs);
+                logSession.logMsg("");
 
-                long finalTimeMs = logSession.logTime("Final time");
-                double deltaTimeSegs = (finalTimeMs - initialTimeMs) / 1000.0;
-                double receivedDataMb = ((double) (nBytesReceived * 8)) / (1024 * 1204);
+                Log.d("FWD Receiver UDP", "Ended reception from: " + packet.getAddress().toString());
+
+                double deltaTimeSegs = (finalTimeNs - initialTimeNs) / 1_000_000_000.0;
+                double receivedDataMb = (nBytesReceived * 8.0) / (1024.0 * 1024.0);
                 double globalRcvSpeedMbps = receivedDataMb / deltaTimeSegs;
 
+                // write final global average speed
+                receptionGuiInfoGui.setCurAvgRcvSpeed(globalRcvSpeedMbps);
+
+                // log data
                 logSession.logMsg("Received " + nBuffersReceived + " buffers");
                 logSession.logMsg("Received bytes: " + nBytesReceived);
                 logSession.logMsg("Receive global speed (Mbps): " + String.format("%5.3f", globalRcvSpeedMbps));
+                logSession.logMsg("Receive max speed (Mbps): " + String.format("%5.3f", maxSpeedMbps));
+
+                // get average Speed without first and last results
+                double totalRegisteredSpeedMbps = 0;
+                int numSpeedRegisters = transferInfoArrayList.size();
+                for (int i = 1; i < numSpeedRegisters - 1; ++i) {
+                    DataTransferInfo data = transferInfoArrayList.get(i);
+                    totalRegisteredSpeedMbps += data.speedMbps;
+                }
+                logSession.logMsg("Receive avg speed (excluding limits, Mbps): " +
+                        String.format("%5.3f", totalRegisteredSpeedMbps / (numSpeedRegisters - 2)) + "\n");
 
                 logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
                 for (DataTransferInfo data : transferInfoArrayList)
@@ -119,38 +166,70 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
 
         } catch (IOException e) {
             e.printStackTrace();
+            AndroidUtils.toast(llReceptionZone, "Exception " + e.getMessage());
+            llReceptionZone.post(new Runnable() {
+                @Override
+                public void run() {
+                    clientActivity.endReceivingGuiActions();
+                }
+            });
         }
     }
 
     /*
      *
      */
-    void updateVisualDeltaInformation(boolean forcedUpdate) {
+    void updateVisualDeltaInformation(boolean forcedUpdate, LoggerSession logSession) {
         // elapsed time
         long currentNanoTime = System.nanoTime();
 
         if (currentNanoTime > lastUpdate + 1_000_000_000 || forcedUpdate) {
 
-            long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
+            // logSession.logMsg("CurrentNanoTime: " + currentNanoTime);
+            // logSession.logMsg("LastUpdate: " + lastUpdate);
+
+            long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 to get seconds
             double elapsedDeltaRcvTimeSeconds = elapsedDeltaRcvTimeNano / 1_000_000_000.0;
             long deltaReceivedBytes = nBytesReceived - rcvDataCounterLastValue;
-            double speedMbps = ((deltaReceivedBytes * 8) / (1024.0 * 1024)) / elapsedDeltaRcvTimeSeconds;
+            double speedMbps = ((deltaReceivedBytes * 8.0) / (1024.0 * 1024.0)) / elapsedDeltaRcvTimeSeconds;
             lastUpdate = currentNanoTime;
             rcvDataCounterLastValue = nBytesReceived;
 
-            if (speedMbps > maxSpeedMbps)
+            // exclude last reading
+            if (!forcedUpdate && speedMbps > maxSpeedMbps)
                 maxSpeedMbps = speedMbps;
 
             receptionGuiInfoGui.setData(nBytesReceived / 1024.0, 0, maxSpeedMbps, speedMbps);
 
             transferInfoArrayList.add(new DataTransferInfo(speedMbps, elapsedDeltaRcvTimeSeconds,
                     deltaReceivedBytes, currentNanoTime));
+
+            // logSession.logMsg("DeltaBytes: " + deltaReceivedBytes);
+            // logSession.logMsg("CurrentSpeed (Mbps): " + speedMbps);
+
         }
     }
 
     @Override
     public void stopThread() {
-        run = false;
-        this.interrupt();
+        // stop socket listening - send a termination: a dummy local socket
+        // must run in the non GUI thread
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+//                    Socket s = new Socket(InetAddress.getByName("127.0.0.1"), portNumber);
+//                    s.close();
+
+                    DatagramSocket ds = new DatagramSocket();
+                    ds.send(new DatagramPacket(new byte[0], 0,
+                            InetAddress.getByName("127.0.0.1"), portNumber));
+                    ds.close();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 }
