@@ -21,7 +21,6 @@ import java.util.List;
  * IN Work:
  * DONE: individual timers, mover nós
  * <p/>
- *
  */
 public class NetworkBuilder extends JFrame {
 
@@ -87,6 +86,8 @@ public class NetworkBuilder extends JFrame {
 
     private SpinnerNumberModel spinnerIndTimersMinTimeModel;
     private SpinnerNumberModel spinnerIndTimersDeltaTimeModel;
+    private JButton btnClearAllConnections;
+    private JButton btnClearNodesInfo;
 
 
     /**
@@ -159,6 +160,22 @@ public class NetworkBuilder extends JFrame {
             }
         });
 
+        // button Clear All Connection
+        btnClearAllConnections = new JButton("Clear connections");
+        btnClearAllConnections.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                clearAllConnections();
+            }
+        });
+
+        // button Clear All Connection
+        btnClearNodesInfo = new JButton("Clear nodes info");
+        btnClearNodesInfo.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                clearNodesInfo();
+            }
+        });
+
         // button Clear All
         btnClearAll = new JButton("Clear all");
         btnClearAll.addActionListener(new ActionListener() {
@@ -177,6 +194,8 @@ public class NetworkBuilder extends JFrame {
         buttonsPanel.add(btnStartIndTimers);
         buttonsPanel.add(btnStopIndTimers);
         buttonsPanel.add(btnStepTimer);
+        buttonsPanel.add(btnClearAllConnections);
+        buttonsPanel.add(btnClearNodesInfo);
         buttonsPanel.add(btnClearAll);
         buttonsPanel.add(btnAutoMove);
 
@@ -902,16 +921,41 @@ public class NetworkBuilder extends JFrame {
      *
      */
     private void doStartIndividualTimerActions() {
+        // start individual timers
         for (NodeAbstract node : nodes) {
             node.startTimer(getIndividualTimerDelay());
         }
-
+        // signal global flag
         indidividualTimersActivated = true;
+        // enable stop individual timers button
+        btnStopIndTimers.setVisible(true);
+        // set GUI to timers running
+        doGUIStartTimersActions();
+    }
+
+    /**
+     *
+     */
+    private void doStartTimerActions() {
+        globaltimer.start();
+
+        btnStopTimer.setVisible(true);
+        doGUIStartTimersActions();
+    }
+
+    /**
+     * Timers will start, disable buttons
+     */
+    private void doGUIStartTimersActions() {
         btnStartTimer.setVisible(false);
         btnStartIndTimers.setVisible(false);
-        btnStopIndTimers.setVisible(true);
+
         btnStepTimer.setVisible(false);
+        btnClearAllConnections.setVisible(false);
+        btnClearNodesInfo.setVisible(false);
+        btnClearAll.setVisible(false);
     }
+
 
     /**
      *
@@ -920,24 +964,11 @@ public class NetworkBuilder extends JFrame {
         for (NodeAbstract node : nodes) {
             node.stopTimer();
         }
-
         indidividualTimersActivated = false;
-        btnStartTimer.setVisible(true);
-        btnStartIndTimers.setVisible(true);
+        // enable stop individual timers button
         btnStopIndTimers.setVisible(false);
-        btnStepTimer.setVisible(true);
-    }
 
-    /**
-     *
-     */
-    private void doStartTimerActions() {
-        globaltimer.start();
-        btnStartTimer.setVisible(false);
-        btnStopTimer.setVisible(true);
-        btnStartIndTimers.setVisible(false);
-        btnStopIndTimers.setVisible(false);
-        btnStepTimer.setVisible(false);
+        doGUIStopTimersActions();
     }
 
     /**
@@ -945,12 +976,22 @@ public class NetworkBuilder extends JFrame {
      */
     private void doStopTimerActions() {
         globaltimer.stop();
-        btnStartTimer.setVisible(true);
         btnStopTimer.setVisible(false);
-        btnStartIndTimers.setVisible(true);
-        btnStopIndTimers.setVisible(false);
-        btnStepTimer.setVisible(true);
+        doGUIStopTimersActions();
     }
+
+    /**
+     * Timers will stop, enable buttons
+     */
+    private void doGUIStopTimersActions() {
+        btnStartTimer.setVisible(true);
+        btnStartIndTimers.setVisible(true);
+        btnStepTimer.setVisible(true);
+        btnClearAllConnections.setVisible(true);
+        btnClearNodesInfo.setVisible(true);
+        btnClearAll.setVisible(true);
+    }
+
 
     /**
      *
@@ -1178,6 +1219,39 @@ public class NetworkBuilder extends JFrame {
         return true;
     }
 
+    /**
+     *
+     */
+    public void clearAllConnections() {
+        doStopIndividualTimerActions();
+        doStopTimerActions();
+
+        for (NodeAbstract n : nodes) {
+            n.disconnectAll();
+        }
+
+        myPanel.repaint();
+    }
+
+    /**
+     * Clear nodes connections and set all node to be clients
+     */
+    public void clearNodesInfo() {
+        doStopIndividualTimerActions();
+        doStopTimerActions();
+
+        for (int i = 0, size = nodes.size(); i < size; ++i) {
+            NodeAbstract n = nodes.get(i);
+            // disconnect connections
+            n.disconnectAll();
+            // transform GOAPs in clients
+            if (n instanceof NodeAbstractAP) {
+                transformNodeGOAPInNodeClient((NodeAbstractAP) n);
+            }
+        }
+        myPanel.repaint();
+    }
+
 
     /**
      *
@@ -1185,9 +1259,11 @@ public class NetworkBuilder extends JFrame {
     public void clearAll() {
         doStopIndividualTimerActions();
         doStopTimerActions();
+
         nodes.clear();
         nextNodeID = 1;
         xScreenOffset = yScreenOffset = 0;
+
         myPanel.repaint();
     }
 
@@ -1255,6 +1331,7 @@ public class NetworkBuilder extends JFrame {
         repaint();
         return go;
     }
+
 
     /**
      *
@@ -1464,6 +1541,11 @@ public class NetworkBuilder extends JFrame {
             for (NodeAbstract node : nodes) {
                 if (node instanceof NodeAbstractAP)
                     node.paintComponent(g);
+            }
+            // draw current selected client if any
+            if(currentSelectedNode != null) {
+                if(currentSelectedNode instanceof NodeClient)
+                    ((NodeClient)currentSelectedNode).paintSelected(g);
             }
             g2.setComposite(alphaNoAlpha);
 

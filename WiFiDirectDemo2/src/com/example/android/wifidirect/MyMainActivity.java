@@ -207,7 +207,7 @@ public class MyMainActivity extends Activity {
      *
      */
     public String getLogDir() {
-        return etLogDir.getText().toString();
+        return etLogDir.getText().toString().trim();
     }
 
     /**

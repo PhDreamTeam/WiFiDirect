@@ -46,6 +46,16 @@ public class NodeClient extends NodeAbstract {
         paintConnections(g);
     }
 
+    /*
+     *
+     */
+    public void paintSelected(Graphics g) {
+        if (!isSelected())
+            return;
+        // draw coverage circle
+        drawCircle(g, NetworkBuilder.MAX_WIFI_RANGE_TO_MAKE_CONNECTIONS);
+    }
+
     /**
      *
      */
@@ -133,11 +143,11 @@ public class NodeClient extends NodeAbstract {
         }
 
         // R4CL: WFD used, WF free and available GO in range, connect to WF
-        if(case_WFDUsed_WFFree_AndAvailableGoInRange())
+        if (case_WFDUsed_WFFree_AndAvailableGoInRange())
             return;
 
         // R4CL: WF used, WFD free and available GO in range. connect to WFD
-        if(case_WFUsed_WFDFree_AndAvailableGoInRange())
+        if (case_WFUsed_WFDFree_AndAvailableGoInRange())
             return;
 
         // R5CL: caseTwoClientsInRangeFromNotConnectedGOs
@@ -198,11 +208,12 @@ public class NodeClient extends NodeAbstract {
     }
 
     /**
-     * handle anomaly case of Two Not Connected GOS With Clients In Range
+     * R5CL: Handle anomaly case of Two Not Connected GOS With Clients In Range
      */
     boolean caseTwoClientsInRangeFromNotConnectedGOs() {
         //  1) um nó cliente CL1 ligado a GO5 vê outro cliente CL2 ligado a GO6
         //  2)   e GO5 não está ligado a GO6
+        //  2.1) não existe um outro CL de GO5 que tenha GO6 ao alcance e uma interface livre
         //  3)   e CL1 é o melhor PGO
         //          - PGO (potencial GO:
         //                um cliente (ao alcance a CL2) que tem um outro cliente CL3 do mesmo GO ao seu alcance
@@ -217,6 +228,11 @@ public class NodeClient extends NodeAbstract {
             return false;
 
         NodeGO outsiderGO = (NodeGO) cliOutsider.getConnectedAPs().get(0);
+
+        // 2.1
+        if (thereIsAnotherBrotherThatCanConnectToGO(outsiderGO))
+            return false;
+
         // 3) Am I the best PGO to connect to outsiderGO
         if (!isBestPGO(outsiderGO))
             return false;
@@ -229,6 +245,28 @@ public class NodeClient extends NodeAbstract {
         NodeGO newGO = networkBuilder.transformNodeInGO(this);
         newGO.setIsPrivilegedNode(true);
         return true;
+    }
+
+    /**
+     *
+     */
+    private boolean thereIsAnotherBrotherThatCanConnectToGO(NodeGO outsiderGO) {
+        NodeGO go = getConnectedByWFD();
+        if (go == null)
+            return false;
+
+        List<NodeClient> clientsListInRange = networkBuilder.getClientsListInRange(outsiderGO);
+
+        ArrayList<NodeAbstract> nodes = go.getConnectedNodes();
+        for (int i = 0, size = nodes.size(); i < size; i++) {
+            NodeAbstract n = nodes.get(i);
+            // checking for brother that are already bridges
+            if (n.getConnectedAPs().size() != 1)
+                continue;
+            if (clientsListInRange.contains(n))
+                return true;
+        }
+        return false;
     }
 
     /**
@@ -290,7 +328,7 @@ public class NodeClient extends NodeAbstract {
         // best if the one with more potential bridges in range
         int diff = c1.getNBrothersPotentialBridgesInRange() - c2.getNBrothersPotentialBridgesInRange();
         // if equal, the best is the one with bigger ID
-        return diff != 0 ?  diff : c1.getId() - c2.getId();
+        return diff != 0 ? diff : c1.getId() - c2.getId();
     }
 
     /**

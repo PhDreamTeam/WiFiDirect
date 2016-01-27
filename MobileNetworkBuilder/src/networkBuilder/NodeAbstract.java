@@ -233,17 +233,15 @@ public abstract class NodeAbstract implements Serializable {
      */
     public void drawCircle(Graphics g, int radius) {
         int zoom = networkBuilder.getZoomFactor();
-        int xSO = networkBuilder.getXScreenOffset();
-        int ySO = networkBuilder.getYScreenOffset();
+        int xSO = networkBuilder.getXScreenOffset(), ySO = networkBuilder.getYScreenOffset();
+        int width = (getX() - radius + xSO) * zoom, height = (getY() - radius + ySO) * zoom;
 
         // circle inside color
         g.setColor(isSelected ? Color.yellow : this.color);
-        g.fillOval((getX() - radius + xSO) * zoom, (getY() - radius + ySO) * zoom, 2 * radius * zoom,
-                2 * radius * zoom);
+        g.fillOval(width, height, 2 * radius * zoom, 2 * radius * zoom);
         // circle border line
         g.setColor(Color.BLACK);
-        g.drawOval((getX() - radius + xSO) * zoom, (getY() - radius + ySO) * zoom, 2 * radius * zoom,
-                2 * radius * zoom);
+        g.drawOval(width, height, 2 * radius * zoom, 2 * radius * zoom);
     }
 
     public void paintNodeName(Graphics g) {

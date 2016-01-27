@@ -97,7 +97,7 @@ class NodeGO extends NodeAbstractAP {
     /**
      * Case that 1) this GO is in range of another GO and 2) both are not connected and
      * 3) don't have auxiliary clients, and if this node:
-     * - 4) has less clients than the other GO
+     * - 4) has less clients than the other GO or
      * - 5) has lower ID than the other GO
      *
      * THEN: this node will transform itself in client, to be a bridge
@@ -153,6 +153,8 @@ class NodeGO extends NodeAbstractAP {
     /*
      * case of this (GO) is overlapped by another GOx, all my clients and I are in range of GOx,
      * and GOx have more clients that I or have higher ID
+     *
+     * THIS RULE ONLY EXTENDS THE RULE R1GO TO MORE CLIENTS _ MAYBE IT IS UNNECESSARY
      */
     private boolean caseDuplicateGO() {
         // allow only GOs with 1, 2 or 3 clients to give all of them to the another GO
