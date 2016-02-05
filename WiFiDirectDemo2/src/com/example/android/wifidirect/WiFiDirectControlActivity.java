@@ -47,6 +47,7 @@ public class WiFiDirectControlActivity extends Activity {
     private WifiP2pManager.Channel channel;
 
     private static Method deletePersistentGroupMethod;
+    private static Method startWpsMethod;
 
     private HashMap<String, RemoteDeviceServiceInfo> discoveredNodesServicesInfo = new HashMap<>();
 
@@ -96,11 +97,16 @@ public class WiFiDirectControlActivity extends Activity {
     private Button btnP2PCGODisconnect;
     private Button btnClearRegGroups;
 
+    private long operationStartTime = -1;
+
     static {
         for (Method method : WifiP2pManager.class.getDeclaredMethods()) {
             switch (method.getName()) {
                 case "deletePersistentGroup":
                     deletePersistentGroupMethod = method;
+                    break;
+                case "startWps":
+                    startWpsMethod = method;
                     break;
             }
         }
@@ -125,6 +131,7 @@ public class WiFiDirectControlActivity extends Activity {
     private TextView tvP2PCGONumberOfClients;
     private Button btnP2PCreateGroup;
     private String deviceName;
+    private Button btnStartWps;
 
 
     boolean hiddenMethodsAreSupported() {
@@ -173,7 +180,8 @@ public class WiFiDirectControlActivity extends Activity {
             public void onClick(View v) {
                 clearRegisteredGroups();
                 if (!hiddenMethodsAreSupported()) {
-                    AndroidUtils.showDialog(WiFiDirectControlActivity.this, "Hidden methods not supported!!!", "App will close",
+                    AndroidUtils.showDialog(WiFiDirectControlActivity.this, "Hidden methods not supported!!!",
+                            "App will close",
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
                                     // closes this activity
@@ -220,13 +228,18 @@ public class WiFiDirectControlActivity extends Activity {
         btnP2PCreateGroup = (Button) findViewById(R.id.buttonP2PCreateGroup);
         btnP2PCreateGroup.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+                operationStartTime = System.currentTimeMillis();
+                tvConsole.append("\n\nWFD group creation started");
+                Log.d(TAG, "WFD group creation started");
                 p2pManager.createGroup(channel, new WifiP2pManager.ActionListener() {
                             public void onSuccess() {
-                                tvConsole.append("\n\nP2P CreateGroup started\n");
+                                tvConsole.append("\nWFD group creation started OK");
+                                Log.d(TAG, "WFD group creation started OK");
                             }
 
                             public void onFailure(int reason) {
-                                tvConsole.append("\n\nP2P CreateGroup failed. Reason: " + reason + "\n");
+                                tvConsole.append("\nWFD CreateGroup failed. Reason: " + reason + "\n");
+                                Log.d(TAG, "WFD CreateGroup failed. Reason: " + reason);
                             }
                         }
                 );
@@ -261,6 +274,35 @@ public class WiFiDirectControlActivity extends Activity {
         btnP2PCGODisconnect.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 disconnectFromGroup();
+            }
+        });
+
+
+        // =====================================================================
+        // WPS
+        btnStartWps = (Button) findViewById(R.id.btnStartWps);
+        btnStartWps.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Log.d(TAG, "Starting WPS");
+
+
+                WpsInfo wpsi = new WpsInfo();
+                // WpsInfo.PBC and WPS activated: the connection is immediate but opens a window in the GO device
+                // the user action is ignored - tested on OPO and NEXUS 9
+                wpsi.setup = WpsInfo.PBC;
+                // wpsi.pin = "0000";
+
+                startWps(wpsi, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Log.d(TAG, "Starting WPS: success");
+                    }
+
+                    @Override
+                    public void onFailure(int reason) {
+                        Log.d(TAG, "Starting WPS: failed");
+                    }
+                });
             }
         });
 
@@ -312,7 +354,8 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 final WifiP2PDeviceWrapper item = (WifiP2PDeviceWrapper) parent.getItemAtPosition(position);
-                AndroidUtils.showDialog(WiFiDirectControlActivity.this, "P2P Peer details", "" + item.getDevice(), null);
+                AndroidUtils.showDialog(WiFiDirectControlActivity.this, "P2P Peer details", "" + item.getDevice(),
+                        null);
             }
         });
 
@@ -320,8 +363,9 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 final RemoteDeviceServiceInfo item = (RemoteDeviceServiceInfo) parent.getItemAtPosition(position);
-                AndroidUtils.showDialog(WiFiDirectControlActivity.this, "P2P Peer with Services details", "" + item.getServiceRecord() + "\n" +
-                        item.getWifiP2PDevice(), null);
+                AndroidUtils.showDialog(WiFiDirectControlActivity.this, "P2P Peer with Services details",
+                        "" + item.getServiceRecord() + "\n" +
+                                item.getWifiP2PDevice(), null);
 
                 selectedPeerName = item.getWifiP2PDevice().deviceName;
                 selectedPeerAddress = item.getWifiP2PDevice().deviceAddress;
@@ -464,7 +508,7 @@ public class WiFiDirectControlActivity extends Activity {
                         "\n\n Discover services txtRecord available: " + fullDomain + ", " + record.toString() +
                                 ", " + device + "\nDEVICE_NAME: " + device.deviceName + ".");
 
-                if(device.deviceName.trim().isEmpty())
+                if (device.deviceName.trim().isEmpty())
                     return;
 
                 // create auxiliary object
@@ -514,18 +558,7 @@ public class WiFiDirectControlActivity extends Activity {
                 });
 
         // launch services discovery
-        p2pManager.discoverServices(channel, new WifiP2pManager.ActionListener() {
-            public void onSuccess() {
-                //btnWiFiDirectSearchServices.setEnabled(false);
-                tvConsole.append("\nDiscover Services: succeeded");
-            }
-
-            public void onFailure(int code) {
-                if (code == WifiP2pManager.P2P_UNSUPPORTED)
-                    tvConsole.append("\nDiscover Services: failed, P2P isn't supported on this device.");
-                else tvConsole.append("\nDiscover Services: failed, error: " + code);
-            }
-        });
+        startBonjourDiscovering();
     }
 
     /*
@@ -562,18 +595,21 @@ public class WiFiDirectControlActivity extends Activity {
         WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = peerAddressToConnect;
         config.wps.setup = WpsInfo.PBC;
+        // config.wps.pin = "0001";
 
-        config.groupOwnerIntent = intendedRole.equalsIgnoreCase("GO") ? 14 : 1; // 15 max(GO), 0 min(Cliente)
+        config.groupOwnerIntent = intendedRole.equalsIgnoreCase("GO") ? 14 : 1; // 15 max(GO), 0 min(client)
 
-        // connect to the GO
+        // connect to the other WFD device
         p2pManager.connect(channel, config, new WifiP2pManager.ActionListener() {
             public void onSuccess() {
                 // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
-                tvConsole.append("\nP2P Connect started.");
+                tvConsole.append("\nWFD Connect started.");
+                Log.d(TAG, "WFD Connect started.");
             }
 
             public void onFailure(int reason) {
-                tvConsole.append("\nP2P Connected failed. Reason: " + reason);
+                tvConsole.append("\nWFD Connected failed. Reason: " + reason);
+                Log.d(TAG, "WFD Connected failed. Reason: " + reason);
             }
         });
     }
@@ -600,10 +636,15 @@ public class WiFiDirectControlActivity extends Activity {
      *
      */
     public void disconnectFromGroup() {
-        tvConsole.append("\nDisconnecting...");
+        tvConsole.append("\n\nDisconnecting...");
+        Log.d(TAG, "Disconnecting...");
+
+        operationStartTime = System.currentTimeMillis();
+
         p2pManager.removeGroup(channel, new WifiP2pManager.ActionListener() {
             public void onSuccess() {
-                tvConsole.append("\n Disconnect succeeded");
+                tvConsole.append("\n Disconnect OK");
+                Log.d(TAG, "Disconnect OK");
             }
 
             public void onFailure(int reasonCode) {
@@ -744,11 +785,32 @@ public class WiFiDirectControlActivity extends Activity {
         tvConsole.append("\n  devList with size: " + devList.size());
     }
 
+
+    /**
+     *
+     */
+    public void startWps(WpsInfo wps, WifiP2pManager.ActionListener listener) {
+        invokeQuietly(startWpsMethod, p2pManager, channel, wps, listener);
+    }
+
+
     /*
-     *   Broadcast intent action indicating that the state of Wi-Fi p2p connectivity
-     * has changed. One extra {@link #EXTRA_WIFI_P2P_INFO} provides the p2p connection info in
+     *
+     */
+    private void logEndOfOperation(String logMsg) {
+        // get disconnection end time
+        long operationTime = System.currentTimeMillis() - operationStartTime;
+        tvConsole.append("\n\n" + logMsg + operationTime);
+        Log.d(TAG, logMsg + operationTime);
+    }
+
+
+    /*
+     *   Broadcast intent action indicating that the state of Wi-Fi P2P connectivity
+     * has changed. One extra {@link #EXTRA_WIFI_P2P_INFO} provides the P2P connection info in
      * the form of a {@link WifiP2pInfo} object. Another extra {@link #EXTRA_NETWORK_INFO} provides
-     * the network info in the form of a {@link android.net.NetworkInfo}. A third extra provides
+     * the network info in the form of a {@link android.net.NetworkInfo}. A third extra
+     * EXTRA_WIFI_P2P_GROUP provides information about the group
      */
     private void update_P2P_connection_changed(Intent intent) {
         // EXTRA_WIFI_P2P_INFO provides the p2p connection info in the form of a WifiP2pInfo object.
@@ -758,10 +820,18 @@ public class WiFiDirectControlActivity extends Activity {
         if (!wifiP2pInfo.groupFormed) {
             // device is disconnect
             textViewWifiDirectState.setText("WFD state: DISCONNECTED");
+
+            // log disconnection end time
+            logEndOfOperation("WFD device disconnected in (ms) ");
+
             registerNsdService(getDeviceName(), "Available");
             showDisconnectedActions();
             return;
         }
+
+        // log disconnection end time
+        logEndOfOperation("WFD group creation: device connected in (ms) ");
+
         // device is connected
         showConnectedActions(wifiP2pInfo.isGroupOwner);
 
@@ -833,6 +903,9 @@ public class WiFiDirectControlActivity extends Activity {
         }
     }
 
+    /*
+     *
+     */
     public String getLocalIpAddress(String interfaceName) {
         try {
             NetworkInterface netInterface = NetworkInterface.getByName(interfaceName);
@@ -856,6 +929,7 @@ public class WiFiDirectControlActivity extends Activity {
         WifiP2pDevice dev = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
         tvConsole.append("\n  WifiP2pDevice:\n  " + dev.toString());
         tvConsole.append("\n   Status: " + DeviceListFragment.getDeviceStatus(dev.status));
+        Log.d(TAG, "Device status: " + DeviceListFragment.getDeviceStatus(dev.status));
 
         tvP2PDeviceName.setText(dev.deviceName);
         tvP2PDeviceStatus.setText(DeviceListFragment.getDeviceStatus(dev.status));
@@ -863,6 +937,14 @@ public class WiFiDirectControlActivity extends Activity {
         if (deviceName == null) {
             deviceName = dev.deviceName;
             initP2PFinalActions();
+        }
+
+        if (DeviceListFragment.getDeviceStatus(dev.status).equals("Connected")) {
+            logEndOfOperation("WFD this device connected in (ms): ");
+        }
+
+        if (DeviceListFragment.getDeviceStatus(dev.status).equals("Available")) {
+            logEndOfOperation("WFD this device available in (ms): ");
         }
 
         // NOTE: dev.isGroupOwner() always show false
@@ -941,7 +1023,6 @@ public class WiFiDirectControlActivity extends Activity {
         for (int i = 0; i < 100; ++i)
             clearRegisteredGroup(i, null);
     }
-
 
 
     /*

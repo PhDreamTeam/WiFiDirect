@@ -261,12 +261,22 @@
                         android:textAppearance="?android:attr/textAppearanceSmall"
                         android:id="@+id/textViewP2PCGONumberOfClients"/>
             </LinearLayout>
-            <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:text="Disconnect"
-                    android:visibility="visible" android:id="@+id/buttonP2PDisconnectAsGO"
-                    android:layout_gravity="center_horizontal"/>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" android:gravity="center_horizontal">
+                <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:text="Disconnect"
+                        android:visibility="visible" android:id="@+id/buttonP2PDisconnectAsGO"
+                        android:layout_gravity="center_horizontal"/>
+                <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:text="WPS"
+                        android:id="@+id/btnStartWps"/>
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
     <LinearLayout

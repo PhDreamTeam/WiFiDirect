@@ -9,7 +9,10 @@ import android.widget.TextView;
 import com.example.android.wifidirect.utils.AndroidUtils;
 import com.example.android.wifidirect.utils.LoggerSession;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.*;
 
 /**
@@ -17,6 +20,8 @@ import java.net.*;
  * .
  */
 public class ClientSendDataThreadTCP extends Thread implements IStoppable {
+    public static final String LOG_TAG = ClientActivity.TAG + " TCP";
+
     private int bufferSize;
     String destIpAddress;
     int destPortNumber;
@@ -25,7 +30,6 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     long speed = 0; // number of millis to sleep between each 4096 of sent Bytes
     long dataLimit = 0;
     long rcvData = 0;
-    boolean runSender = true, runReceiver = true;
     double lastUpdate;
     Uri sourceUri;
 
@@ -133,10 +137,13 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             dos = new DataOutputStream(cliSocket.getOutputStream());
             DataInputStream dis = new DataInputStream(cliSocket.getInputStream());
 
-            AndroidUtils.toast(tvSentData, "Start transmitting!!!!!");
+            String msg = "Start transmission to CR " + crIpAddress + ":" + crPortNumber + " with dest " +
+                    destIpAddress + ":" + destPortNumber;
+            AndroidUtils.toast(tvSentData, msg);
+            Log.d(LOG_TAG, msg);
 
             // start log session and log initial time
-            logSession = MyMainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName() ,
+            logSession = MyMainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName(),
                     clientActivity.getLogDir());
             logSession.logMsg("Send data to CR: " + crIpAddress + ":" + crPortNumber);
             logSession.logMsg("Send data to dest: " + destIpAddress + ":" + destPortNumber + "\n");
@@ -150,10 +157,11 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 fileName = getFileNameFromURI(sourceUri);
 
                 // Log.d(WiFiDirectActivity.TAG, "File URI: " + sourceUri.toString());
-                Log.d(WiFiDirectActivity.TAG, "File Size: " + fileSize);
-                Log.d(WiFiDirectActivity.TAG, "File Name: " + fileName);
+                Log.d(LOG_TAG, "Sending file: " + fileName + " with length (B): " + fileSize);
                 dataLimit = 0; // send the complete image
-            }
+            } else
+                Log.d(LOG_TAG, "Sending data (B): " + dataLimit);
+
 
             // receive replies from destination
             rcvThread = createRcvThread(dis);
@@ -166,11 +174,11 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             dos.writeInt(addressData.getBytes().length);
             dos.write(addressData.getBytes());
 
-            Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + buffer.length);
+            Log.d(LOG_TAG, "Using BufferSize (B): " + buffer.length);
 
             int dataLen = buffer.length;
 
-            while (runSender) {
+            while (true) {
                 if (is != null) {
                     dataLen = is.read(buffer);
                     if (dataLen == -1) {
@@ -191,7 +199,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             }
 
             updateSentData(sentData, true);
-            Log.d(WiFiDirectActivity.TAG, "Data sent: " + sentData);
+            Log.d(LOG_TAG, "EOT, data sent: " + sentData);
 
             cliSocket.shutdownOutput();
 
@@ -212,11 +220,13 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             logSession.close();
 
         } catch (Exception e) {
-            Log.e(WiFiDirectActivity.TAG, "Error transmitting data: " + e.getMessage());
-            e.printStackTrace();
-            AndroidUtils.toast(tvSentData, "Error transmitting data: " + e.getMessage());
+            String msg = "Transmission stopped, cause: " +
+                    (e.getMessage().equals("Socket closed") ? "by user action" : e.getMessage());
+            AndroidUtils.toast(tvSentData, msg);
+            Log.e(LOG_TAG, msg);
+            // e.printStackTrace();
             if (logSession != null) {
-                logSession.logMsg("Transmission stopped by user - GUI");
+                logSession.logMsg(msg);
                 logSession.close();
             }
         } finally {
@@ -232,7 +242,6 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             }
         });
     }
-
 
 
     /*
@@ -266,7 +275,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 int nBytesRead = 0;
 
                 try {
-                    while (runReceiver) {
+                    while (true) {
                         nBytesRead = dis.read(buffer);
                         if (nBytesRead == -1)
                             break;
@@ -276,8 +285,10 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                     updateRcvData();
 
                 } catch (IOException e) {
-                    Log.d(WiFiDirectActivity.TAG, "Error receiving responses: " + e.getMessage());
-                    e.printStackTrace();
+                    String msg = "Socket receiver part stopped, cause: " +
+                            (e.getMessage().equals("Socket closed") ? "by user action" : e.getMessage());
+                    Log.d(LOG_TAG,  msg);
+                    // e.printStackTrace();
                 } finally {
                     AndroidUtils.close(dis);
                 }
@@ -322,7 +333,6 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
      */
     @Override
     public void stopThread() {
-        runSender = runReceiver = false;
         //this.interrupt();
         //rcvThread.interrupt();
 

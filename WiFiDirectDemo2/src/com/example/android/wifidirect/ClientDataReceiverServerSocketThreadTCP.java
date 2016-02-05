@@ -23,6 +23,7 @@ import java.util.Date;
  * .
  */
 public class ClientDataReceiverServerSocketThreadTCP extends Thread implements IStoppable {
+    public static final String LOG_TAG = ClientActivity.TAG + " TCP";
     static private String FILES_DIR_PATH = MyMainActivity.APP_MAIN_FILES_DIR_PATH + "/files";
 
     private int bufferSize;
@@ -55,19 +56,24 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         // receive data from other clients...
         try {
             serverSocket = new ServerSocket(portNumber);
+            Log.d(LOG_TAG, "Starting TCP reception server at port: " + portNumber);
             while (true) {
                 // wait connections
                 Socket cliSock = serverSocket.accept();
 
                 // checking for stopping condition
                 if (cliSock.getInetAddress().toString().equals("/127.0.0.1")) {
-                    AndroidUtils.toast(llReceptionZone, "Stopping reception");
+                    AndroidUtils.toast(llReceptionZone, "Stopping TCP reception");
+                    Log.d(LOG_TAG, "Stopping reception server at port: " + portNumber);
                     // close server socket
                     serverSocket.close();
                     return;
-                } else
-                    AndroidUtils.toast(llReceptionZone, "Received a connection from " +
-                            cliSock.getInetAddress().toString().substring(1));
+                } else {
+                    String transmitterIP = cliSock.getInetAddress().toString().substring(1);
+                    String msg = "Received a connection from " + transmitterIP + ":" + cliSock.getPort();
+                    AndroidUtils.toast(llReceptionZone, msg);
+                    Log.d(LOG_TAG, msg);
+                }
 
                 IStoppable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize, llReceptionZone, replyMode);
                 workingThreads.add(t);
@@ -76,6 +82,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         } catch (IOException e) {
             e.printStackTrace();
             AndroidUtils.toast(llReceptionZone, "Exception " + e.getMessage());
+            Log.d(LOG_TAG, "Exception " + e.getMessage());
             llReceptionZone.post(new Runnable() {
                 @Override
                 public void run() {
@@ -89,6 +96,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
      * Stop reception
      */
     public void stopThread() {
+        Log.d(LOG_TAG, "Stopping reception from GUI action");
+
         // stop socket listening - send a termination: a dummy local socket
         // must run in the non GUI thread
         new Thread(new Runnable() {
@@ -113,7 +122,6 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
      */
     class ClientDataReceiverThreadTCP extends Thread implements IStoppable {
         private int bufferSize;
-        boolean run = true;
         Socket originSocket;
         byte buffer[];
         long nBytesReceived = 0, rcvDataCounterLastValue = 0, sentDataCounterTotal = 0;
@@ -127,6 +135,9 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         ReplyMode replyMode;
         ReceptionGuiInfo receptionGuiInfoGui;
 
+        private String originIP;
+        private int originPort;
+
         ArrayList<DataTransferInfo> transferInfoArrayList = new ArrayList<>();
 
 
@@ -139,9 +150,14 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             buffer = new byte[bufferSize];
             this.replyMode = replyMode;
 
+            originIP = originSocket.getInetAddress().toString().substring(1);
+            originPort = originSocket.getPort();
+
             receptionGuiInfoGui = new ReceptionGuiInfo("TCP", llReceptionZone,
                     cliSock.getRemoteSocketAddress().toString(),
                     cliSock.getLocalPort(), transferInfoArrayList, this);
+
+            clientActivity.registerReceptionGuiInfo(receptionGuiInfoGui);
         }
 
         /*
@@ -163,7 +179,6 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
          */
         @Override
         public void run() {
-            System.out.println(" Receiver transfer thread started...");
             OutputStream fos = null;
             DataInputStream dis = null;
             DataOutputStream dos = null;
@@ -179,7 +194,14 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 dis.read(buffer, 0, addressLen);
 
                 String addressInfo = new String(buffer, 0, addressLen);
-                Log.d(WiFiDirectActivity.TAG, "Received destination address: " + addressInfo);
+                int firstIdx = addressInfo.indexOf(';');
+                String destIPAddress = addressInfo.substring(0, firstIdx);
+                int secondIdx = addressInfo.indexOf(addressInfo.indexOf(';', firstIdx + 1), ';');
+                secondIdx = secondIdx == -1 ? addressInfo.length() : secondIdx;
+                String destPort = addressInfo.substring(firstIdx + 1, secondIdx);
+                Log.d(LOG_TAG,
+                        "Received a connection from " + originIP + ":" + originPort +
+                                " with destination: " + destIPAddress + ":" + destPort);
 
                 // if received data is to store on file
                 String aia[] = addressInfo.split(";");
@@ -189,7 +211,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     String timestamp = new SimpleDateFormat("yy-MM-dd_HH'h'mm'm'ss's'").format(new Date());
 
                     final File f = new File(filesDirPath + "/" + timestamp + "_" + filename); // add filename
-                    Log.d(WiFiDirectActivity.TAG, "Server: saving file: " + f.toString());
+                    Log.d(LOG_TAG, "Server: saving file: " + f.toString());
                     fos = new FileOutputStream(f);
                     AndroidUtils.toast(llReceptionZone, "Receiving file on server: " + f.getAbsolutePath());
                 }
@@ -199,17 +221,18 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 // start log session and log initial time
                 logSession = MyMainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName() +
-                        " Receiving TCP data from " + originSocket.getInetAddress().toString().substring(1),
+                                " Receiving TCP data from " + originSocket.getInetAddress().toString().substring(1),
                         clientActivity.getLogDir());
+
                 logSession.logMsg("Destination: " + aia[0] + ":" + aia[1] + "\n");
                 logSession.logTime("Initial time");
 
                 initialNanoTime = lastUpdate = System.nanoTime();
 
-                Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSize);
+                Log.d(LOG_TAG, "Using BufferSize: " + bufferSize);
 
                 // Receive client data
-                while (run) {
+                while (true) {
                     // receive and count rcvData
                     int readDataLen = dis.read(buffer);
 
@@ -245,9 +268,10 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 // final actions
                 updateVisualDeltaInformation(true);
-                AndroidUtils.toast(llReceptionZone, "File received successfully on server.");
-                Log.d(WiFiDirectActivity.TAG,
-                        "File received successfully on server, bytes received: " + nBytesReceived);
+                String msg = "EOT OK, Reception from " + originIP + ":" + originPort +
+                        ", received (B): " + nBytesReceived;
+                AndroidUtils.toast(llReceptionZone, msg);
+                Log.d(LOG_TAG, msg);
 
                 // calculate avg speed based on time
                 double deltaTimeSegs = (finalNanoTime - initialNanoTime) / 1_000_000_000.0;
@@ -278,13 +302,16 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 receptionGuiInfoGui.setTerminatedState();
 
             } catch (IOException e) {
-                Log.d(WiFiDirectActivity.TAG, "Exception message: " + e.getMessage());
-                // terminated with error
-                Log.e(WiFiDirectActivity.TAG, "Error receiving file on server: " + e.getMessage());
-                AndroidUtils.toast(llReceptionZone, "Error receiving file on server: " + e.getMessage());
-                e.printStackTrace();
+                // reception terminated not normally
+                String msg =  "Reception from: " + originIP + ":" + originPort + " stopped, cause: " +
+                        (e.getMessage().equals("Socket closed") ? "by user action" : e.getMessage());
+                Log.e(LOG_TAG, msg);
+                AndroidUtils.toast(llReceptionZone, msg);
+                receptionGuiInfoGui.setTerminatedState(" - err");
+                // e.printStackTrace();
+
                 if (logSession != null) {
-                    logSession.logMsg("Reception stopped by user - GUI");
+                    logSession.logMsg(msg);
                     logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
                     for (DataTransferInfo data : transferInfoArrayList)
                         logSession.logMsg("  " + data);
@@ -292,7 +319,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 }
             } finally {
                 // close socket
-                close(originSocket);
+                if (originSocket != null && !originSocket.isInputShutdown())
+                    close(originSocket);
                 close(fos);
                 IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
                 Intent batteryStatus = context.registerReceiver(null, iFilter);
@@ -344,7 +372,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
         @Override
         public void stopThread() {
-            run = false;
+            // run = false;
             //this.interrupt();
             // a better way to force termination is to use:
             try {

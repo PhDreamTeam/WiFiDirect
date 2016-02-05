@@ -32,6 +32,7 @@ import java.io.File;
 public class MyMainActivity extends Activity {
     public static String APP_MAIN_FILES_DIR_PATH = "/sdcard/Android/data/com.hyrax.atdr";
     public static Logger logger = new Logger("WFD APP");
+    public static String TAG = "MainActivity";
 
     private MyMainActivity myThis;
     private Context context;
@@ -39,8 +40,8 @@ public class MyMainActivity extends Activity {
     private NetworkInfo wifiNetworkInfo;
     private Button btnWFDGroupOwner;
     private Button btnWFDClient;
-    private Button btnP2PWFDClient;
-    private Button btnWiFiClient;
+    private Button btnWFDControl;
+    private Button btnWiFiControl;
     private Button btnRelay;
     private Button btnClient;
     private TextView tvMainWiFiState;
@@ -88,8 +89,8 @@ public class MyMainActivity extends Activity {
         btnWFDGroupOwner = (Button) findViewById(R.id.buttonMainWFDGroupOwner);
         btnWFDClient = (Button) findViewById(R.id.buttonMainWFDClient);
 
-        btnP2PWFDClient = (Button) findViewById(R.id.buttonMainP2PWFDClient);
-        btnWiFiClient = (Button) findViewById(R.id.buttonMainWiFiClient);
+        btnWFDControl = (Button) findViewById(R.id.buttonMainWFDControl);
+        btnWiFiControl = (Button) findViewById(R.id.buttonMainWiFiControl);
 
         btnRelay = (Button) findViewById(R.id.buttonMainRelay);
         btnClient = (Button) findViewById(R.id.buttonMainClient);
@@ -112,7 +113,7 @@ public class MyMainActivity extends Activity {
 
         if (!p2pSupported) {
             enableAllWiFiActivityButtons(true, false);
-            btnP2PWFDClient.setText("P2P not supported");
+            btnWFDControl.setText("P2P not supported");
         }
 
         adjustWifiApControlButton();
@@ -122,7 +123,9 @@ public class MyMainActivity extends Activity {
         // avoid keyboard popping up
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
-        getDir_withGetExternalFilesDir("logs");
+        // Just tests
+
+       // getDir_withGetExternalFilesDir("logs");
 
 //        try {
 //            PrintWriter pw = new PrintWriter(openFileOutput("f2.txt", MODE_WORLD_READABLE));
@@ -132,7 +135,7 @@ public class MyMainActivity extends Activity {
 //            e.printStackTrace();
 //        }
 
-        getFile2(this, "logs2");
+        //getFile2(this, "logs2");
     }
 
 
@@ -163,7 +166,7 @@ public class MyMainActivity extends Activity {
         // Get the directory for the app's private pictures directory.
         File file = new File(context.getExternalFilesDir(null), fileName);
         if (!file.mkdirs()) {
-            Log.e("Logger", "Directory not created");
+            Log.e("Logger", "Directory not created:" + file.toString());
         }
         return file;
     }
@@ -283,7 +286,7 @@ public class MyMainActivity extends Activity {
                     }
                 });
 
-        btnP2PWFDClient.setOnClickListener(
+        btnWFDControl.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -295,7 +298,7 @@ public class MyMainActivity extends Activity {
                     }
                 });
 
-        btnWiFiClient.setOnClickListener(
+        btnWiFiControl.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -401,8 +404,8 @@ public class MyMainActivity extends Activity {
     private void enableAllWiFiActivityButtons(boolean enable, boolean p2pSuported) {
         btnWFDGroupOwner.setEnabled(enable && p2pSuported);
         btnWFDClient.setEnabled(enable && p2pSuported);
-        btnP2PWFDClient.setEnabled(enable && p2pSuported);
-        btnWiFiClient.setEnabled(enable);
+        btnWFDControl.setEnabled(enable && p2pSuported);
+        btnWiFiControl.setEnabled(enable);
         btnRelay.setEnabled(enable);
         btnClient.setEnabled(enable);
     }

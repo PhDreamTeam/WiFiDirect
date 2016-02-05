@@ -28,6 +28,7 @@ class ReceptionGuiInfo {
     Context context;
     String ipAddress;
     int localPort;
+    boolean terminated = false;
 
     private TextView tvReceivedData;
     private TextView tvSentData;
@@ -40,6 +41,9 @@ class ReceptionGuiInfo {
     //debug
     ClientDataReceiverServerSocketThreadTCP.ClientDataReceiverThreadTCP clientDataReceiverThreadTCP;
 
+    /*
+     *
+     */
     public ReceptionGuiInfo(final String tcpUdp, final LinearLayout parentLinearLayout, final String ipAddress, final int localPort
             , final ArrayList<DataTransferInfo> transferInfoArrayList
             , final ClientDataReceiverServerSocketThreadTCP.ClientDataReceiverThreadTCP cliThread) {
@@ -179,6 +183,9 @@ class ReceptionGuiInfo {
         });
     }
 
+    /*
+     *
+     */
     private void saveTransferInfoOnFile(String transferInfoStr, String filename) {
         SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd_HH'h'mm'm'ss's'");
         String timestamp = sdf.format(new Date());
@@ -204,30 +211,58 @@ class ReceptionGuiInfo {
         }
     }
 
+    /*
+     *
+     */
     public String getTvCurAvgRcvSpeedMbps() {
         return tvCurAvgRcvSpeedMbps.getText().toString();
     }
 
+    /*
+     *
+     */
     public String getTvMaxRcvSpeedMbps() {
         return tvMaxRcvSpeedMbps.getText().toString();
     }
 
+    /*
+     *
+     */
     public String getTvReceivedData() {
         return tvReceivedData.getText().toString();
     }
 
+    /*
+     *
+     */
     public String getTvSentData() {
         return tvSentData.getText().toString();
     }
 
+    /*
+     *
+     */
     public String getIpAddress() {
         return ipAddress;
     }
 
+    /*
+     *
+     */
     public int getLocalPort() {
         return localPort;
     }
 
+    /*
+     *
+     */
+    public View getView() {
+        return thisLinearLayout;
+    }
+
+    /*
+     *
+     */
     public void setTvReceivedData(final long receivedData) {
         parentLinearLayout.post(new Runnable() {
             @Override
@@ -237,6 +272,9 @@ class ReceptionGuiInfo {
         });
     }
 
+    /*
+     *
+     */
     public void setTvSentData(final long sentData) {
         parentLinearLayout.post(new Runnable() {
             @Override
@@ -246,6 +284,9 @@ class ReceptionGuiInfo {
         });
     }
 
+    /*
+     *
+     */
     public void setMaxRcvSpeed(final double maxRcvSpeedMbps) {
         parentLinearLayout.post(new Runnable() {
             @Override
@@ -255,6 +296,9 @@ class ReceptionGuiInfo {
         });
     }
 
+    /*
+     *
+     */
     public void setCurAvgRcvSpeed(final double curAvgRcvSpeedMbps) {
         parentLinearLayout.post(new Runnable() {
             @Override
@@ -264,6 +308,9 @@ class ReceptionGuiInfo {
         });
     }
 
+    /*
+     *
+     */
     public void setData(final double receivedDataKB, final long sentDataB, final double maxRcvSpeedMbps,
                         final double curAvgRcvSpeedMbps) {
         parentLinearLayout.post(new Runnable() {
@@ -277,15 +324,33 @@ class ReceptionGuiInfo {
         });
     }
 
+    /*
+     *
+     */
     public void setTerminatedState() {
+        setTerminatedState("");
+    }
 
+    /*
+     *
+     */
+    public void setTerminatedState(final String msg) {
+        terminated = true;
         parentLinearLayout.post(new Runnable() {
             @Override
             public void run() {
+                tvLabel.setText(tvLabel.getText().toString() + msg);
                 tvLabel.setBackgroundColor(0xF721391E);
                 tvLabel.setTextAppearance(context, android.R.style.TextAppearance_Small);
             }
         });
+    }
+
+    /*
+     *
+     */
+    public boolean isTerminated() {
+        return terminated;
     }
 
     /*

@@ -26,21 +26,33 @@
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView45"
               android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"
             />
-    <Button
+    <LinearLayout
+            android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Wi-Fi Direct - Group Owner"
-            android:id="@+id/buttonMainWFDGroupOwner" android:layout_gravity="center_horizontal"/>
-    <Button
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Wi-Fi Direct - Client"
-            android:id="@+id/buttonMainWFDClient" android:layout_gravity="center_horizontal"/>
+            android:layout_height="wrap_content">
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="WFD Initial Code"
+                android:id="@+id/textView68"/>
+        <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Group Owner"
+                android:id="@+id/buttonMainWFDGroupOwner" android:layout_gravity="center_horizontal"
+                android:layout_weight="1" style="?android:attr/buttonStyleSmall"/>
+        <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Client"
+                android:id="@+id/buttonMainWFDClient" android:layout_weight="1" style="?android:attr/buttonStyleSmall"/>
+    </LinearLayout>
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
               android:id="@+id/textView21" android:gravity="center" android:background="#ff536aaf"
               android:textColor="#fffaf9ff"/>
-    <Button android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="P2P/WFD Control Client"
-            android:id="@+id/buttonMainP2PWFDClient" android:layout_gravity="center_horizontal"/>
+    <Button android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="WFD Control"
+            android:id="@+id/buttonMainWFDControl" android:layout_gravity="center_horizontal"/>
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView46"
               android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"
     />
@@ -48,10 +60,10 @@
             android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="WiFi Control Client"
-                android:id="@+id/buttonMainWiFiClient" android:layout_gravity="center_horizontal"
+        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="WiFi Control"
+                android:id="@+id/buttonMainWiFiControl" android:layout_gravity="center_horizontal"
                 android:layout_weight="2"/>
-        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="WiFi-AP"
+        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="WiFi-AP Control"
                 android:id="@+id/buttonMainWiFiAP" android:layout_gravity="center_horizontal"
                 android:layout_weight="1"/>
     </LinearLayout>
@@ -64,7 +76,7 @@
         <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Client"
+                android:text="GUI Client"
                 android:id="@+id/buttonMainClient" android:layout_gravity="center_horizontal"
                 android:layout_weight="1"/>
         <Button

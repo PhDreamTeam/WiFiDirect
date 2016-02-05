@@ -16,6 +16,8 @@ import com.example.android.wifidirect.utils.AndroidUtils;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * Created by DR e AT on 20/05/2015.
@@ -32,15 +34,17 @@ import java.net.UnknownHostException;
  * Done: UDP
  * DONE: send image TCP and UDP (not considered as an image)
  * <p/>
-  * -
+ * -
  * <p/>
- *
+ * <p/>
  * Frame transmitted TCP & UDP:
  * 4 bytes: address length
  * 4 bytes: buffer number, decreasing and 0 is the last one
  * address string: destination ID; port [;filename]
  */
 public class ClientActivity extends Activity {
+    public static String TAG = "ClientActivity";
+
     ClientActivity myThis;
 
     private Context context;
@@ -84,6 +88,8 @@ public class ClientActivity extends Activity {
     private Button btnStopSendingImage;
     private LinearLayout llTransmissionInputZone;
     private String logDir;
+
+    ArrayList<ReceptionGuiInfo> receptionGuiInfos = new ArrayList<>();
 
     /*
      *
@@ -221,6 +227,9 @@ public class ClientActivity extends Activity {
                     @Override
                     public void onClick(View v) {
                         startReceivingGuiActions();
+
+                        // start receiving
+                        startReceiverServer();
                     }
                 }
         );
@@ -231,6 +240,7 @@ public class ClientActivity extends Activity {
                     public void onClick(View v) {
                         // stop receiving server
                         clientReceiver.stopThread();
+                        clientReceiver = null;
                         endReceivingGuiActions();
                     }
                 }
@@ -240,7 +250,13 @@ public class ClientActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        llReceptionLogs.removeAllViews();
+                        for (Iterator<ReceptionGuiInfo> it = receptionGuiInfos.iterator(); it.hasNext(); ) {
+                            ReceptionGuiInfo rgi = it.next();
+                            if (rgi.isTerminated()) {
+                                llReceptionLogs.removeView(rgi.getView());
+                                it.remove();
+                            }
+                        }
                     }
                 }
         );
@@ -318,10 +334,6 @@ public class ClientActivity extends Activity {
         editTextServerPortNumber.setEnabled(false);
         btnStartServer.setVisibility(View.GONE);
         btnStopServer.setVisibility(View.VISIBLE);
-        btnClearReceptionLogs.setEnabled(false);
-
-        // start receiving
-        startReceiverServer();
     }
 
     /**
@@ -331,7 +343,6 @@ public class ClientActivity extends Activity {
         btnStopServer.setVisibility(View.GONE);
         btnStartServer.setVisibility(View.VISIBLE);
         editTextServerPortNumber.setEnabled(true);
-        btnClearReceptionLogs.setEnabled(true);
         if (isTcp)
             setEnabledRadioButtonsReplyMode(true);
     }
@@ -571,6 +582,10 @@ public class ClientActivity extends Activity {
     @SuppressWarnings("unchecked")
     private <T> T findViewByIdAndCast(int id) {
         return (T) findViewById(id);
+    }
+
+    public void registerReceptionGuiInfo(ReceptionGuiInfo receptionGuiInfoGui) {
+        receptionGuiInfos.add(receptionGuiInfoGui);
     }
 }
 

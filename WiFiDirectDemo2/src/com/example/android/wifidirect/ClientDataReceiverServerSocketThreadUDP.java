@@ -110,6 +110,7 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
                     // extract datagram number
                     bufferInt = ByteBuffer.wrap(bufferRcv, 4, 4);
                     int datagramNumber = bufferInt.getInt();
+
                     // logSession.logMsg("Received buffer: " + datagramNumber);
                     // Log.d("FWD Receiver UDP", "Received datagram number: " + datagramNumber +
                     //        " from " + packet.getAddress().toString());

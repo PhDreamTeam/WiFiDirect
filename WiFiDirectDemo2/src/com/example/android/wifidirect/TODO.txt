@@ -13,5 +13,11 @@ Estavamos na relay activity: alterar os campos para nome do device, testar. Reti
 Onde estava 20-01-2016: devo ter de repetir os testes efectuados hoje na garagem. Havia directorias sem qualquer resultado.
 Corrigi a parte dos registos no cancelamento em UDP. Mas pode haver ainda situações que ficaram por resolver.
 
-Não consegui aceder aos ficheiros no PC. Pode não ser possível e ter-se que criar um procedimento para os enviar
+Acesso aos ficheiros em PC: Não consegui aceder aos ficheiros no PC.
+Pode não ser possível e ter-se que criar um procedimento para os enviar
 por correio ou exportá-los para o PC.
+Actualizar as directorias via MediTracker
+
+Estive a trabalhar em TCP e na correcção das mensagens enviadas para Log, e no tratamento de erros.
+Quer na transmissão quer na recepção.
+Falta fazer o mesmo em UDP
