@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
  */
 public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     private int bufferSizeBytes;
+    UDPSocket sock;
     String destIpAddress;
     int destPortNumber;
     String crIpAddress;
@@ -31,19 +32,21 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     /**
      *
      */
-    public ClientSendDataThreadUDP(String destIpAddress, int destPortNumber, String crIpAddress,
-                                   int crPortNumber, long delayInterDatagramsMs, long dataLimitKB,
+    public ClientSendDataThreadUDP(String destIpAddress, int destPortNumber, UDPSocket sock, long delayInterDatagramsMs, long dataLimitKB,
                                    TextView tvSentDataKB, ClientActivity clientActivity, int bufferSizeBytes) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
-        this.crIpAddress = crIpAddress;
-        this.crPortNumber = crPortNumber;
+        this.sock = sock;
+        this.crIpAddress = sock.getCrIpAddress();
+        this.crPortNumber = sock.getCrPort();
         this.delayInterDatagramsMs = delayInterDatagramsMs;
         this.dataLimitBytes = dataLimitKB * 1024;
         this.tvSentDataKB = tvSentDataKB;
         this.clientActivity = clientActivity;
         this.bufferSizeBytes = bufferSizeBytes;
     }
+
+
 
 
     @Override
@@ -67,12 +70,11 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             buffer[i] = (byte) i;
         }
 
-        DatagramSocket cliSocket = null;
+        DatagramSocket cliSocket = sock.getSocket();
 
         try {
             InetAddress iadCrIpAddress = InetAddress.getByName(crIpAddress);
 
-            cliSocket = new DatagramSocket();
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
 
             // first 4 bytes contains the string length
@@ -99,7 +101,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
                 // build packet and send it
                 packet = new DatagramPacket(buffer, buffer.length, iadCrIpAddress, crPortNumber);
                 cliSocket.send(packet);
-                Log.d("WFD Sender UDP", "Sent datagram number: " + nBuffersToSend);
+                Log.d(ClientActivity.TAG, "Transmitter UDP: sent datagram number: " + nBuffersToSend);
 
                 nBytesSent += buffer.length;
 

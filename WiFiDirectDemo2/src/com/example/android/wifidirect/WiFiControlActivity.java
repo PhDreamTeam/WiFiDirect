@@ -44,8 +44,8 @@ public class WiFiControlActivity extends Activity {
     HashMap<String, ScanResult> scannedResults = new HashMap<>();
 
     private TextView tvConsole;
-    private Button wiFiScanNetworksButton;
-    private Button wiFiGetConfiguredNetworksButton;
+    private Button btnWiFiScanNetworks;
+    private Button btnWiFiGetConfiguredNetworks;
 
     ExpandableListView expListViewScannedNetworks;
     ExpandableListAdapter<String, String> expListViewAdapterScannedNetworks;
@@ -54,7 +54,7 @@ public class WiFiControlActivity extends Activity {
     ExpandableListAdapter<String, String> expListViewAdapterConfiguredNetworks;
     TextView tvSelectedNetwork;
     EditText etSelectedNetworkPassword;
-    Button wiFiConnectButton;
+    Button btnWiFiConnect;
     private List<WifiConfiguration> listConfiguredNetworks;
     private TextView tvWFLinkSpeedValue;
     private Button btnWifiDisconnect;
@@ -92,16 +92,15 @@ public class WiFiControlActivity extends Activity {
 
         context = getApplicationContext();
         wiFiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-
         tvConsole = ((TextView) findViewById(R.id.tvConsole));
+
+        intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
 
         // Blue info zone ===========================================
         tvWFMainState = (TextView) findViewById(R.id.textViewWifiState);
         tvDeviceIPAddress = (TextView) findViewById(R.id.textViewWFCADeviceIP);
         tvDeviceStatus = (TextView) findViewById(R.id.textViewWFCAStatus);
-
-        intentFilter = new IntentFilter();
-        intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
 
         expListViewScannedNetworks = (ExpandableListView) findViewById(R.id.expListViewScannedNetworks);
         expListViewAdapterScannedNetworks = new ExpandableListAdapter<>(this);
@@ -109,6 +108,32 @@ public class WiFiControlActivity extends Activity {
 
         tvSelectedNetwork = ((TextView) findViewById(R.id.textViewSelectedNetwork));
         etSelectedNetworkPassword = ((EditText) findViewById(R.id.editTextSelectedNetworkPassword));
+
+        expListViewConfiguredNetworks = (ExpandableListView) findViewById(R.id.expListViewConfiguredNetworks);
+        expListViewAdapterConfiguredNetworks = new ExpandableListAdapter<>(this);
+        expListViewConfiguredNetworks.setAdapter(expListViewAdapterConfiguredNetworks);
+
+        btnWiFiScanNetworks = (Button) findViewById(R.id.btnScanNetworks);
+        btnWiFiGetConfiguredNetworks = (Button) findViewById(R.id.btnGetConfiguredNetworks);
+
+        btnWiFiConnect = (Button) findViewById(R.id.btnWifiConnectToSelectedNetwork);
+        btnWifiDisconnect = (Button) findViewById(R.id.btnWifiDisconnect);
+        btnWifiGetStatus = (Button) findViewById(R.id.btnWifiGetStatus);
+        btnWifiConnectDirectly = (Button) findViewById(R.id.btnWifiConnectDirectly);
+
+        final LinearLayout llScanNetworks = (LinearLayout) findViewById(R.id.linearLayoutScanNetworks);
+        final LinearLayout llConfNetworks = (LinearLayout) findViewById(R.id.linearLayoutConfiguredNetworks);
+        final LinearLayout llConsole = (LinearLayout) findViewById(R.id.linearLinearConsole);
+
+        TextView textViewScannedNetworks = (TextView) findViewById(R.id.textViewScannedNetworks);
+        TextView textViewConfigureNetworks = (TextView) findViewById(R.id.textViewConfiguredNetworks);
+        TextView textViewConsole = (TextView) findViewById(R.id.textViewConsole);
+
+        tvWFLinkSpeedValue = (TextView) findViewById(R.id.textViewWFLinkSpeedValue);
+        scrollViewConsole = (ScrollView) findViewById(R.id.scrollViewConsole);
+
+
+        // listeners ====================================================
 
         expListViewScannedNetworks.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
             @Override
@@ -119,30 +144,43 @@ public class WiFiControlActivity extends Activity {
             }
         });
 
-        expListViewConfiguredNetworks = (ExpandableListView) findViewById(R.id.expListViewConfiguredNetworks);
-        expListViewAdapterConfiguredNetworks = new ExpandableListAdapter<>(this);
-        expListViewConfiguredNetworks.setAdapter(expListViewAdapterConfiguredNetworks);
-
-
-        wiFiScanNetworksButton = (Button) findViewById(R.id.btnScanNetworks);
-        wiFiScanNetworksButton.setOnClickListener(new View.OnClickListener() {
+        textViewScannedNetworks.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                wiFiScanNetworksButton.setEnabled(false);
-                startScan();
+                toggleLinearLayoutsWeight(llScanNetworks, llConfNetworks, llConsole);
             }
         });
 
-        wiFiGetConfiguredNetworksButton = (Button) findViewById(R.id.btnGetConfiguredNetworks);
-        wiFiGetConfiguredNetworksButton.setOnClickListener(new View.OnClickListener() {
+        textViewConfigureNetworks.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                toggleLinearLayoutsWeight(llConfNetworks, llScanNetworks, llConsole);
+            }
+        });
+
+        textViewConsole.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                toggleLinearLayoutsWeight(llConsole, llScanNetworks, llConfNetworks);
+            }
+        });
+
+        btnWiFiGetConfiguredNetworks.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 getConfiguredNetworks();
             }
         });
 
-        wiFiConnectButton = (Button) findViewById(R.id.btnWifiConnectToSelectedNetwork);
-        wiFiConnectButton.setOnClickListener(new View.OnClickListener() {
+        btnWiFiScanNetworks.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                btnWiFiScanNetworks.setEnabled(false);
+                startScan();
+            }
+        });
+
+        btnWiFiConnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //connect
@@ -152,42 +190,12 @@ public class WiFiControlActivity extends Activity {
             }
         });
 
-        final LinearLayout llScanNetworks = (LinearLayout) findViewById(R.id.linearLayoutScanNetworks);
-        final LinearLayout llConfNetworks = (LinearLayout) findViewById(R.id.linearLayoutConfiguredNetworks);
-        final LinearLayout llConsole = (LinearLayout) findViewById(R.id.linearLinearConsole);
-
-        TextView textViewScannedNetworks = (TextView) findViewById(R.id.textViewScannedNetworks);
-        textViewScannedNetworks.setOnClickListener(new View.OnClickListener() {
+        btnWifiDisconnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                toggleLinearLayoutsWeight(llScanNetworks, llConfNetworks, llConsole);
+                wifiDisconnect();
             }
         });
-
-        TextView textViewConfigureNetworks = (TextView) findViewById(R.id.textViewConfiguredNetworks);
-        textViewConfigureNetworks.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                toggleLinearLayoutsWeight(llConfNetworks, llScanNetworks, llConsole);
-            }
-        });
-
-        TextView textViewConsole = (TextView) findViewById(R.id.textViewConsole);
-        textViewConsole.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                toggleLinearLayoutsWeight(llConsole, llScanNetworks, llConfNetworks);
-            }
-        });
-
-        tvWFLinkSpeedValue = (TextView) findViewById(R.id.textViewWFLinkSpeedValue);
-
-
-        btnWifiDisconnect = (Button) findViewById(R.id.btnWifiDisconnect);
-        btnWifiGetStatus = (Button) findViewById(R.id.btnWifiGetStatus);
-        btnWifiConnectDirectly = (Button) findViewById(R.id.btnWifiConnectDirectly);
-
-        scrollViewConsole = (ScrollView) findViewById(R.id.scrollViewConsole);
 
         btnWifiConnectDirectly.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -195,13 +203,6 @@ public class WiFiControlActivity extends Activity {
                 // Not working
                 connectDirectlyToWifi(tvSelectedNetwork.getText().toString(),
                         etSelectedNetworkPassword.getText().toString());
-            }
-        });
-
-        btnWifiDisconnect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                wifiDisconnect();
             }
         });
 
@@ -231,12 +232,19 @@ public class WiFiControlActivity extends Activity {
                 if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
                     NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                     NetworkInfo.State wifiState = info.getState();
+
+                    String msgToLog = "WF state: " + wifiState + " " + wiFiManager.getConnectionInfo().getSSID() + " " +
+                            wiFiManager.getConnectionInfo().getSupplicantState();
+                    Log.d(TAG, msgToLog);
+                    tvConsole.append("\n" + msgToLog);
+
                     String msg = "WF con: ";
                     if (wifiState == NetworkInfo.State.CONNECTING || wifiState == NetworkInfo.State.CONNECTED) {
                         msg += wiFiManager.getConnectionInfo().getSSID();
                     } else {
                         msg += wifiState;
                     }
+
                     tvWFMainState.setText(msg);
 
                     // device IP
@@ -244,6 +252,19 @@ public class WiFiControlActivity extends Activity {
                         WifiInfo conInfo = wiFiManager.getConnectionInfo();
                         tvDeviceIPAddress.setText("" + AndroidUtils.intToIp(conInfo.getIpAddress()));
                     } else tvDeviceIPAddress.setText("");
+
+                    if (wifiState == NetworkInfo.State.CONNECTED) {
+                        btnWifiDisconnect.setVisibility(View.VISIBLE);
+                    }
+
+                    if (wifiState == NetworkInfo.State.CONNECTING) {
+                        btnWiFiConnect.setVisibility(View.GONE);
+                    }
+
+                    if (wifiState == NetworkInfo.State.DISCONNECTED) {
+                        btnWiFiConnect.setVisibility(View.VISIBLE);
+                        btnWifiDisconnect.setVisibility(View.GONE);
+                    }
 
                     // connection state
                     tvDeviceStatus.setText(wifiState.toString());
@@ -258,6 +279,10 @@ public class WiFiControlActivity extends Activity {
 
         // rescale the priority of wifi configure networks
         adjustConfiguredWifiNetworkPriorities();
+
+        // start with buttons invisible, they will change when first broadcast occurs
+        btnWifiDisconnect.setVisibility(View.GONE);
+        btnWiFiConnect.setVisibility(View.GONE);
 
     }
 
@@ -323,7 +348,7 @@ public class WiFiControlActivity extends Activity {
             expListViewAdapterScannedNetworks.addDataChild(network.SSID, network.toString());
             scannedResults.put(network.SSID, network);
         }
-        wiFiScanNetworksButton.setEnabled(true);
+        btnWiFiScanNetworks.setEnabled(true);
         consoleAppend("   ");
         stopScan();
     }

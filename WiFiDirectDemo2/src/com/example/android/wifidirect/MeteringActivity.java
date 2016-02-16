@@ -10,18 +10,24 @@ import android.content.IntentFilter;
 import android.graphics.Color;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import com.example.android.wifidirect.utils.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.*;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -48,6 +54,9 @@ public class MeteringActivity extends Activity {
     private Uri soundUri;
     private TextView tvTurnScreenOFF;
     private BroadcastReceiver screenOffBroadcastReceiver = null;
+    private Button btnRunMulticastReceiver;
+    private Button btnRunMulticastSend;
+    private EditText etMulticastNetworkInterface;
 
 
     @Override
@@ -80,6 +89,12 @@ public class MeteringActivity extends Activity {
         btnRunBackgroundTask = (Button) findViewById(R.id.btnMARunBackgroundTask);
         tvTurnScreenOFF = (TextView) findViewById(R.id.textViewMATurnScreenOFF);
 
+        // Multicast background tasks ===============================================
+        btnRunMulticastReceiver = (Button) findViewById(R.id.btnMAMulticastReceive);
+        btnRunMulticastSend = (Button) findViewById(R.id.btnMAMulticastSend);
+
+        etMulticastNetworkInterface = (EditText) findViewById(R.id.etMAMulticastInterface);
+
         // listeners ===============================================
         btnUpdateBatteryInfo.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -108,7 +123,6 @@ public class MeteringActivity extends Activity {
         btnRunBackgroundTask.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 // create it
                 Runnable backgroundTask = new Runnable() {
                     @Override
@@ -119,6 +133,25 @@ public class MeteringActivity extends Activity {
 
                 // run it
                 runScreenOffTask(backgroundTask, 3000);
+            }
+        });
+
+        btnRunMulticastReceiver.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                btnRunMulticastReceiver.setEnabled(false);
+                MulticastSocketReceiver msr = new MulticastSocketReceiver(
+                        etMulticastNetworkInterface.getText().toString());
+                msr.start();
+            }
+        });
+
+        btnRunMulticastSend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MulticastSocketTransmitter mst = new MulticastSocketTransmitter(
+                        etMulticastNetworkInterface.getText().toString());
+                mst.start();
             }
         });
     }
@@ -140,7 +173,6 @@ public class MeteringActivity extends Activity {
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WFDMeterActivity");
         wakeLock.acquire();
-
 
 
         screenOffBroadcastReceiver = new BroadcastReceiver() {
@@ -211,6 +243,9 @@ public class MeteringActivity extends Activity {
 
         // warn user to turn screen off
         tvTurnScreenOFF.setVisibility(View.VISIBLE);
+
+        // avoid keyboard popping up
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
 
     /*
@@ -320,6 +355,151 @@ public class MeteringActivity extends Activity {
         super.onResume();
         Log.d("MeteringActivity", "onResume called");
     }
+
+
+    /**
+     * MulticastSocket are limited in the range of 224.0.0.1 to 239.255.255.255.
+     * Multicast ports between: 1025 and 49151
+     *
+     * Incorporate Multicast in client activity
+
+     */
+    public class MulticastSocketTransmitter extends Thread {
+        final static String INET_ADDR = "224.0.0.5";
+        final static int PORT = 8888;
+
+        String netInterface = null;
+
+        /*
+         *
+         */
+        public MulticastSocketTransmitter(String netInterface) {
+            this.netInterface = netInterface.trim();
+        }
+
+        /*
+         *
+         */
+        public void run() {
+
+            byte buffer[] = new byte[512];
+
+            try {
+
+                WifiManager wim = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+                if (wim != null) {
+                    WifiManager.MulticastLock mcLock = wim.createMulticastLock(TAG);
+                    mcLock.acquire();
+                } else {
+                    throw new RuntimeException("Failed to get context.WIFI_SERVICE");
+                }
+
+
+                // Get the address that we are going to connect to.
+                InetAddress addr = InetAddress.getByName(INET_ADDR);
+
+                // get multicast socket, in a dynamic port
+                MulticastSocket txSocket = new MulticastSocket();
+                txSocket.setTimeToLive(20);
+
+                // the socket interface with a specified interface
+                NetworkInterface netInterface = AndroidUtils.getNetworkInterface(this.netInterface);
+                Log.d(TAG, "Multicast transmitter: will use network interface: " + netInterface);
+                if (netInterface != null)
+                    txSocket.setNetworkInterface(netInterface);
+
+                for (int i = 0; i < 5; i++) {
+                    String msg = "This is message no " + i;
+
+                    // buffer: first 4 bytes contains the string length
+                    ByteBuffer buf = ByteBuffer.allocate(4);
+                    buf.putInt(msg.length());
+                    System.arraycopy(buf.array(), 0, buffer, 0, 4);
+
+                    // put msg on buffer
+                    System.arraycopy(msg.getBytes(), 0, buffer, 4, msg.getBytes().length);
+
+                    // Create a packet that will contain the data (in the form of bytes) and send it
+                    // to the well know multicast address and port
+                    DatagramPacket msgPacket = new DatagramPacket(buffer, buffer.length, addr, PORT);
+                    txSocket.send(msgPacket);
+
+                    Log.d(TAG, "Packet sent with msg: " + msg);
+                    Thread.sleep(500);
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * TODO final: ver a velocidade de envio
+     *
+     * It is necessary to pass the network interface used to communicate. Like: wlan0, p2p-p2p0-1, ...
+     */
+    public class MulticastSocketReceiver extends Thread {
+        final static String INET_ADDR = MulticastSocketTransmitter.INET_ADDR;
+        final static int PORT = MulticastSocketTransmitter.PORT;
+
+        String netInterface = null;
+
+        /*
+         *
+         */
+        public MulticastSocketReceiver(String netInterface) {
+            this.netInterface = netInterface.trim();
+        }
+
+        /*
+         *
+         */
+        public void run() {
+
+            // Create a buffer of bytes, which will be used to store
+            // the incoming bytes containing the information from the server.
+            // Since the message is small here, 256 bytes should be enough.
+            byte[] buf = new byte[256];
+
+            try {
+
+                WifiManager wim = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+                if (wim != null) {
+                    WifiManager.MulticastLock mcLock = wim.createMulticastLock(TAG);
+                    mcLock.acquire();
+                } else {
+                    throw new RuntimeException("Failed to get context.WIFI_SERVICE");
+                }
+
+                // get multicast socket in a local port - must be the same
+                MulticastSocket multicastReceiverSocket = new MulticastSocket(PORT);
+                // the multicast socket  in a well know port
+                InetSocketAddress iSock = new InetSocketAddress(INET_ADDR, PORT);
+
+                // join the socket to the well know address, with a specified interface
+                NetworkInterface netInterface = AndroidUtils.getNetworkInterface(this.netInterface);
+                Log.d(TAG, "Multicast receiver: will use network interface: " + netInterface);
+                multicastReceiverSocket.joinGroup(iSock, netInterface);
+
+                Log.d(TAG, "Multicast receiver: receiving at " + INET_ADDR + ":" + PORT);
+
+                while (true) {
+                    // Receive the information and print it.
+                    DatagramPacket msgPacket = new DatagramPacket(buf, buf.length);
+                    multicastReceiverSocket.receive(msgPacket);
+
+                    String msg = new String(buf, 4, ByteBuffer.wrap(buf, 0, 4).getInt());
+                    Log.d(TAG, "Multicast, from " + msgPacket.getAddress().toString().substring(1) + ":" +
+                            msgPacket.getPort() + ", received msg: " + msg);
+                }
+
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
 }
 
-// o que estava a fazer - como detectar que o ecran se desligou (para iniciar os testes)
+// o que estava a fazer - como detectar que o ecran se desligou (para iniciar os testes

@@ -109,4 +109,36 @@
             android:text="Turn screen off"
             android:id="@+id/textViewMATurnScreenOFF"
             android:background="#de0513" android:gravity="center" android:visibility="gone"/>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Multicast Receive"
+                android:id="@+id/btnMAMulticastReceive" android:layout_weight="1"
+                style="?android:attr/buttonStyleSmall"/>
+        <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Multicast Send"
+                android:id="@+id/btnMAMulticastSend" android:layout_weight="1"/>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Multicast Interface: "
+                android:id="@+id/textView69"/>
+        <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/etMAMulticastInterface" android:text=" "/>
+    </LinearLayout>
 </LinearLayout>

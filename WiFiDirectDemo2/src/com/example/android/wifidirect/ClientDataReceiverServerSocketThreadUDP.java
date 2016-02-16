@@ -19,6 +19,7 @@ import java.util.ArrayList;
 public class ClientDataReceiverServerSocketThreadUDP extends Thread implements IStoppable {
     private int bufferSizeKB;
     int portNumber;
+    UDPSocket udpServerSocket;
     DatagramSocket serverDatagramSocket;
     LinearLayout llReceptionZone;
     byte buffer[];
@@ -30,20 +31,22 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
 
     ArrayList<DataTransferInfo> transferInfoArrayList = new ArrayList<>();
 
-    public ClientDataReceiverServerSocketThreadUDP(int portNumber, LinearLayout llReceptionZone,
+    public ClientDataReceiverServerSocketThreadUDP(UDPSocket serverSocket, LinearLayout llReceptionZone,
                                                    int bufferSizeKB, ClientActivity clientActivity) {
+        this.udpServerSocket = serverSocket;
         this.llReceptionZone = llReceptionZone;
-        this.portNumber = portNumber;
         this.bufferSizeKB = bufferSizeKB;
-        buffer = new byte[bufferSizeKB];
         this.clientActivity = clientActivity;
+
+        serverDatagramSocket = serverSocket.getSocket();
+        portNumber = serverSocket.getCrPort();
+        buffer = new byte[bufferSizeKB];
     }
 
 
     @Override
     public void run() {
         try {
-            serverDatagramSocket = new DatagramSocket(portNumber);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
             // to catch different transmissions

@@ -470,7 +470,7 @@ public class WiFiDirectControlActivity extends Activity {
         // the request.
         p2pManager.addLocalService(channel, serviceInfo, new WifiP2pManager.ActionListener() {
             public void onSuccess() {
-                tvConsole.append("\nService registered: " + devName + ", " + role);
+                tvConsole.append("\n\nService registered: " + devName + " as " + role);
             }
 
             public void onFailure(int errorCode) {
@@ -782,7 +782,9 @@ public class WiFiDirectControlActivity extends Activity {
         for (WifiP2pDevice dev : devList) {
             listAdapterPeers.add(new WifiP2PDeviceWrapper(dev));
         }
-        tvConsole.append("\n  devList with size: " + devList.size());
+
+        tvConsole.append("\n  Device list: " + devList.size() + getStrDeviceList(devList));
+        tvP2PCGONumberOfClients.setText(Integer.toString(devList.size()) + getStrDeviceList(devList));
     }
 
 
@@ -815,7 +817,8 @@ public class WiFiDirectControlActivity extends Activity {
     private void update_P2P_connection_changed(Intent intent) {
         // EXTRA_WIFI_P2P_INFO provides the p2p connection info in the form of a WifiP2pInfo object.
         final WifiP2pInfo wifiP2pInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
-        tvConsole.append("\n  WifiP2pInfo:\n  " + wifiP2pInfo.toString());
+        tvConsole.append("\n  WifiP2pInfo: Group Formed: " + wifiP2pInfo.groupFormed +
+                ", isGO: " + wifiP2pInfo.isGroupOwner + ", GOAddress: " + wifiP2pInfo.groupOwnerAddress);
 
         if (!wifiP2pInfo.groupFormed) {
             // device is disconnect
@@ -830,14 +833,14 @@ public class WiFiDirectControlActivity extends Activity {
         }
 
         // log disconnection end time
-        logEndOfOperation("WFD group creation: device connected in (ms) ");
+        // logEndOfOperation("WFD group creation: device connected in (ms) ");
 
         // device is connected
         showConnectedActions(wifiP2pInfo.isGroupOwner);
 
         // EXTRA_NETWORK_INFO provides the network info in the form of a NetworkInfo.
         NetworkInfo networkInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
-        tvConsole.append("\n  NetworkInfo:\n  " + networkInfo.toString());
+        tvConsole.append("\n NetworkInfo:  " + networkInfo.toString());
 
 
         //  EXTRA_WIFI_P2P_GROUP provides the details of the group. Only valid for API >= 18
@@ -875,23 +878,31 @@ public class WiFiDirectControlActivity extends Activity {
     }
 
     /*
-     *
+     * NOTE: System shows this change, at the beginning or when the connection change,
+     * but to get the client list is best to wait for "peers changed"
      */
     void updateGuiWithP2PGroupInfo(WifiP2pGroup group, WifiP2pInfo wifiP2pInfo) {
         if (group != null) {
-            tvConsole.append(
-                    "\n-- persistent Group ID (networkID): " + getPersistentGroupIdFromWifiP2PGroup(group));
+            tvConsole.append("\n\nP2P CONNECTION CHANGED (cont): p2pGroup:\n " + group.toString());
+            // tvConsole.append(
+            //       "\n-- persistent Group ID (networkID): " + getPersistentGroupIdFromWifiP2PGroup(group));
             String networkName = group.getNetworkName();
             textViewWifiDirectState.setText(
                     "WFD state: " + networkName + (wifiP2pInfo.isGroupOwner ? " (GO)" : ""));
+
+            Log.d(TAG, "P2P CONNECTION CHANGED p2pGroup: " + group.toString());
+            Log.d(TAG, "P2P CONNECTION CHANGED wifiP2pInfo: " + wifiP2pInfo);
 
             if (wifiP2pInfo.isGroupOwner) {
                 // GO
                 tvP2PCGOGroupName.setText(networkName);
                 tvP2PCGOGroupPassword.setText(group.getPassphrase());
-                tvP2PCGOGOAddress.setText(wifiP2pInfo.groupOwnerAddress.toString().substring(1));
-                tvP2PDeviceIPAddress.setText(wifiP2pInfo.groupOwnerAddress.toString().substring(1));
-                tvP2PCGONumberOfClients.setText(Integer.toString(group.getClientList().size()));
+                String goAddress = wifiP2pInfo.groupOwnerAddress.toString().substring(1);
+                tvP2PCGOGOAddress.setText(goAddress);
+                tvP2PDeviceIPAddress.setText(goAddress);
+
+                tvP2PCGONumberOfClients.setText(Integer.toString(group.getClientList().size()) +
+                        getStrDeviceList(group.getClientList()));
             } else {
                 // Client: show group name, GO name, GO IP, my address
                 tvP2PCCGroupName.setText(networkName);
@@ -901,6 +912,20 @@ public class WiFiDirectControlActivity extends Activity {
                 tvP2PDeviceIPAddress.setText(getLocalIpAddress(group.getInterface()));
             }
         }
+    }
+
+    /*
+     *
+     */
+    private String getStrDeviceList(Collection<WifiP2pDevice> devList) {
+        StringBuilder devListMsg = new StringBuilder(100);
+        devListMsg.append(" [ ");
+        for (WifiP2pDevice dev : devList) {
+            devListMsg.append(dev.deviceName);
+            devListMsg.append(" ");
+        }
+        devListMsg.append("]");
+        return devListMsg.toString();
     }
 
     /*

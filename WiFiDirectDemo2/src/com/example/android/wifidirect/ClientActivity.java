@@ -14,9 +14,10 @@ import android.view.WindowManager;
 import android.widget.*;
 import com.example.android.wifidirect.utils.AndroidUtils;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.io.IOException;
+import java.net.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 
 /**
@@ -45,6 +46,15 @@ import java.util.Iterator;
 public class ClientActivity extends Activity {
     public static String TAG = "ClientActivity";
 
+    public static String INITIAL_TCP_UDP_IPADDRESS = "192.168.49.1";
+    public static int INITIAL_TCP_UDP_PORT = 3000;
+
+    // MulticastSocket are limited in the range of 224.0.0.1 to 239.255.255.255.
+    // Multicast ports between: 1025 and 49151
+    public static String INITIAL_MULTICAST_UDP_IPADDRESS = "224.1.0.0";
+    public static int INITIAL_MULTICAST_UDP_PORT = 10000;
+
+
     ClientActivity myThis;
 
     private Context context;
@@ -54,7 +64,7 @@ public class ClientActivity extends Activity {
     IStoppable clientReceiver;
 
     protected int CHOOSE_FILE_RESULT_CODE = 20;
-    boolean isTcp;
+    COMM_MODE communicationMode = COMM_MODE.TCP;
 
 
     private EditText editTextCrIpAddress;
@@ -64,7 +74,7 @@ public class ClientActivity extends Activity {
     private EditText editTextTotalBytesToSend;
     private EditText editTextDelay;
     private EditText editTextMaxBufferSize;
-    private EditText editTextServerPortNumber;
+    private EditText etReceivePortNumber;
 
     private Button btnStartServer, btnStartTransmitting, btnTcp;
     private Button btnRegCrTdls, btnUnRegCrTdls, btnSendImage;
@@ -88,8 +98,25 @@ public class ClientActivity extends Activity {
     private Button btnStopSendingImage;
     private LinearLayout llTransmissionInputZone;
     private String logDir;
+    private Button btnUdpMulticast;
+    private LinearLayout llMulticastNetworkInterfaces;
 
     ArrayList<ReceptionGuiInfo> receptionGuiInfos = new ArrayList<>();
+    private RadioButton rbMulticastNetIntNone;
+    private RadioButton rbMulticastNetIntWFD;
+    private RadioButton rbMulticastNetIntWF;
+
+    private Button btnNetworksUpdate;
+    private TextView tvWFDState;
+    private TextView tvWFState;
+    private NetworkInterface wfdNetworkInterface;
+    private NetworkInterface wfNetworkInterface;
+    private TextView tvCRAddress;
+    private EditText etMulticastRcvIpAddress;
+    private TextView tvReceptionAddress;
+
+    enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
+
 
     /*
      *
@@ -105,26 +132,35 @@ public class ClientActivity extends Activity {
         //AndroidUtils.toast(this, "onCreate");
         setContentView(R.layout.client_activity);
 
-        btnStartTransmitting = findViewByIdAndCast(R.id.buttonCAStartTransmitting);
-        btnStopTransmitting = findViewByIdAndCast(R.id.buttonCAStopTransmitting);
-        btnStartServer = findViewByIdAndCast(R.id.buttonStartServer);
-        btnStopServer = findViewByIdAndCast(R.id.buttonStopServer);
-        btnSendImage = findViewByIdAndCast(R.id.buttonCASendImage);
-        btnStopSendingImage = findViewByIdAndCast(R.id.buttonCAStopSendingImage);
-        btnTcp = findViewByIdAndCast(R.id.buttonCATCP);
-        btnUdp = findViewByIdAndCast(R.id.buttonCAUDP);
+        // Interfaces state ==============================
+        btnNetworksUpdate = (Button) findViewById(R.id.btnCANetworksUpdate);
+        tvWFDState = (TextView) findViewById(R.id.tvCAWFDState);
+        tvWFState = (TextView) findViewById(R.id.tvCAWFState);
 
-        btnTdls = findViewByIdAndCast(R.id.buttonTdls);
-        btnRegCrTdls = findViewByIdAndCast(R.id.buttonRegCrTdls);
-        btnUnRegCrTdls = findViewByIdAndCast(R.id.buttonUnRegCrTdls);
+        // Main zone =====================================
+        btnTcp = (Button) findViewById(R.id.btnCATCP);
+        btnUdp = (Button) findViewById(R.id.btnCAUDP);
+        btnUdpMulticast = (Button) findViewById(R.id.btnCAUDPMulticast);
 
-        isTcp = btnTcp.getText().toString().equals("TCP");
+        btnStartTransmitting = (Button) findViewById(R.id.buttonCAStartTransmitting);
+        btnStopTransmitting = (Button) findViewById(R.id.buttonCAStopTransmitting);
+        btnStartServer = (Button) findViewById(R.id.buttonStartServer);
+        btnStopServer = (Button) findViewById(R.id.buttonStopServer);
+        btnSendImage = (Button) findViewById(R.id.buttonCASendImage);
+        btnStopSendingImage = (Button) findViewById(R.id.buttonCAStopSendingImage);
+
+        btnTdls = (Button) findViewById(R.id.buttonTdls);
+        btnRegCrTdls = (Button) findViewById(R.id.buttonRegCrTdls);
+        btnUnRegCrTdls = (Button) findViewById(R.id.buttonUnRegCrTdls);
 
         // Transmission zone =====================================
         tvTransmissionZone = findViewByIdAndCast(R.id.textViewTransmissionZone);
         llTransmissionZone = findViewByIdAndCast(R.id.LinearLayoutTransmission);
         llTransmissionInputZone = findViewByIdAndCast(R.id.linearLayoutTransmissionInputData);
 
+        llMulticastNetworkInterfaces = findViewByIdAndCast(R.id.llCAUDPMulticastNetInterfaces);
+
+        tvCRAddress = (TextView) findViewById(R.id.tvCACRAddress);
         editTextCrIpAddress = findViewByIdAndCast(R.id.editTextCrIpAddress);
         editTextCrPortNumber = findViewByIdAndCast(R.id.editTextCrPortNumber);
         editTextDestIpAddress = findViewByIdAndCast(R.id.editTextDestIpAddress);
@@ -132,23 +168,32 @@ public class ClientActivity extends Activity {
         editTextTotalBytesToSend = findViewByIdAndCast(R.id.editTextTotalBytesToSend);
         editTextDelay = findViewByIdAndCast(R.id.editTextDelay);
         editTextMaxBufferSize = findViewByIdAndCast(R.id.editTextMaxBufferSize);
-        editTextServerPortNumber = findViewByIdAndCast(R.id.editTextServerPortNumber);
         tvTxThrdSentData = findViewByIdAndCast(R.id.textViewCATxThrdSentData);
         tvTxThrdRcvData = findViewByIdAndCast(R.id.textViewCATxThrdRcvData);
 
-        rbSentKBytes = findViewByIdAndCast(R.id.radioButtonCAKBytesToSend);
-        rbSentMBytes = findViewByIdAndCast(R.id.radioButtonCAMBytesToSend);
+        rbSentKBytes = (RadioButton) findViewById(R.id.radioButtonCAKBytesToSend);
+        rbSentMBytes = (RadioButton) findViewById(R.id.radioButtonCAMBytesToSend);
+
+        rbMulticastNetIntNone = (RadioButton) findViewById(R.id.rbCAUDPMulticastNetIntNone);
+        rbMulticastNetIntWFD = (RadioButton) findViewById(R.id.rbCAUDPMulticastNetIntWFD);
+        rbMulticastNetIntWF = (RadioButton) findViewById(R.id.rbCAUDPMulticastNetIntWF);
+
 
         // reception zone ========================================
         tvReceptionZone = findViewByIdAndCast(R.id.textViewReceptionZone);
         llReceptionZone = findViewByIdAndCast(R.id.LinearLayoutReception);
         llReceptionLogs = findViewByIdAndCast(R.id.linearLayoutReceptionLogs);
-        btnClearReceptionLogs = findViewByIdAndCast(R.id.buttonCAClearReceptionLogs);
+        btnClearReceptionLogs = (Button) findViewById(R.id.buttonCAClearReceptionLogs);
 
-        rbReplyInfoNone = findViewByIdAndCast(R.id.radioButtonClientReplyInfoNone);
-        rbReplyInfoOKs = findViewByIdAndCast(R.id.radioButtonClientReplyInfoOKs);
-        rbReplyInfoEcho = findViewByIdAndCast(R.id.radioButtonClientReplyInfoEcho);
+        rbReplyInfoNone = (RadioButton) findViewById(R.id.radioButtonClientReplyInfoNone);
+        rbReplyInfoOKs = (RadioButton) findViewById(R.id.radioButtonClientReplyInfoOKs);
+        rbReplyInfoEcho = (RadioButton) findViewById(R.id.radioButtonClientReplyInfoEcho);
 
+        tvReceptionAddress = (TextView) findViewById(R.id.tvCAReceptionAddress);
+        etMulticastRcvIpAddress = (EditText) findViewById(R.id.etCAMulticastRcvIpAddress);
+        etReceivePortNumber = (EditText) findViewById(R.id.etCAReceivePortNumber);
+
+        etMulticastRcvIpAddress.setText(INITIAL_MULTICAST_UDP_IPADDRESS);
 
         // Remove TDLS buttons on devices that doesn't support it
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
@@ -167,7 +212,17 @@ public class ClientActivity extends Activity {
         Intent intent = getIntent();
         logDir = intent.getStringExtra("logDir");
 
+        updateNetworkInterfaces();
+
         // set listeners on buttons
+
+        btnNetworksUpdate.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        updateNetworkInterfaces();
+                    }
+                });
 
         tvTransmissionZone.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -266,7 +321,7 @@ public class ClientActivity extends Activity {
                     @Override
                     public void onClick(View v) {
                         // change to UDP mode
-                        isTcp = false;
+                        communicationMode = COMM_MODE.UDP;
                         btnTcp.setVisibility(View.GONE);
                         btnUdp.setVisibility(View.VISIBLE);
                         setEnabledRadioButtonsReplyMode(false);
@@ -279,12 +334,40 @@ public class ClientActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        // change to TCP mode
-                        isTcp = true;
+                        // change to UDP Multicast mode
+                        communicationMode = COMM_MODE.UDP_MULTICAST;
                         btnUdp.setVisibility(View.GONE);
+                        btnUdpMulticast.setVisibility(View.VISIBLE);
+                        setEnabledRadioButtonsReplyMode(false);
+                        btnSendImage.setEnabled(false);
+                        llMulticastNetworkInterfaces.setVisibility(View.VISIBLE);
+                        tvCRAddress.setText("MCR Address:");
+                        editTextCrIpAddress.setText(INITIAL_MULTICAST_UDP_IPADDRESS);
+                        editTextCrPortNumber.setText(String.valueOf(INITIAL_MULTICAST_UDP_PORT));
+                        tvReceptionAddress.setText("Multicast Address: ");
+                        etMulticastRcvIpAddress.setVisibility(View.VISIBLE);
+                        etReceivePortNumber.setText(String.valueOf(INITIAL_MULTICAST_UDP_PORT));
+                    }
+                }
+        );
+
+        btnUdpMulticast.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        // change to TCP mode
+                        communicationMode = COMM_MODE.TCP;
+                        btnUdpMulticast.setVisibility(View.GONE);
                         btnTcp.setVisibility(View.VISIBLE);
                         setEnabledRadioButtonsReplyMode(true);
                         btnSendImage.setEnabled(true);
+                        llMulticastNetworkInterfaces.setVisibility(View.GONE);
+                        tvCRAddress.setText("CR Address:");
+                        editTextCrIpAddress.setText(INITIAL_TCP_UDP_IPADDRESS);
+                        editTextCrPortNumber.setText(String.valueOf(INITIAL_TCP_UDP_PORT));
+                        tvReceptionAddress.setText("Receive Port Number: ");
+                        etMulticastRcvIpAddress.setVisibility(View.GONE);
+                        etReceivePortNumber.setText(String.valueOf(INITIAL_TCP_UDP_PORT));
                     }
                 }
         );
@@ -324,14 +407,100 @@ public class ClientActivity extends Activity {
 
         // avoid keyboard popping up
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
+
+        // this is needed by Multicast sockets
+        WifiManager wim = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        if (wim != null) {
+            WifiManager.MulticastLock mcLock = wim.createMulticastLock(TAG);
+            mcLock.acquire();
+        } else {
+            throw new RuntimeException("Failed to get context.WIFI_SERVICE, to create Multicast lock");
+        }
+
     }
+
+    /*
+     *
+     */
+    public void updateNetworkInterfaces() {
+        ArrayList<NetworkInterface> netInts = new ArrayList<>();
+        NetworkInterface wfd = null, wf = null;
+        InetAddress wfdAddress = null, wfAddress = null;
+
+        try {
+            Log.d(TAG, "List of network interfaces:");
+            for (NetworkInterface netInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                // 3G networks don't support broadcast
+                if (!netInterface.isLoopback() && netInterface.isUp() && Collections.list(
+                        netInterface.getInetAddresses()).size() == 2 &&
+                        haveIPV4AddressWithBroadcast(netInterface)) {
+                    Log.d(TAG, "> " + netInterface + " inetAdrrs " + Collections.list(
+                            netInterface.getInetAddresses()).size() + " " + netInterface.supportsMulticast());
+
+                    if (wf == null && netInterface.getName().startsWith("wlan")) {
+                        wf = netInterface;
+                    } else if (wfd == null && netInterface.getName().startsWith("p2p")) {
+                        wfd = netInterface;
+                    } else
+                        netInts.add(netInterface);
+                }
+            }
+
+            // try to get the last network interface, just in case of a different name
+            if (wf == null && wfd != null && netInts.size() == 1)
+                wf = netInts.get(0);
+
+            if (wfd == null && wf != null && netInts.size() == 1)
+                wfd = netInts.get(0);
+
+            Log.d(TAG, "FINAL WFD: " + wfd + ", WF: " + wf);
+
+            tvWFDState.setText("WFD: " + (wfd == null ? "OFF/NC" : wfd.getName() + " " +
+                    getIPV4AddressWithBroadcast(wfd).toString().substring(1)));
+
+            tvWFState.setText("WF: " + (wf == null ? "OFF/NC" : wf.getName() + " " +
+                    getIPV4AddressWithBroadcast(wf).toString().substring(1)));
+            wfdNetworkInterface = wfd;
+            wfNetworkInterface = wf;
+
+            rbMulticastNetIntWFD.setVisibility(wfd == null ? View.GONE : View.VISIBLE);
+            rbMulticastNetIntWF.setVisibility(wf == null ? View.GONE : View.VISIBLE);
+
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /*
+     *
+     */
+    private boolean haveIPV4AddressWithBroadcast(NetworkInterface netInterface) {
+        for (InterfaceAddress intAddr : netInterface.getInterfaceAddresses()) {
+            if ((intAddr.getAddress() instanceof Inet4Address) && intAddr.getBroadcast() != null)
+                return true;
+        }
+        return false;
+    }
+
+    /*
+     *
+     */
+    private InetAddress getIPV4AddressWithBroadcast(NetworkInterface netInterface) {
+        for (InterfaceAddress intAddr : netInterface.getInterfaceAddresses()) {
+            if ((intAddr.getAddress() instanceof Inet4Address) && intAddr.getBroadcast() != null)
+                return intAddr.getAddress();
+        }
+        return null;
+    }
+
 
     /**
      *
      */
     public void startReceivingGuiActions() {
         setEnabledRadioButtonsReplyMode(false);
-        editTextServerPortNumber.setEnabled(false);
+        etReceivePortNumber.setEnabled(false);
         btnStartServer.setVisibility(View.GONE);
         btnStopServer.setVisibility(View.VISIBLE);
     }
@@ -342,8 +511,8 @@ public class ClientActivity extends Activity {
     public void endReceivingGuiActions() {
         btnStopServer.setVisibility(View.GONE);
         btnStartServer.setVisibility(View.VISIBLE);
-        editTextServerPortNumber.setEnabled(true);
-        if (isTcp)
+        etReceivePortNumber.setEnabled(true);
+        if (communicationMode == COMM_MODE.TCP)
             setEnabledRadioButtonsReplyMode(true);
     }
 
@@ -370,7 +539,7 @@ public class ClientActivity extends Activity {
         if (sourceUri == null) {
             btnStartTransmitting.setVisibility(View.VISIBLE);
             btnStopTransmitting.setVisibility(View.GONE);
-            if (isTcp)
+            if (communicationMode == COMM_MODE.TCP)
                 btnSendImage.setEnabled(true);
         } else {
             btnStopSendingImage.setVisibility(View.GONE);
@@ -416,17 +585,47 @@ public class ClientActivity extends Activity {
      * startReceiverServer
      */
     private void startReceiverServer() {
-        String rcvPortNumber = editTextServerPortNumber.getText().toString();
+        String rcvPortNumber = etReceivePortNumber.getText().toString();
         int bufferSize = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
 
-        if (isTcp)
-            clientReceiver = new ClientDataReceiverServerSocketThreadTCP(
-                    Integer.parseInt(rcvPortNumber), llReceptionLogs, bufferSize, getReplyMode(), this);
-        else
-            clientReceiver = new ClientDataReceiverServerSocketThreadUDP(
-                    Integer.parseInt(rcvPortNumber), llReceptionLogs, bufferSize, this);
+        try {
+            switch (communicationMode) {
+                case TCP:
+                    clientReceiver = new ClientDataReceiverServerSocketThreadTCP(
+                            Integer.parseInt(rcvPortNumber), llReceptionLogs, bufferSize, getReplyMode(), this);
+                    break;
 
-        clientReceiver.start();
+                case UDP:
+                    // build the UDP receiver socket
+                    UDPSocket sock = UDPSocket.getUDPReceiverSocket(Integer.parseInt(rcvPortNumber));
+
+                    // create worker thread receiving in UDP socket
+                    clientReceiver = new ClientDataReceiverServerSocketThreadUDP(
+                            sock, llReceptionLogs, bufferSize, this);
+                    break;
+
+                case UDP_MULTICAST:
+                    // get interface if any
+                    NetworkInterface netInterface = rbMulticastNetIntWFD.isChecked() ? wfdNetworkInterface :
+                            rbMulticastNetIntWF.isChecked() ? wfNetworkInterface : null;
+
+                    String multicastIpAddress = etMulticastRcvIpAddress.getText().toString();
+
+                    // build the UDP receiver socket
+                    UDPSocket msock = UDPSocket.getUDPMulticastReceiverSocket(
+                            multicastIpAddress, Integer.parseInt(rcvPortNumber), netInterface);
+
+                    // create worker thread receiving in UDP socket
+                    clientReceiver = new ClientDataReceiverServerSocketThreadUDP(
+                            msock, llReceptionLogs, bufferSize, this);
+            }
+
+
+            clientReceiver.start();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -443,26 +642,52 @@ public class ClientActivity extends Activity {
         long delayMs = Long.parseLong(editTextDelay.getText().toString());
         int bufferSizeBytes = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
 
-        if (isTcp) {
-            clientTransmitter = new ClientSendDataThreadTCP(destIpAddress,
-                    destPortNumber
-                    , crIpAddress, crPortNumber
-                    , delayMs, totalBytesToSend
-                    , tvTxThrdSentData
-                    , tvTxThrdRcvData
-                    , this
-                    , bufferSizeBytes, fileToSend);
-        } else {
-            clientTransmitter = new ClientSendDataThreadUDP(destIpAddress,
-                    destPortNumber
-                    , crIpAddress, crPortNumber
-                    , delayMs, totalBytesToSend
-                    , tvTxThrdSentData
-                    , this
-                    , bufferSizeBytes);
+        try {
+            switch (communicationMode) {
+                case TCP:
+                    clientTransmitter = new ClientSendDataThreadTCP(destIpAddress,
+                            destPortNumber
+                            , crIpAddress, crPortNumber
+                            , delayMs, totalBytesToSend
+                            , tvTxThrdSentData
+                            , tvTxThrdRcvData
+                            , this
+                            , bufferSizeBytes, fileToSend);
+                    break;
+
+                case UDP:
+                    // build the UDP transmitter socket
+                    UDPSocket sock = UDPSocket.getUDPTransmitterSocket(crIpAddress, crPortNumber);
+
+                    // create worker thread transmitting by UDP socket
+                    clientTransmitter = new ClientSendDataThreadUDP(destIpAddress, destPortNumber
+                            , sock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeBytes);
+                    break;
+
+                case UDP_MULTICAST:
+                    // get interface if any
+                    NetworkInterface netInterface = rbMulticastNetIntWFD.isChecked() ? wfdNetworkInterface :
+                            rbMulticastNetIntWF.isChecked() ? wfNetworkInterface : null;
+
+                    Log.d(TAG, "Multicast transmitter: will use network interface: " + netInterface);
+
+                    // build he UDP multicast transmitter socket
+                    UDPSocket msock = UDPSocket.getUDPMulticastTransmitterSocket(crIpAddress, crPortNumber,
+                            netInterface);
+
+                    // create worker thread transmitting in UDP multicast socket
+                    clientTransmitter = new ClientSendDataThreadUDP(destIpAddress, destPortNumber
+                            , msock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeBytes);
+
+            }
+
+            // start worker thread
+            clientTransmitter.start();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        clientTransmitter.start();
     }
 
     /*
@@ -595,3 +820,105 @@ public class ClientActivity extends Activity {
 enum ReplyMode {
     NONE, OK, ECHO
 };
+
+/*
+ *
+ */
+class UDPSocket {
+    String crIpAddress;
+    int crPort;
+
+    DatagramSocket socket;
+
+    /*
+     *
+     */
+    public UDPSocket(int crPort, DatagramSocket socket) {
+        this(null, crPort, socket);
+    }
+
+    /*
+     *
+     */
+    public UDPSocket(String crIpAddress, int crPort, DatagramSocket socket) {
+        this.crIpAddress = crIpAddress;
+        this.crPort = crPort;
+        this.socket = socket;
+    }
+
+    /*
+     *
+     */
+    public String getCrIpAddress() {
+        return crIpAddress;
+    }
+
+    /*
+     *
+     */
+    public DatagramSocket getSocket() {
+        return socket;
+    }
+
+    /*
+         *
+         */
+    public int getCrPort() {
+        return crPort;
+    }
+
+    /*
+         * get UDP Transmitter Socket
+         */
+    public static UDPSocket getUDPTransmitterSocket(String crIpAddress, int crPort) throws UnknownHostException, SocketException {
+        DatagramSocket socket = new DatagramSocket();
+        return new UDPSocket(crIpAddress, crPort, socket);
+    }
+
+    /*
+     * get UDP Multicast Transmitter Socket
+     */
+    public static UDPSocket getUDPMulticastTransmitterSocket(String crMulticastIpAddress, int crMulticastPort,
+                                                             NetworkInterface netInterface) throws IOException {
+        // get multicast socket, in a dynamic port
+        MulticastSocket txSocket = new MulticastSocket();
+        txSocket.setTimeToLive(20);
+
+        if (netInterface != null)
+            txSocket.setNetworkInterface(netInterface);
+
+        return new UDPSocket(crMulticastIpAddress, crMulticastPort, txSocket);
+    }
+
+    /*
+     * get UDP Receiver Socket
+     */
+    public static UDPSocket getUDPReceiverSocket(int receivingPort) throws UnknownHostException, SocketException {
+        DatagramSocket serverSocket = new DatagramSocket(receivingPort);
+        return new UDPSocket(receivingPort, serverSocket);
+    }
+
+
+    /*
+         * get UDP Multicast Receiver Socket
+         */
+    public static UDPSocket getUDPMulticastReceiverSocket(String crMulticastIpAddress, int crMulticastPort,
+                                                          NetworkInterface netInterface) throws IOException {
+        // get multicast socket in a local port - must be the same
+        MulticastSocket multicastReceiverSocket = new MulticastSocket(crMulticastPort);
+
+        // create multicast socket endpoint
+        InetSocketAddress iSock = new InetSocketAddress(crMulticastIpAddress, crMulticastPort);
+
+        //Log.d(TAG, "Multicast receiver: will use network interface: " + netInterface);
+
+        // joint the sockets to the multicast group defined by the multicast endpoint using the
+        // specified interface
+        multicastReceiverSocket.joinGroup(iSock, netInterface);
+
+        // return the UDPSocket wrapper class
+        return new UDPSocket(crMulticastIpAddress, crMulticastPort, multicastReceiverSocket);
+    }
+
+}
+

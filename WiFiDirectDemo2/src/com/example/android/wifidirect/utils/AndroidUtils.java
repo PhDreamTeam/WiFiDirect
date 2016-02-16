@@ -11,6 +11,9 @@ import android.widget.Toast;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Collections;
 
 /**
  * Created by AT DR on 26-11-2015
@@ -102,6 +105,22 @@ public class AndroidUtils {
                     throw new IllegalStateException("Error creating LOG directory: " + buildPath);
             }
         }
+    }
+
+    /*
+     *
+     */
+    public static NetworkInterface getNetworkInterface(String interfaceName) {
+        try {
+            for (NetworkInterface netInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (netInterface.getName().equalsIgnoreCase(interfaceName)) {
+                    return netInterface;
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

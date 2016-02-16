@@ -287,7 +287,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 } catch (IOException e) {
                     String msg = "Socket receiver part stopped, cause: " +
                             (e.getMessage().equals("Socket closed") ? "by user action" : e.getMessage());
-                    Log.d(LOG_TAG,  msg);
+                    Log.d(LOG_TAG, msg);
                     // e.printStackTrace();
                 } finally {
                     AndroidUtils.close(dis);
@@ -337,7 +337,8 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         //rcvThread.interrupt();
 
         try {
-            cliSocket.close();
+            if (cliSocket != null)
+                cliSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
