@@ -76,7 +76,7 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
                             logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
                             for (DataTransferInfo data : transferInfoArrayList)
                                 logSession.logMsg("  " + data);
-                            logSession.close();
+                            logSession.close(llReceptionZone.getContext());
                         }
                         return;
                     }
@@ -105,7 +105,7 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
                     if (nBuffersReceived == 1) {
                         String addressInfo = new String(bufferRcv, 8, ByteBuffer.wrap(bufferRcv, 0, 4).getInt());
                         String dataStr[] = addressInfo.split(";");
-                        logSession.logMsg("Destination: " + dataStr[0] + ":" + dataStr[1] + "\n");
+                        logSession.logMsg("Destination: " + dataStr[0] + ":" + dataStr[1] + "\r\n");
 
                         logSession.logMsg("Initial time: " + initialTimeNs);
                     }
@@ -161,7 +161,7 @@ public class ClientDataReceiverServerSocketThreadUDP extends Thread implements I
                 logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
                 for (DataTransferInfo data : transferInfoArrayList)
                     logSession.logMsg("  " + data);
-                logSession.close();
+                logSession.close(llReceptionZone.getContext());
 
                 transferInfoArrayList.clear();
 

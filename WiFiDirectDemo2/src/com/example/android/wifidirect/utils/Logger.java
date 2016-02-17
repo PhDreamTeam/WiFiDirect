@@ -1,6 +1,8 @@
 package com.example.android.wifidirect.utils;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import com.example.android.wifidirect.MyMainActivity;
 import com.example.android.wifidirect.R;
 
@@ -28,6 +30,8 @@ public class Logger {
     private Date initialLogTime;
     private int activeLogSessions = 0;
     private String mainLogName;
+
+
 
     /**
      *
@@ -71,18 +75,30 @@ public class Logger {
     /**
      *
      */
-    public void terminateSession(LoggerSession loggerSession) {
+    public void terminateSession(LoggerSession loggerSession, Context ctx) {
         if (--activeLogSessions == 0) {
             // write all logger sessions to file
-            saveDataToFile();
+            saveDataToFile(ctx);
             logSessions.clear();
         }
     }
 
-    /**
+
+
+    /*
      *
      */
-    public void saveDataToFile() {
+    public void executeMediaScanFile(File file, Context context) {
+        Intent intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        intent.setData(Uri.fromFile(file));
+        context.sendBroadcast(intent);
+    }
+
+    /**
+     *
+     * @param ctx
+     */
+    public void saveDataToFile(Context ctx) {
         // get initial time in a nice string
         String timestamp = dateFormatNormal.format(initialLogTime);
 
@@ -92,12 +108,12 @@ public class Logger {
         PrintWriter pw = null;
 
         try {
+            // println does not put \r
             pw = new PrintWriter(f);
-            pw.println(mainLogName + " started at " + timestamp);
-            pw.println();
+            pw.print(mainLogName + " started at " + timestamp + "\r\n\r\n");
             for (LoggerSession logSession : logSessions) {
-                pw.println("- - - - - - - - - - - -");
-                pw.println(logSession.getLogData());
+                pw.print("- - - - - - - - - - - -"  + "\r\n");
+                pw.print(logSession.getLogData() + "\r\n");
             }
 
         } catch (FileNotFoundException e) {
@@ -106,6 +122,8 @@ public class Logger {
             if (pw != null)
                 pw.close();
         }
+
+        executeMediaScanFile(f, ctx);
     }
 
 

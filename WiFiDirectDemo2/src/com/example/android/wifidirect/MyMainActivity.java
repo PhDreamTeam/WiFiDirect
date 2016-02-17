@@ -362,7 +362,7 @@ public class MyMainActivity extends Activity {
             public void onClick(View v) {
                 String msg = etLogMsg.getText().toString();
                 LoggerSession ls = logger.getNewLoggerSession(msg);
-                ls.close();
+                ls.close(btnLogMsg.getContext());
             }
         });
     }

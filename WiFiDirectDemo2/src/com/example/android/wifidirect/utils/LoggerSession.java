@@ -1,5 +1,7 @@
 package com.example.android.wifidirect.utils;
 
+import android.content.Context;
+
 import java.util.Date;
 
 /**
@@ -17,16 +19,15 @@ public class LoggerSession {
     public LoggerSession(String sessionName, Logger mainLog) {
         this.mainLog = mainLog;
         this.sessionName = sessionName;
-        log.append(sessionName).append("\n\n");
+        logMsg(sessionName + "\r\n");
     }
 
     /**
-     *
      * @return returns current time in milliseconds
      */
     public long logTime(String msg) {
         Date now = new Date();
-        long nowMs =  now.getTime();
+        long nowMs = now.getTime();
         logMsg(msg + ": " + Logger.dateFormatLog.format(now) + ", " + nowMs);
         return nowMs;
     }
@@ -35,14 +36,14 @@ public class LoggerSession {
      *
      */
     public void logMsg(String msg) {
-        log.append(msg).append("\n");
+        log.append(msg).append("\r\n");
     }
 
     /**
      *
      */
-    public void close() {
-        mainLog.terminateSession(this);
+    public void close(Context ctx) {
+        mainLog.terminateSession(this, ctx);
     }
 
     /**

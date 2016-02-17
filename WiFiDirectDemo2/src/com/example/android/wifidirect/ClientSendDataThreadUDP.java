@@ -62,7 +62,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
         LoggerSession logSession = MyMainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName(),
                 clientActivity.getLogDir());
         logSession.logMsg("Send data to CR: " + crIpAddress + ":" + crPortNumber);
-        logSession.logMsg("Send data to dest: " + destIpAddress + ":" + destPortNumber + "\n");
+        logSession.logMsg("Send data to dest: " + destIpAddress + ":" + destPortNumber + "\r\n");
 
         // Send data buffer and fill with some values
         byte buffer[] = new byte[bufferSizeBytes];
@@ -129,7 +129,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             double sentDataMb = (nBytesSent * 8.0) / (1024.0 * 1024.0);
             double globalSentSpeedMbps = sentDataMb / deltaTimeSegs;
             logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", globalSentSpeedMbps));
-            logSession.close();
+            logSession.close(tvSentDataKB.getContext());
 
             cliSocket.close();
 
@@ -144,7 +144,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             e.printStackTrace();
             AndroidUtils.toast(tvSentDataKB, "Error transmitting data: " + e.getMessage());
             logSession.logMsg("Transmission stopped by user - GUI");
-            logSession.close();
+            logSession.close(tvSentDataKB.getContext());
         } finally {
             AndroidUtils.close(cliSocket);
         }

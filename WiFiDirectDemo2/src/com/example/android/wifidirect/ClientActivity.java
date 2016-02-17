@@ -2,10 +2,15 @@ package com.example.android.wifidirect;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pGroup;
+import android.net.wifi.p2p.WifiP2pInfo;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -66,6 +71,8 @@ public class ClientActivity extends Activity {
     protected int CHOOSE_FILE_RESULT_CODE = 20;
     COMM_MODE communicationMode = COMM_MODE.TCP;
 
+    private final IntentFilter intentFilter = new IntentFilter();
+
 
     private EditText editTextCrIpAddress;
     private EditText editTextCrPortNumber;
@@ -114,6 +121,9 @@ public class ClientActivity extends Activity {
     private TextView tvCRAddress;
     private EditText etMulticastRcvIpAddress;
     private TextView tvReceptionAddress;
+    private BroadcastReceiver broadcastReceiver;
+    private WifiP2pManager p2pManager;
+    private WifiP2pManager.Channel channel;
 
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
 
@@ -128,6 +138,10 @@ public class ClientActivity extends Activity {
 
         context = getApplicationContext();
         wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        p2pManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        channel = p2pManager.initialize(this, getMainLooper(), null);
+
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
 
         //AndroidUtils.toast(this, "onCreate");
         setContentView(R.layout.client_activity);
@@ -456,10 +470,11 @@ public class ClientActivity extends Activity {
 
             Log.d(TAG, "FINAL WFD: " + wfd + ", WF: " + wf);
 
-            tvWFDState.setText("WFD: " + (wfd == null ? "OFF/NC" : wfd.getName() + " " +
-                    getIPV4AddressWithBroadcast(wfd).toString().substring(1)));
+            // tvWFDState.setText("WFD:  " + (wfd == null ? "OFF/NC" : wfd.getName() + "  " +
+            //        getIPV4AddressWithBroadcast(wfd).toString().substring(1)));
 
-            tvWFState.setText("WF: " + (wf == null ? "OFF/NC" : wf.getName() + " " +
+            tvWFState.setText("WF:  " + (wf == null ? "OFF/NC" : AndroidUtils.getWifiSSID(this) + "  " +
+                    wf.getName() + "  " + AndroidUtils.getWifiLinkSpeed(this) + "Mbps  " +
                     getIPV4AddressWithBroadcast(wf).toString().substring(1)));
             wfdNetworkInterface = wfd;
             wfNetworkInterface = wf;
@@ -492,6 +507,58 @@ public class ClientActivity extends Activity {
                 return intAddr.getAddress();
         }
         return null;
+    }
+
+    /*
+     * singleton for broadcast receiver
+     */
+    private BroadcastReceiver getBroadcastReceiver() {
+        if (broadcastReceiver == null) {
+
+            broadcastReceiver = new BroadcastReceiver() {
+
+                public void onReceive(Context context, Intent intent) {
+
+                    String action = intent.getAction();
+                    switch (action) {
+
+                        // indicate that the state of Wi-Fi p2p connectivity has changed
+                        case WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION:
+                            Log.d(TAG, "BDC: WIFI_P2P_CONNECTION_CHANGED");
+                            update_P2P_connection_changed(intent);
+                            break;
+                    }
+                }
+            };
+        }
+        return broadcastReceiver;
+    }
+
+    /*
+     *
+     */
+    private void update_P2P_connection_changed(Intent intent) {
+        WifiP2pInfo wifiP2pInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
+        if (!wifiP2pInfo.groupFormed) {
+            tvWFDState.setText("WFD:  OFF/NC");
+            return;
+        }
+
+        // get wifiP2pGroup in asynchronous way for API 16
+        p2pManager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(WifiP2pGroup group) {
+                String msg = "WFD:  ";
+                if (group.isGroupOwner()) {
+                    msg += "(GO)  " + group.getInterface() + "  " +
+                            WiFiDirectControlActivity.getLocalIpAddress(group.getInterface());
+                } else {
+                    msg += "(" + group.getOwner().deviceName + ")  " + group.getInterface() + "  " +
+                            WiFiDirectControlActivity.getLocalIpAddress(group.getInterface());
+                }
+                tvWFDState.setText(msg);
+            }
+        });
     }
 
 
@@ -734,6 +801,7 @@ public class ClientActivity extends Activity {
     protected void onPause() {
         super.onPause();
         //AndroidUtils.toast(this, "onPause");
+        unregisterReceiver(getBroadcastReceiver());
     }
 
     /*
@@ -752,6 +820,7 @@ public class ClientActivity extends Activity {
     protected void onResume() {
         super.onResume();
         //AndroidUtils.toast(this, "onResume");
+        registerReceiver(getBroadcastReceiver(), intentFilter);
     }
 
     @Override

@@ -4,6 +4,8 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.LightingColorFilter;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -119,6 +121,30 @@ public class AndroidUtils {
             }
         } catch (SocketException e) {
             e.printStackTrace();
+        }
+        return null;
+    }
+
+    /*
+     *
+     */
+    public static int getWifiLinkSpeed(Context context) {
+        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        if (wifiInfo != null) {
+            return wifiInfo.getLinkSpeed(); //measured using WifiInfo.LINK_SPEED_UNITS
+        }
+        return -1;
+    }
+
+    /*
+     *
+     */
+    public static String getWifiSSID(Context context) {
+        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        if (wifiInfo != null) {
+            return wifiInfo.getSSID();
         }
         return null;
     }

@@ -255,6 +255,8 @@ public class WiFiDirectControlActivity extends Activity {
         tvP2PCCGOIPAddress = (TextView) findViewById(R.id.textViewP2PCCGOIPAddress);
         tvP2PCCMyAddress = (TextView) findViewById(R.id.textViewP2PCCMyAddress);
 
+        //tvP2PDeviceIPAddress = (TextView) findViewById(R.id.textViewP2PDeviceIPAddress);
+
         btnP2PCCDisconnect = (Button) findViewById(R.id.buttonP2PDisconnectAsClient);
         btnP2PCCDisconnect.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -847,7 +849,7 @@ public class WiFiDirectControlActivity extends Activity {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2 ||
                 !update_P2P_connection_changed_API18(intent, wifiP2pInfo)) {
 
-            // get wifiP2pGroup in another way for API 16
+            // get wifiP2pGroup in asynchronous way for API 16
             p2pManager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
                 @Override
                 public void onGroupInfoAvailable(WifiP2pGroup group) {
@@ -931,7 +933,7 @@ public class WiFiDirectControlActivity extends Activity {
     /*
      *
      */
-    public String getLocalIpAddress(String interfaceName) {
+    public static String getLocalIpAddress(String interfaceName) {
         try {
             NetworkInterface netInterface = NetworkInterface.getByName(interfaceName);
             for (Enumeration<InetAddress> enumIpAddr = netInterface.getInetAddresses(); enumIpAddr.hasMoreElements(); ) {

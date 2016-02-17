@@ -146,7 +146,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             logSession = MyMainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName(),
                     clientActivity.getLogDir());
             logSession.logMsg("Send data to CR: " + crIpAddress + ":" + crPortNumber);
-            logSession.logMsg("Send data to dest: " + destIpAddress + ":" + destPortNumber + "\n");
+            logSession.logMsg("Send data to dest: " + destIpAddress + ":" + destPortNumber + "\r\n");
             long initialTxTimeMs = logSession.logTime("Initial time");
 
             if (sourceUri != null) {
@@ -217,7 +217,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             double deltaTimeSegs = (finalTxTimeMs - initialTxTimeMs) / 1000.0;
             double dataSentSpeedMbps = sentDataMb / deltaTimeSegs;
             logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", dataSentSpeedMbps));
-            logSession.close();
+            logSession.close(tvSentData.getContext());
 
         } catch (Exception e) {
             String msg = "Transmission stopped, cause: " +
@@ -227,7 +227,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             // e.printStackTrace();
             if (logSession != null) {
                 logSession.logMsg(msg);
-                logSession.close();
+                logSession.close(tvSentData.getContext());
             }
         } finally {
             // close streams

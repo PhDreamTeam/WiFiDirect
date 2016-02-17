@@ -224,7 +224,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                                 " Receiving TCP data from " + originSocket.getInetAddress().toString().substring(1),
                         clientActivity.getLogDir());
 
-                logSession.logMsg("Destination: " + aia[0] + ":" + aia[1] + "\n");
+                logSession.logMsg("Destination: " + aia[0] + ":" + aia[1] + "\r\n");
                 logSession.logTime("Initial time");
 
                 initialNanoTime = lastUpdate = System.nanoTime();
@@ -284,11 +284,11 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 logSession.logMsg("Time elapsed (s): " + String.format("%5.3f", deltaTimeSegs));
                 logSession.logMsg("Global average speed (Mbps): " + String.format("%5.3f", globalRcvSpeedMbps));
                 logSession.logMsg("Max rcv speed (Mbps): " + String.format("%5.3f", maxSpeedMbps));
-                logSession.logMsg("Bytes sent: " + sentDataCounterTotal + "\n");
+                logSession.logMsg("Bytes sent: " + sentDataCounterTotal + "\r\n");
                 logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
                 for (DataTransferInfo data : transferInfoArrayList)
                     logSession.logMsg("  " + data);
-                logSession.close();
+                logSession.close(llReceptionZone.getContext());
 
                 // remove this thread from the container of threads
                 workingThreads.remove(this);
@@ -315,7 +315,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
                     for (DataTransferInfo data : transferInfoArrayList)
                         logSession.logMsg("  " + data);
-                    logSession.close();
+                    logSession.close(llReceptionZone.getContext());
                 }
             } finally {
                 // close socket
