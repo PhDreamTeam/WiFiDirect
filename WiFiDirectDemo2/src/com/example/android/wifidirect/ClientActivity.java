@@ -5,11 +5,9 @@ import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pGroup;
-import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -22,7 +20,6 @@ import com.example.android.wifidirect.utils.AndroidUtils;
 import java.io.IOException;
 import java.net.*;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 
 /**
@@ -71,8 +68,6 @@ public class ClientActivity extends Activity {
     protected int CHOOSE_FILE_RESULT_CODE = 20;
     COMM_MODE communicationMode = COMM_MODE.TCP;
 
-    private final IntentFilter intentFilter = new IntentFilter();
-
 
     private EditText editTextCrIpAddress;
     private EditText editTextCrPortNumber;
@@ -113,7 +108,6 @@ public class ClientActivity extends Activity {
     private RadioButton rbMulticastNetIntWFD;
     private RadioButton rbMulticastNetIntWF;
 
-    private Button btnNetworksUpdate;
     private TextView tvWFDState;
     private TextView tvWFState;
     private NetworkInterface wfdNetworkInterface;
@@ -124,6 +118,8 @@ public class ClientActivity extends Activity {
     private BroadcastReceiver broadcastReceiver;
     private WifiP2pManager p2pManager;
     private WifiP2pManager.Channel channel;
+
+    NetworkInterfacesDetector networkInterfacesDetector;
 
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
 
@@ -141,13 +137,10 @@ public class ClientActivity extends Activity {
         p2pManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         channel = p2pManager.initialize(this, getMainLooper(), null);
 
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-
         //AndroidUtils.toast(this, "onCreate");
         setContentView(R.layout.client_activity);
 
         // Interfaces state ==============================
-        btnNetworksUpdate = (Button) findViewById(R.id.btnCANetworksUpdate);
         tvWFDState = (TextView) findViewById(R.id.tvCAWFDState);
         tvWFState = (TextView) findViewById(R.id.tvCAWFState);
 
@@ -226,17 +219,7 @@ public class ClientActivity extends Activity {
         Intent intent = getIntent();
         logDir = intent.getStringExtra("logDir");
 
-        updateNetworkInterfaces();
-
         // set listeners on buttons
-
-        btnNetworksUpdate.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        updateNetworkInterfaces();
-                    }
-                });
 
         tvTransmissionZone.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -432,133 +415,66 @@ public class ClientActivity extends Activity {
             throw new RuntimeException("Failed to get context.WIFI_SERVICE, to create Multicast lock");
         }
 
-    }
+        // WFD info listener
+        WifiP2pManager.GroupInfoListener wfdGroupInfoListener = new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(WifiP2pGroup group) {
+                if (group == null) {
+                    tvWFDState.setText("WFD:  OFF/NC");
+                    wfdNetworkInterface = null;
+                    rbMulticastNetIntWFD.setVisibility(View.GONE);
+                    return;
+                }
 
-    /*
-     *
-     */
-    public void updateNetworkInterfaces() {
-        ArrayList<NetworkInterface> netInts = new ArrayList<>();
-        NetworkInterface wfd = null, wf = null;
-        InetAddress wfdAddress = null, wfAddress = null;
+                // group available: device connected
 
-        try {
-            Log.d(TAG, "List of network interfaces:");
-            for (NetworkInterface netInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                // 3G networks don't support broadcast
-                if (!netInterface.isLoopback() && netInterface.isUp() && Collections.list(
-                        netInterface.getInetAddresses()).size() == 2 &&
-                        haveIPV4AddressWithBroadcast(netInterface)) {
-                    Log.d(TAG, "> " + netInterface + " inetAdrrs " + Collections.list(
-                            netInterface.getInetAddresses()).size() + " " + netInterface.supportsMulticast());
+                // update global vars and GUI
+                wfdNetworkInterface = AndroidUtils.getNetworkInterface(group.getInterface());
+                rbMulticastNetIntWFD.setVisibility(View.VISIBLE);
 
-                    if (wf == null && netInterface.getName().startsWith("wlan")) {
-                        wf = netInterface;
-                    } else if (wfd == null && netInterface.getName().startsWith("p2p")) {
-                        wfd = netInterface;
-                    } else
-                        netInts.add(netInterface);
+                // update GUI with info message
+                tvWFDState.setText("WFD:  (" + (group.isGroupOwner() ? "GO" : group.getOwner().deviceName) +
+                        ")  " + group.getInterface() + "  " +
+                        WiFiDirectControlActivity.getLocalIpAddress(group.getInterface()));
+            }
+        };
+
+        // FD info listener
+        NetworkInterfacesDetector.WFNetworkInterfaceListener wfNetworkInterfaceListener = new NetworkInterfacesDetector.WFNetworkInterfaceListener() {
+            public void updateWFNetworkInterface(NetworkInterface wfInterface) {
+                wfNetworkInterface = wfInterface;
+
+                if (wfInterface == null) {
+                    tvWFState.setText("WF:  OFF/NC");
+                    rbMulticastNetIntWF.setVisibility(View.GONE);
+                } else {
+                    tvWFState.setText("WF:  " + AndroidUtils.getWifiSSID(ClientActivity.this) + "  " +
+                            wfInterface.getName() + "  " +
+                            AndroidUtils.getWifiLinkSpeed(ClientActivity.this) + "Mbps  " +
+                            getIPV4AddressWithBroadcast(wfInterface).toString().substring(1));
+                    rbMulticastNetIntWF.setVisibility(View.VISIBLE);
                 }
             }
+        };
 
-            // try to get the last network interface, just in case of a different name
-            if (wf == null && wfd != null && netInts.size() == 1)
-                wf = netInts.get(0);
+        // create network interfaces detector
+        networkInterfacesDetector = new NetworkInterfacesDetector(this, wfdGroupInfoListener,
+                wfNetworkInterfaceListener);
 
-            if (wfd == null && wf != null && netInts.size() == 1)
-                wfd = netInts.get(0);
-
-            Log.d(TAG, "FINAL WFD: " + wfd + ", WF: " + wf);
-
-            // tvWFDState.setText("WFD:  " + (wfd == null ? "OFF/NC" : wfd.getName() + "  " +
-            //        getIPV4AddressWithBroadcast(wfd).toString().substring(1)));
-
-            tvWFState.setText("WF:  " + (wf == null ? "OFF/NC" : AndroidUtils.getWifiSSID(this) + "  " +
-                    wf.getName() + "  " + AndroidUtils.getWifiLinkSpeed(this) + "Mbps  " +
-                    getIPV4AddressWithBroadcast(wf).toString().substring(1)));
-            wfdNetworkInterface = wfd;
-            wfNetworkInterface = wf;
-
-            rbMulticastNetIntWFD.setVisibility(wfd == null ? View.GONE : View.VISIBLE);
-            rbMulticastNetIntWF.setVisibility(wf == null ? View.GONE : View.VISIBLE);
-
-        } catch (SocketException e) {
-            e.printStackTrace();
-        }
+        //        updateNetworkInterfaces();
+        networkInterfacesDetector.updateNetworkInterfaces();
     }
+
 
     /*
      *
      */
-    private boolean haveIPV4AddressWithBroadcast(NetworkInterface netInterface) {
-        for (InterfaceAddress intAddr : netInterface.getInterfaceAddresses()) {
-            if ((intAddr.getAddress() instanceof Inet4Address) && intAddr.getBroadcast() != null)
-                return true;
-        }
-        return false;
-    }
-
-    /*
-     *
-     */
-    private InetAddress getIPV4AddressWithBroadcast(NetworkInterface netInterface) {
+    public static InetAddress getIPV4AddressWithBroadcast(NetworkInterface netInterface) {
         for (InterfaceAddress intAddr : netInterface.getInterfaceAddresses()) {
             if ((intAddr.getAddress() instanceof Inet4Address) && intAddr.getBroadcast() != null)
                 return intAddr.getAddress();
         }
         return null;
-    }
-
-    /*
-     * singleton for broadcast receiver
-     */
-    private BroadcastReceiver getBroadcastReceiver() {
-        if (broadcastReceiver == null) {
-
-            broadcastReceiver = new BroadcastReceiver() {
-
-                public void onReceive(Context context, Intent intent) {
-
-                    String action = intent.getAction();
-                    switch (action) {
-
-                        // indicate that the state of Wi-Fi p2p connectivity has changed
-                        case WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION:
-                            Log.d(TAG, "BDC: WIFI_P2P_CONNECTION_CHANGED");
-                            update_P2P_connection_changed(intent);
-                            break;
-                    }
-                }
-            };
-        }
-        return broadcastReceiver;
-    }
-
-    /*
-     *
-     */
-    private void update_P2P_connection_changed(Intent intent) {
-        WifiP2pInfo wifiP2pInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
-        if (!wifiP2pInfo.groupFormed) {
-            tvWFDState.setText("WFD:  OFF/NC");
-            return;
-        }
-
-        // get wifiP2pGroup in asynchronous way for API 16
-        p2pManager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
-            @Override
-            public void onGroupInfoAvailable(WifiP2pGroup group) {
-                String msg = "WFD:  ";
-                if (group.isGroupOwner()) {
-                    msg += "(GO)  " + group.getInterface() + "  " +
-                            WiFiDirectControlActivity.getLocalIpAddress(group.getInterface());
-                } else {
-                    msg += "(" + group.getOwner().deviceName + ")  " + group.getInterface() + "  " +
-                            WiFiDirectControlActivity.getLocalIpAddress(group.getInterface());
-                }
-                tvWFDState.setText(msg);
-            }
-        });
     }
 
 
@@ -801,7 +717,7 @@ public class ClientActivity extends Activity {
     protected void onPause() {
         super.onPause();
         //AndroidUtils.toast(this, "onPause");
-        unregisterReceiver(getBroadcastReceiver());
+        networkInterfacesDetector.onPause();
     }
 
     /*
@@ -820,7 +736,7 @@ public class ClientActivity extends Activity {
     protected void onResume() {
         super.onResume();
         //AndroidUtils.toast(this, "onResume");
-        registerReceiver(getBroadcastReceiver(), intentFilter);
+        networkInterfacesDetector.onResume();
     }
 
     @Override
@@ -835,7 +751,7 @@ public class ClientActivity extends Activity {
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        AndroidUtils.toast(this, "onBackPressed");
+        // AndroidUtils.toast(this, "onBackPressed");
     }
 
     /*

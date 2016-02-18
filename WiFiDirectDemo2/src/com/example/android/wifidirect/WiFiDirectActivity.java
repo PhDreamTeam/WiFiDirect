@@ -43,7 +43,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * An activity that uses WiFi Direct APIs to discover and connect with available
+ * An context that uses WiFi Direct APIs to discover and connect with available
  * devices. WiFi Direct APIs are asynchronous and rely on callback mechanism
  * using interfaces to notify the application of operation success or failure.
  * The application should also register a BroadcastReceiver for notification of
@@ -227,7 +227,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
             case R.id.atn_direct_enable:
                 if (manager != null && channel != null) {
 
-                    // Since this is the system wireless settings activity, it's
+                    // Since this is the system wireless settings context, it's
                     // not going to send us a result. We will be notified by
                     // WiFiDeviceBroadcastReceiver instead.
 

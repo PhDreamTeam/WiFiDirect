@@ -4,11 +4,15 @@ import android.app.Activity;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.p2p.WifiP2pGroup;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.*;
+import com.example.android.wifidirect.utils.AndroidUtils;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -22,6 +26,8 @@ import java.util.HashMap;
  * .
  */
 public class RelayActivity extends Activity {
+    public static final String TAG ="Relay Activity";
+
     RelayActivity myThis;
     IStoppable crForwarder;
     Button btnStartStop, btnTcpUdp;
@@ -31,6 +37,11 @@ public class RelayActivity extends Activity {
     private EditText etCRNewRuleUse;
     private TableLayout tableLayoutCRRules;
     private HashMap<String,String> relayRulesMap = new HashMap<>();
+    private NetworkInterface wfdNetworkInterface;
+    private NetworkInterface wfNetworkInterface;
+    private NetworkInterfacesDetector networkInterfacesDetector;
+    private TextView tvWFDState;
+    private TextView tvWFState;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -48,7 +59,14 @@ public class RelayActivity extends Activity {
 
         isTcp = btnTcpUdp.getText().toString().equals("TCP");
 
+        tvWFDState = (TextView)  findViewById(R.id.tvRAWFDState);
+        tvWFState = (TextView)  findViewById(R.id.tvRAWFState);
+
+
+
         printNetworkInfo(getApplicationContext());
+
+        // Listeners ==============================================
 
         btnStartStop.setOnClickListener(
                 new View.OnClickListener() {
@@ -104,6 +122,56 @@ public class RelayActivity extends Activity {
             }
         });
 
+        // WFD info listener
+        WifiP2pManager.GroupInfoListener wfdGroupInfoListener = new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(WifiP2pGroup group) {
+                if (group == null) {
+                    tvWFDState.setText("WFD:  OFF/NC");
+                    wfdNetworkInterface = null;
+                    //rbMulticastNetIntWFD.setVisibility(View.GONE);
+                    return;
+                }
+
+                // group available: device connected
+
+                // update global vars and GUI
+                wfdNetworkInterface = AndroidUtils.getNetworkInterface(group.getInterface());
+                //rbMulticastNetIntWFD.setVisibility(View.VISIBLE);
+
+                // update GUI with info message
+                tvWFDState.setText("WFD:  (" + (group.isGroupOwner() ? "GO" : group.getOwner().deviceName) +
+                        ")  " + group.getInterface() + "  " +
+                        WiFiDirectControlActivity.getLocalIpAddress(group.getInterface()));
+            }
+        };
+
+        // FD info listener
+        NetworkInterfacesDetector.WFNetworkInterfaceListener wfNetworkInterfaceListener = new NetworkInterfacesDetector.WFNetworkInterfaceListener() {
+            public void updateWFNetworkInterface(NetworkInterface wfInterface) {
+                wfNetworkInterface = wfInterface;
+
+                if (wfInterface == null) {
+                    tvWFState.setText(
+                            "WF:  OFF/NC");
+                    //rbMulticastNetIntWF.setVisibility(View.GONE);
+                } else {
+                    tvWFState.setText("WF:  " + AndroidUtils.getWifiSSID(RelayActivity.this) + "  " +
+                            wfInterface.getName() + "  " +
+                            AndroidUtils.getWifiLinkSpeed(RelayActivity.this) + "Mbps  " +
+                            ClientActivity.getIPV4AddressWithBroadcast(wfInterface).toString().substring(1));
+                    //rbMulticastNetIntWF.setVisibility(View.VISIBLE);
+                }
+            }
+        };
+
+        // create network interfaces detector
+        networkInterfacesDetector = new NetworkInterfacesDetector(this, wfdGroupInfoListener,
+                wfNetworkInterfaceListener);
+
+        //        updateNetworkInterfaces();
+        networkInterfacesDetector.updateNetworkInterfaces();
+
         // avoid keyboard popping up
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
@@ -143,16 +211,42 @@ public class RelayActivity extends Activity {
         relayRulesMap.put(toAddress, useCRAddress);
     }
 
+    /*
+     *
+     */
     @Override
     protected void onDestroy() {
-        Toast.makeText(getApplicationContext(), "onDestroy", Toast.LENGTH_SHORT).show();
-
+        Log.d(TAG, "onDestroy");
         if (crForwarder != null)
             crForwarder.stopThread();
 
         super.onDestroy();
     }
 
+    /*
+     *
+     */
+    @Override
+    protected void onResume() {
+        Log.d(TAG, "onResume");
+        super.onResume();
+        networkInterfacesDetector.onResume();
+    }
+
+    /*
+     *
+     */
+    @Override
+    protected void onPause() {
+        Log.d(TAG, "onPause");
+        super.onPause();
+        //AndroidUtils.toast(this, "onPause");
+        networkInterfacesDetector.onPause();
+    }
+
+    /*
+     *
+     */
     private void printNetworkInfo(Context context) {
         // Debug networks
         String netStr = "";

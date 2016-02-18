@@ -38,7 +38,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     /**
      * @param manager WifiP2pManager system service
      * @param channel Wifi p2p channel
-     * @param activity activity associated with the broadcastReceiver
+     * @param activity context associated with the broadcastReceiver
      */
     public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel,
             WiFiDirectActivity activity) {
@@ -72,7 +72,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
         } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
 
             // request available peers from the wifi p2p manager. This is an
-            // asynchronous call and the calling activity is notified with a
+            // asynchronous call and the calling context is notified with a
             // callback on PeerListListener.onPeersAvailable()
             if (manager != null) {
                 manager.requestPeers(channel, (PeerListListener) activity.getFragmentManager()

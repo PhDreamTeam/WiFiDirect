@@ -184,7 +184,7 @@ public class WiFiDirectControlActivity extends Activity {
                             "App will close",
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
-                                    // closes this activity
+                                    // closes this context
                                     finish();
                                 }
                             });

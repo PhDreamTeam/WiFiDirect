@@ -38,7 +38,7 @@ import java.util.List;
 
 /**
  * A ListFragment that displays available peers on discovery and requests the
- * parent activity to handle user interaction events
+ * parent context to handle user interaction events
  */
 public class DeviceListFragment extends ListFragment implements PeerListListener {
 
@@ -191,7 +191,7 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
     }
 
     /**
-     * An interface-callback for the activity to listen to fragment interaction
+     * An interface-callback for the context to listen to fragment interaction
      * events.
      */
     public interface DeviceActionListener {

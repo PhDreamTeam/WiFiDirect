@@ -12,10 +12,16 @@
                 android:orientation="vertical"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent">
-            <LinearLayout
-                    android:orientation="horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent"
+                          android:layout_height="wrap_content">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                          android:textAppearance="?android:attr/textAppearanceSmall" android:text="WF:"
+                          android:id="@+id/tvRAWFState" android:gravity="center"
+                          android:layout_gravity="center_vertical" android:layout_marginTop="5dp"/>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                          android:textAppearance="?android:attr/textAppearanceSmall" android:text="WFD:"
+                          android:id="@+id/tvRAWFDState" android:autoText="false" android:gravity="center"
+                          android:layout_gravity="center_vertical"/>
             </LinearLayout>
             <Button android:layout_width="match_parent" android:layout_height="wrap_content" android:text="TCP"
                     android:id="@+id/buttonRATcpUdp" android:layout_gravity="center_horizontal"/>

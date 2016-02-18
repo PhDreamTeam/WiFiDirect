@@ -361,7 +361,7 @@ public class MeteringActivity extends Activity {
      * MulticastSocket are limited in the range of 224.0.0.1 to 239.255.255.255.
      * Multicast ports between: 1025 and 49151
      *
-     * Incorporate Multicast in client activity
+     * Incorporate Multicast in client context
 
      */
     public class MulticastSocketTransmitter extends Thread {
