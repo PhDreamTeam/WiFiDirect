@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
+                  android:layout_height="wrap_content" android:background="#ff877f3d"
+    >
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView44" android:layout_weight="1"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="WiFi state:"
+                  android:id="@+id/textViewMainWiFiState" android:textSize="22dp"
+                />
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView43" android:layout_weight="1"/>
+        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Turn ON"
+                android:id="@+id/buttonMainWiFiTurnOn"/>
+        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Turn OFF"
+                android:id="@+id/buttonMainWiFiTurnOFF"  />
+    </LinearLayout>
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView45"
+              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"
+            />
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:gravity="center_horizontal">
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Pririty interface:"
+                android:id="@+id/textView75"/>
+        <RadioGroup
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:orientation="horizontal"
+                android:layout_gravity="center_vertical">
+            <RadioButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WFD"
+                    android:id="@+id/rbMAWFD" android:checked="false"/>
+            <RadioButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WF"
+                    android:id="@+id/rbMAWF" android:checked="false"/>
+        </RadioGroup>
+        <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Save"
+                android:id="@+id/btnMASavePriInterface"/>
+    </LinearLayout>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView73"
+              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"/>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="WFD"
+                android:id="@+id/buttonMainWFDControl" android:layout_gravity="center_horizontal"
+                android:layout_weight="1"/>
+        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="WF"
+                android:id="@+id/buttonMainWiFiControl"
+                android:layout_weight="1"/>
+        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="WF-AP"
+                android:id="@+id/buttonMainWiFiAP" android:layout_gravity="center_horizontal"
+                android:layout_weight="1"/>
+    </LinearLayout>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView26"
+              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"/>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Client"
+                android:id="@+id/buttonMainClient" android:layout_gravity="center_horizontal"
+                android:layout_weight="1"/>
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Relay"
+                android:layout_gravity="center_horizontal" android:id="@+id/buttonMainRelay" android:layout_weight="1"/>
+    </LinearLayout>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView15"
+              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"
+              android:layout_gravity="center_horizontal"/>
+    <Button android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Show info"
+            android:id="@+id/buttonShowInfo" android:layout_gravity="center_horizontal"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView61"
+              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"
+              android:layout_gravity="center_horizontal"/>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="Log directory: "
+                android:id="@+id/textView62"/>
+        <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/etMALogDir"/>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <EditText
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/editTextLogMsg" android:layout_weight="1"/>
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Log msg"
+                android:id="@+id/btnMALogMsg"/>
+    </LinearLayout>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+              android:id="@+id/textView21" android:gravity="center" android:background="#ff536aaf"
+              android:textColor="#fffaf9ff"/>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="WFD Initial Code"
+                android:id="@+id/textView68"/>
+        <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Group Owner"
+                android:id="@+id/buttonMainWFDGroupOwner" android:layout_gravity="center_horizontal"
+                android:layout_weight="1" style="?android:attr/buttonStyleSmall"/>
+        <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Client"
+                android:id="@+id/buttonMainWFDClient" android:layout_weight="1" style="?android:attr/buttonStyleSmall"/>
+    </LinearLayout>
+
+</LinearLayout>

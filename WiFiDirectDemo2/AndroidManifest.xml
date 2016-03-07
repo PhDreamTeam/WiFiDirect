@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.android.wifidirect"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect"
           android:versionCode="1" android:versionName="1.0">
 
     <uses-sdk android:minSdkVersion="16"/>
@@ -25,29 +26,30 @@
             android:label="@string/app_name"
             android:theme="@android:style/Theme.Holo">
 
-        <activity
-                android:name="com.example.android.wifidirect.WiFiDirectActivity"
-                android:label="@string/app_name" android:launchMode="singleTask">
-        </activity>
-        <activity android:name="com.example.android.wifidirect.MyMainActivity"
+
+        <activity android:name="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.MainActivity"
                  android:label="Wi-Fi Direct Network Tester">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name="com.example.android.wifidirect.RelayActivity" android:label="Relay Activity"/>
-        <activity android:name="com.example.android.wifidirect.ClientActivity" android:label="Client Activity"/>
-        <activity android:name="com.example.android.wifidirect.WiFiDirectControlActivity"
+        <activity
+                android:name="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.WiFiDirectActivity"
+                android:label="@string/app_name" android:launchMode="singleTask">
+        </activity>
+        <activity android:name="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.RelayActivity" android:label="Relay Activity"/>
+        <activity android:name="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.ClientActivity" android:label="Client Activity"/>
+        <activity android:name="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.WiFiDirectControlActivity"
                  android:label="WiFi Direct Control Activity"/>
-        <activity android:name="com.example.android.wifidirect.WiFiControlActivity"
+        <activity android:name="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.WiFiControlActivity"
                  android:label="WiFi Control Activity"/>
-        <activity android:name="com.example.android.accesspoint.WiFiApActivity"
+        <activity android:name="pt.unl.fct.hyrax.wfmobilenetwork.accesspoint.WiFiApActivity"
                  android:label="WiFi AP Control Activity"/>
-        <activity android:name=".MeteringActivity"/>
+        <activity android:name="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.MeteringActivity"/>
 
         <!-- Used for transferring files  after a successful connection -->
-        <service android:enabled="true" android:name=".FileTransferService"/>
+        <service android:enabled="true" android:name="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.FileTransferService"/>
 
     </application>
 </manifest>

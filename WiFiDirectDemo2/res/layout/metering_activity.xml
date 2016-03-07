@@ -26,6 +26,10 @@
                   android:id="@+id/textView18" android:layout_weight="1"
                   android:background="#8a0542ad" android:gravity="center_vertical|center_horizontal"/>
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:text="Current mcA"
+                  android:id="@+id/textView76" android:layout_weight="1"
+                  android:gravity="center_vertical|center_horizontal" android:background="#8a0542ad"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                   android:textAppearance="?android:attr/textAppearanceSmall" android:text="Temperature"
                   android:id="@+id/textView19" android:layout_weight="1"
                   android:gravity="center_vertical|center_horizontal" android:background="#8a0542ad"/>
@@ -40,6 +44,9 @@
                   android:textAppearance="?android:attr/textAppearanceSmall"
                   android:id="@+id/textViewVoltage" android:layout_weight="1"
                   android:gravity="center_vertical|center_horizontal"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:id="@+id/textViewMACurrent"
+                  android:layout_weight="1" android:gravity="center_vertical|center_horizontal"/>
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                   android:textAppearance="?android:attr/textAppearanceSmall"
                   android:id="@+id/textViewTemperature" android:layout_weight="1"
@@ -90,11 +97,45 @@
     </LinearLayout>
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
               android:textAppearance="?android:attr/textAppearanceMedium" android:id="@+id/textView58"/>
-    <Button
+    <LinearLayout
+            android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Update battery info"
-            android:id="@+id/btnUpdateBatteryInfo"/>
+            android:layout_height="wrap_content">
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="Battery Info"
+                android:id="@+id/textView77"/>
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Update"
+                android:id="@+id/btnUpdateBatteryInfo" android:layout_weight="1"/>
+        <Button android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Auto update Off: turn On" android:id="@+id/btnMABatteryAutoUpdateOff" android:layout_weight="1"/>
+        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Auto update On: turn Off"
+                android:id="@+id/btnMABatteryAutoUpdateOn" android:layout_weight="1" android:visibility="gone"/>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Run CPU Task"
+                android:id="@+id/btnMARunCpuTask"/>
+        <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Stop CPU Task" android:id="@+id/btnMAStopCpuTask"
+                android:visibility="gone"/>
+        <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Run File Task" android:id="@+id/btnMARunFileTask"/>
+        <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Stop File Task" android:id="@+id/btnMAStopFileTask"
+                android:visibility="gone"/>
+    </LinearLayout>
     <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
