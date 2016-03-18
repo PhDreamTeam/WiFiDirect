@@ -26,6 +26,9 @@ import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.Logger;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.LoggerSession;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.IllegalFormatException;
+import java.util.Scanner;
 
 /**
  * Created by AT DR on 08-05-2015
@@ -158,9 +161,17 @@ public class MainActivity extends Activity {
 //        }
 
         //getFile2(this, "logs2");
+
+        // get task file and process it
+        String taskFile = getIntent().getStringExtra("taskFile");
+        Log.d(TAG, "Task File: " + taskFile);
+        if (taskFile != null)
+            parseAndExecuteTaskFile(taskFile);
     }
 
-
+    /**
+     *
+     */
     public File getFile2(Context context, String fileName) {
         // Get the directory for the app's private pictures directory.
         File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
@@ -170,6 +181,9 @@ public class MainActivity extends Activity {
         return file;
     }
 
+    /**
+     *
+     */
     private void getDir_withGetExternalFilesDir(String dirName) {
         File fileDir = getFile(this, dirName);
         Log.d("New File", "Get dir: " + fileDir.toString());
@@ -183,6 +197,9 @@ public class MainActivity extends Activity {
 //        }
     }
 
+    /**
+     *
+     */
     public File getFile(Context context, String fileName) {
         // Get the directory for the app's private pictures directory.
         File file = new File(context.getExternalFilesDir(null), fileName);
@@ -291,6 +308,7 @@ public class MainActivity extends Activity {
 
                         Intent intent = new Intent(myThis, WiFiDirectActivity.class);
                         intent.putExtra("role", "GO");
+                        intent.putExtra("role", "GO");
                         startActivity(intent);
                     }
                 });
@@ -312,9 +330,9 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
 
                 // read GUI state and update configurations
-                if(rbWFD.isChecked())
+                if (rbWFD.isChecked())
                     configurations.setPriorityInterfaceWFD();
-                if(rbWF.isChecked())
+                if (rbWF.isChecked())
                     configurations.setPriorityInterfaceWF();
 
                 // save configurations to file
@@ -401,6 +419,71 @@ public class MainActivity extends Activity {
                 ls.close(btnLogMsg.getContext());
             }
         });
+    }
+
+    /**
+     * Parse and execute task file. File contents will be placed on a String and sent to the activity
+     */
+    private void parseAndExecuteTaskFile(String taskFile) {
+        Scanner scan = null;
+        try {
+            scan = new Scanner(new File(APP_MAIN_FILES_DIR_PATH + "/" + taskFile));
+
+            StringBuilder sb = new StringBuilder(10 * 1024);
+
+            String activityName = null;
+
+            // read file lines
+            while (scan.hasNextLine()) {
+                // read line
+                String line = scan.nextLine().trim();
+                // skip empty and commentary lines
+                if (line.isEmpty() || line.charAt(0) == '%')
+                    continue;
+
+                //Log.d(TAG, "line: " + line);
+
+                // line should have only one '=' character
+                if (line.indexOf('=') == -1 || line.indexOf('=') != line.lastIndexOf('=')) {
+                    // TODO review log information
+                    throw new IllegalStateException("Task file with malformed line: " + line);
+                }
+
+                String token = line.substring(0, line.indexOf('=')).trim();
+                String value = line.substring(line.indexOf('=') + 1).trim();
+
+                Log.d(TAG, "line token: " + token + ", value:" + value);
+
+                if (token.equalsIgnoreCase("activity")) {
+                    if (activityName != null)
+                        throw new IllegalStateException("It is supported only one activity, found : " + activityName +
+                                " & " + value);
+                    activityName = value.toLowerCase();
+                } else
+                    sb.append(token).append('=').append(value).append(';');
+            }
+            // enf of file reading
+
+            // call the activity
+            if (activityName != null) {
+                Log.d(TAG, "Activity name: " + activityName);
+
+                switch (activityName) {
+                    case "client":
+                        Intent intent = new Intent(myThis, ClientActivity.class);
+                        intent.putExtra("taskStr", sb.toString());
+                        startActivity(intent);
+                        break;
+                    default:
+                        throw new IllegalStateException("Activity not supported (yet): " + activityName);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            if (scan != null)
+                scan.close();
+        }
     }
 
     /**

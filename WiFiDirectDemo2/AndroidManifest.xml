@@ -48,7 +48,7 @@
                  android:label="WiFi AP Control Activity"/>
         <activity android:name="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.MeteringActivity"/>
 
-        <!-- Used for transferring files  after a successful connection -->
+        <!-- Used for transferring files after a successful connection -->
         <service android:enabled="true" android:name="pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.FileTransferService"/>
 
     </application>

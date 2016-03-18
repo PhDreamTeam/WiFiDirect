@@ -135,7 +135,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
 
             tvSentDataKB.post(new Runnable() {
                 public void run() {
-                    clientActivity.stopTransmittingGuiActions(null);
+                    clientActivity.endTransmittingGuiActions(null);
                 }
             });
 

@@ -2,25 +2,34 @@ package pt.unl.fct.hyrax.wfmobilenetwork.wifidirect;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Color;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.*;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.AndroidUtils;
+import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.SystemInfo;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.*;
 
 /**
  * Created by DR e AT on 20/05/2015.
@@ -120,6 +129,22 @@ public class ClientActivity extends Activity {
     private WifiP2pManager.Channel channel;
 
     NetworkInterfacesDetector networkInterfacesDetector;
+    private int numberOfTransmittingTestsToDo;
+    private Timer transmittingTimer;
+    private int delayBeforeEachTransmitTestMS;
+    private Runnable transmitTask;
+    private Handler transmitHandler;
+    private AlertDialog alertDialogScreenOff;
+    private PowerManager powerManager;
+    private PowerManager.WakeLock wakeLock;
+    private BroadcastReceiver screenOffBroadcastReceiver;
+    private NotificationManager notificationManager;
+    private Uri notificationSoundUri;
+    private Uri notificationSoundEndUri;
+    private boolean isWakeLockRunning;
+
+    IntentFilter intentFilterScreenOff = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+    private WifiP2pGroup p2pLastKnownGroup;
 
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
 
@@ -133,9 +158,18 @@ public class ClientActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         context = getApplicationContext();
-        wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        p2pManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+        p2pManager = (WifiP2pManager) getSystemService(WIFI_P2P_SERVICE);
+        powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
         channel = p2pManager.initialize(this, getMainLooper(), null);
+
+        // needed for screen off tests
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WFDScreenOFF");
+
+        notificationSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        notificationSoundEndUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
 
         //AndroidUtils.toast(this, "onCreate");
         setContentView(R.layout.client_activity);
@@ -219,6 +253,7 @@ public class ClientActivity extends Activity {
         Intent intent = getIntent();
         logDir = intent.getStringExtra("logDir");
 
+
         // set listeners on buttons
 
         tvTransmissionZone.setOnClickListener(new View.OnClickListener() {
@@ -242,8 +277,7 @@ public class ClientActivity extends Activity {
                     @Override
                     public void onClick(View v) {
                         startTransmittingGuiActions(false);
-                        // start transmitting
-                        transmitData(null); // send dummy data for tests
+                        doTransmit(null);   // send dummy data for tests
                     }
                 });
 
@@ -253,7 +287,7 @@ public class ClientActivity extends Activity {
                     public void onClick(View v) {
                         // stop transmitting
                         clientTransmitter.stopThread();
-                        stopTransmittingGuiActions(null);
+                        endTransmittingGuiActions(null);
                     }
                 }
         );
@@ -423,6 +457,7 @@ public class ClientActivity extends Activity {
                     tvWFDState.setText("WFD:  OFF/NC");
                     wfdNetworkInterface = null;
                     rbMulticastNetIntWFD.setVisibility(View.GONE);
+                    p2pLastKnownGroup = null;
                     return;
                 }
 
@@ -433,9 +468,14 @@ public class ClientActivity extends Activity {
                 rbMulticastNetIntWFD.setVisibility(View.VISIBLE);
 
                 // update GUI with info message
-                tvWFDState.setText("WFD:  (" + (group.isGroupOwner() ? "GO" : group.getOwner().deviceName) +
-                        ")  " + group.getInterface() + "  " +
-                        WiFiDirectControlActivity.getLocalIpAddress(group.getInterface()));
+//                tvWFDState.setText("WFD:  (" + (group.isGroupOwner() ? "GO" : group.getOwner().deviceName) +
+//                        ")  " + group.getInterface() + "  " +
+//                        WiFiDirectControlActivity.getLocalIpAddress(group.getInterface()) + " " + (group.isGroupOwner() ?
+//                        ", clients: " + getClients(group) : "MyGO " + group.getOwner().deviceAddress + " " +
+//                        SystemInfo.getIPFromMac(group.getOwner().deviceAddress)));
+
+                p2pLastKnownGroup = group;
+                updateWFDInterfaceInfo();
             }
         };
 
@@ -463,6 +503,339 @@ public class ClientActivity extends Activity {
 
         //        updateNetworkInterfaces();
         networkInterfacesDetector.updateNetworkInterfaces();
+
+        // Process task string if exists
+        String taskStr = intent.getStringExtra("taskStr");
+        if (taskStr != null)
+            processTaskStr(taskStr);
+    }
+
+    /**
+     *
+     */
+    private void updateWFDInterfaceInfo() {
+        if (p2pLastKnownGroup == null)
+            tvWFDState.setText("WFD:  OFF/NC");
+        else if (p2pLastKnownGroup.isGroupOwner()) {
+            // Group owner
+            tvWFDState.setText("WFD:  (GO)  " + p2pLastKnownGroup.getInterface() + "  " +
+                    WiFiDirectControlActivity.getLocalIpAddress(p2pLastKnownGroup.getInterface()) + " " +
+                    p2pLastKnownGroup.getOwner().deviceAddress + " " + ", clients: " + getClients(p2pLastKnownGroup));
+        } else {
+            // CLIENT: The GO IP address could not be obtained from arp file
+            try {
+                String myMacAddressOnWFDInterface = SystemInfo.getInterfaceMacAddress(p2pLastKnownGroup.getInterface());
+
+                tvWFDState.setText("WFD:  (" + p2pLastKnownGroup.getOwner().deviceName + ")  " +
+                        p2pLastKnownGroup.getInterface() + "  " +
+                        WiFiDirectControlActivity.getLocalIpAddress(p2pLastKnownGroup.getInterface()) + " " +
+                        myMacAddressOnWFDInterface + ", MyGO " +
+                        networkInterfacesDetector.getGoAddress().toString().substring(1) + " " +
+                        p2pLastKnownGroup.getOwner().deviceAddress);
+            } catch (SocketException e) {
+                Log.d(TAG, e.toString());
+            }
+        }
+    }
+
+    /**
+     *
+     */
+    public static String getClients(WifiP2pGroup group) {
+        StringBuilder s = new StringBuilder().append("[ ");
+        Collection<WifiP2pDevice> devList = group.getClientList();
+        boolean firstItem = true;
+        for (WifiP2pDevice dev : devList) {
+            if (firstItem)
+                firstItem = false;
+            else s.append(", ");
+            s.append(dev.deviceName).append(" ").append(SystemInfo.getIPFromMac(dev.deviceAddress));
+            s.append(" ").append(dev.deviceAddress);
+        }
+        return s.append("]").toString();
+    }
+
+    /**
+     *
+     */
+    private void doTransmit(Uri fileToSend) {
+        String crIpAddress = editTextCrIpAddress.getText().toString();
+        int crPortNumber = Integer.parseInt(editTextCrPortNumber.getText().toString());
+        String destIpAddress = editTextDestIpAddress.getText().toString();
+        int destPortNumber = Integer.parseInt(editTextDestPortNumber.getText().toString());
+        long totalBytesToSend = Long.parseLong(editTextTotalBytesToSend.getText().toString());
+        if (rbSentMBytes.isChecked())
+            totalBytesToSend *= 1024;
+        long delayMs = Long.parseLong(editTextDelay.getText().toString());
+        int bufferSizeBytes = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
+
+        transmitData(fileToSend, crIpAddress, crPortNumber, destIpAddress, destPortNumber, bufferSizeBytes, delayMs, totalBytesToSend);
+    }
+
+
+    /**
+     *
+     */
+    private void processTaskStr(String taskStr) {
+        Log.d(TAG, "TaskString: " + taskStr);
+        HashMap<String, String> map = getParamsMap(taskStr);
+
+        String commMode = map.get("mode");
+        if (commMode == null || !(commMode.equalsIgnoreCase("tcp") || commMode.equalsIgnoreCase("udp")))
+            throw new IllegalStateException("Client activity, received invalid communication mode parameter: " + commMode);
+
+        String action = map.get("action");
+        if (action == null || !(action.equalsIgnoreCase("receive") || action.equalsIgnoreCase("transmit")))
+            throw new IllegalStateException("Client activity, received invalid action parameter: " + action);
+
+        // TCP
+        if (commMode.equalsIgnoreCase("tcp")) {
+            communicationMode = COMM_MODE.TCP;
+            if (action.equalsIgnoreCase("receive"))
+                processTCPReceiveAction(map);
+            else
+                processTCPTransmitAction(map);
+        }
+        // UDP
+        else if (commMode.equalsIgnoreCase("udp")) {
+            communicationMode = COMM_MODE.UDP;
+
+        }
+        // udpMultitask
+        else {
+            communicationMode = COMM_MODE.UDP_MULTICAST;
+
+        }
+    }
+
+    /**
+     *
+     */
+    private void processTCPReceiveAction(HashMap<String, String> map) {
+        // receive port number: ReceivePort
+        String rcvPortNumberStr = map.get("receivePort");
+        if (rcvPortNumberStr == null)
+            throw new IllegalStateException("Client activity, received no receive port number");
+        int rcvPortNumber = Integer.parseInt(rcvPortNumberStr);
+
+        // buffer size: BufferKB
+        String bufferSizeKBStr = map.get("bufferKB");
+        int bufferSizeKB = bufferSizeKBStr == null ? 1 : Integer.parseInt(bufferSizeKBStr);
+
+        // reply mode: ReplyMode
+        String replyModeStr = map.get("replyMode");
+        if (replyModeStr == null || !(replyModeStr.equalsIgnoreCase("None") || replyModeStr.equalsIgnoreCase("Echo") ||
+                replyModeStr.equalsIgnoreCase("Ok")))
+            throw new IllegalStateException("Client activity, received invalid replyMode: " + replyModeStr);
+        ReplyMode replyMode = replyModeStr.equalsIgnoreCase("None") ? ReplyMode.NONE :
+                replyModeStr.equalsIgnoreCase("Echo") ? ReplyMode.ECHO : ReplyMode.OK;
+
+        // log directory: logDirectory
+        logDir = map.get("logDirectory");
+
+        Log.d(TAG, "TCP receive, with: rcvPortNumber = " + rcvPortNumber + ", bufferKB = " + bufferSizeKB +
+                ", replyMode = " + replyMode);
+
+        // update GUI
+        startReceivingGuiActions();
+
+        // start receiving
+        clientReceiver = new ClientDataReceiverServerSocketThreadTCP(rcvPortNumber, llReceptionLogs,
+                bufferSizeKB * 1024, replyMode, this);
+        clientReceiver.start();
+    }
+
+    /**
+     *
+     */
+    private void processTCPTransmitAction(HashMap<String, String> map) {
+
+        // CR IP address: crAddress = 192.168.49.1
+        final String crIpAddress = map.get("crAddress");
+        if (crIpAddress == null)
+            throw new IllegalStateException("Client activity, transmit with no CR IP address");
+
+        // CR port number: crPort
+        String crPortNumberStr = map.get("crPort");
+        if (crPortNumberStr == null)
+            throw new IllegalStateException("Client activity, transmit with no cr port number");
+        final int crPortNumber = Integer.parseInt(crPortNumberStr);
+
+        // Destination IP address: DestAddress = Rt
+        final String destIpAddress = map.get("destAddress");
+        if (destIpAddress == null)
+            throw new IllegalStateException("Client activity, transmit with no DestAddress");
+
+        // Destination port number: destPort
+        String destPortNumberStr = map.get("destPort");
+        if (destPortNumberStr == null)
+            throw new IllegalStateException("Client activity, transmit with no dest port number");
+        final int destPortNumber = Integer.parseInt(destPortNumberStr);
+
+        // buffer size: BufferKB
+        String bufferSizeKBStr = map.get("bufferKB");
+        final int bufferSizeKB = bufferSizeKBStr == null ? 1 : Integer.parseInt(bufferSizeKBStr);
+
+        // delays: delayMs
+        String delayMsStr = map.get("delayMs");
+        final int delayMs = delayMsStr == null ? 0 : Integer.parseInt(delayMsStr);
+
+        // total bytes to send: totalBytesToSend=100MB  100KB
+        String totalBytesToSendStr = map.get("totalBytesToSend");
+        if (totalBytesToSendStr == null || !(totalBytesToSendStr.endsWith("MB") || totalBytesToSendStr.endsWith("KB")))
+            throw new IllegalStateException("Client activity, transmit with no correct total bytes to send: " + totalBytesToSendStr);
+        final int totalKBToSend = Integer.parseInt(totalBytesToSendStr.substring(0, totalBytesToSendStr.length() - 2)) *
+                (totalBytesToSendStr.endsWith("MB") ? 1024 : 1);
+
+        // number of tests: numberOfTests
+        String numberOfTestsStr = map.get("numberOfTests");
+        numberOfTransmittingTestsToDo = numberOfTestsStr == null ? 1 : Integer.parseInt(numberOfTestsStr);
+
+        // delay before each test in MS: delayBeforeEachTestMS=1000
+        String delayBeforeEachTestMSStr = map.get("delayBeforeEachTestMS");
+        delayBeforeEachTransmitTestMS = delayBeforeEachTestMSStr == null ? 0 : Integer.parseInt(delayBeforeEachTestMSStr);
+
+        // screen state on tests : screenOnTests = on / off
+        String screenOnTestsStr = map.get("screenOnTests");
+        boolean screenONOnTests = delayBeforeEachTestMSStr == null || Boolean.parseBoolean(screenOnTestsStr);
+
+        // log directory: logDirectory
+        logDir = map.get("logDirectory");
+
+        Log.d(TAG, "TCP transmit, with: crIpAddress = " + crIpAddress + ", crPortNumber = " + crPortNumber +
+                ", destIpAddress = " + destIpAddress + ", destPortNumber = " + destPortNumber + ", bufferSizeKB = " +
+                bufferSizeKB + ", delayMs = " + delayMs + ", totalBytesToSend = " + totalKBToSend +
+                ", with numberOfTests = " + numberOfTransmittingTestsToDo +
+                ", delay BeforeEachTestMs = " + delayBeforeEachTestMSStr + ", screenOnTests = " + screenOnTestsStr);
+
+
+        // transmit timer task
+        transmitTask = new Runnable() {
+            public void run() {
+                // update gui
+                btnStartTransmitting.post(new Runnable() {
+                    public void run() {
+                        startTransmittingGuiActions(false);
+                        alertDialogScreenOff.cancel();
+                    }
+                });
+
+                doNotificationStart();
+
+                // start transmitting
+                transmitData(null, crIpAddress, crPortNumber, destIpAddress, destPortNumber, bufferSizeKB * 1024, delayMs,
+                        totalKBToSend); // send dummy data for tests
+            }
+        };
+
+        // create transmit handler and schedule transmit task, count with one less transmit task
+        transmitHandler = new Handler();
+
+        // consider one test activated
+        --numberOfTransmittingTestsToDo;
+
+        if (!screenONOnTests) {
+            // show alert dialog to wait for screen off
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            alertDialogScreenOff = builder.setTitle("Screen off please").setMessage("Turn screen off").create();
+            alertDialogScreenOff.show();
+
+            // wait for screen off and then start counting
+            runAfterScreenOff(new Runnable() {
+                public void run() {
+                    transmitHandler.postDelayed(transmitTask, delayBeforeEachTransmitTestMS);
+                }
+            });
+
+        } else {
+            transmitHandler.postDelayed(transmitTask, delayBeforeEachTransmitTestMS);
+        }
+    }
+
+    /**
+     *
+     */
+    private void runAfterScreenOff(final Runnable screenOffTask) {
+        // acquire a partial wake lock, to stay with cpu running when screen off
+        wakeLock.acquire();
+
+        // screen off broadcast receiver
+        screenOffBroadcastReceiver = new BroadcastReceiver() {
+
+            @Override
+            public void onReceive(final Context context, Intent intent) {
+                Log.i(TAG, "Screen off");
+                unregisterReceiver(screenOffBroadcastReceiver);
+
+                isWakeLockRunning = true;
+
+                // this is an asynchronous task
+                screenOffTask.run();
+            }
+        };
+
+        // register broadcast receiver for screen off
+        registerReceiver(screenOffBroadcastReceiver, intentFilterScreenOff);
+    }
+
+    /*
+     *
+     */
+    public void doNotificationWait() {
+        // led flashing
+        notify(this, 0, "Test", "Wait...", null, Color.BLUE, 100, 1000);
+    }
+
+    /*
+     *
+     */
+    public void doNotificationStart() {
+        // led flashing
+        notify(this, 0, "Test", "Running...", notificationSoundUri, Color.RED, 100, 1000);
+    }
+
+    /*
+     *
+     */
+    public void doNotificationEnd() {
+        // led on
+        notify(this, 0, "Test", "Finished...", notificationSoundEndUri, Color.RED, 1, 0);
+    }
+
+    /**
+     *
+     */
+    public void notify(Context context, int notificationID, String title, String text, Uri soundUri, int lightArg,
+                       int ledOnMs, int ledOffMs) {
+
+        Notification notification = new Notification.Builder(context)
+                .setContentTitle(title).setContentText(text).setSmallIcon(R.drawable.icon)
+                .setSound(soundUri).setLights(lightArg, ledOnMs, ledOffMs)
+                .setPriority(Notification.PRIORITY_HIGH).build();
+
+        notificationManager.notify(notificationID, notification);
+    }
+
+    /**
+     * Put all parameters in Map and return it
+     */
+    private HashMap<String, String> getParamsMap(String taskStr) {
+        // the map
+        HashMap<String, String> map = new HashMap<>();
+        // slip the string
+        String[] params = taskStr.split(";");
+        // process params
+        for (String param : params) {
+            // split by '='
+            String[] parts = param.split("=");
+            // check for repetitions
+            if (map.containsKey(parts[0]))
+                throw new IllegalStateException("Client activity received repeated param: " + param);
+            // keep param token and value
+            map.put(parts[0], parts[1]);
+        }
+        // return map
+        return map;
     }
 
 
@@ -518,7 +891,7 @@ public class ClientActivity extends Activity {
     /**
      * @param sourceUri null Sending dummy data, not null sending a file
      */
-    public void stopTransmittingGuiActions(Uri sourceUri) {
+    public void endTransmittingGuiActions(Uri sourceUri) {
         if (sourceUri == null) {
             btnStartTransmitting.setVisibility(View.VISIBLE);
             btnStopTransmitting.setVisibility(View.GONE);
@@ -530,8 +903,26 @@ public class ClientActivity extends Activity {
             btnStartTransmitting.setEnabled(true);
         }
         setEnabledTransmissionInputViews(true);
+
+        // there is more transmit tests to be done?
+        if (--numberOfTransmittingTestsToDo >= 0) {
+            doNotificationWait();
+            // start timer, after some time
+            transmitHandler.postDelayed(transmitTask, delayBeforeEachTransmitTestMS);
+        } else {
+            if (isWakeLockRunning) {
+                // end of tests, launch end notification and release wakelock
+                doNotificationEnd();
+                wakeLock.release();
+                isWakeLockRunning = false;
+            }
+        }
+
     }
 
+    /**
+     *
+     */
     public String getLogDir() {
         return logDir;
     }
@@ -614,28 +1005,15 @@ public class ClientActivity extends Activity {
     /**
      * transmitData
      */
-    private void transmitData(Uri fileToSend) {
-        String crIpAddress = editTextCrIpAddress.getText().toString();
-        int crPortNumber = Integer.parseInt(editTextCrPortNumber.getText().toString());
-        String destIpAddress = editTextDestIpAddress.getText().toString();
-        int destPortNumber = Integer.parseInt(editTextDestPortNumber.getText().toString());
-        long totalBytesToSend = Long.parseLong(editTextTotalBytesToSend.getText().toString());
-        if (rbSentMBytes.isChecked())
-            totalBytesToSend *= 1024;
-        long delayMs = Long.parseLong(editTextDelay.getText().toString());
-        int bufferSizeBytes = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
+    private void transmitData(Uri fileToSend, String crIpAddress, int crPortNumber, String destIpAddress,
+                              int destPortNumber, int bufferSizeKB, long delayMs, long totalBytesToSend) {
 
         try {
             switch (communicationMode) {
                 case TCP:
-                    clientTransmitter = new ClientSendDataThreadTCP(destIpAddress,
-                            destPortNumber
-                            , crIpAddress, crPortNumber
-                            , delayMs, totalBytesToSend
-                            , tvTxThrdSentData
-                            , tvTxThrdRcvData
-                            , this
-                            , bufferSizeBytes, fileToSend);
+                    clientTransmitter = new ClientSendDataThreadTCP(destIpAddress, destPortNumber
+                            , crIpAddress, crPortNumber, delayMs, totalBytesToSend
+                            , tvTxThrdSentData, tvTxThrdRcvData, this, bufferSizeKB, fileToSend);
                     break;
 
                 case UDP:
@@ -644,7 +1022,7 @@ public class ClientActivity extends Activity {
 
                     // create worker thread transmitting by UDP socket
                     clientTransmitter = new ClientSendDataThreadUDP(destIpAddress, destPortNumber
-                            , sock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeBytes);
+                            , sock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB);
                     break;
 
                 case UDP_MULTICAST:
@@ -660,7 +1038,7 @@ public class ClientActivity extends Activity {
 
                     // create worker thread transmitting in UDP multicast socket
                     clientTransmitter = new ClientSendDataThreadUDP(destIpAddress, destPortNumber
-                            , msock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeBytes);
+                            , msock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB);
 
             }
 
@@ -682,7 +1060,8 @@ public class ClientActivity extends Activity {
             Uri uriFileToSend = data.getData();
             Log.d(WiFiDirectActivity.TAG, "Start transmitting image: " + uriFileToSend.toString());
             AndroidUtils.toast(ClientActivity.this, "Start transmitting image: " + uriFileToSend.toString());
-            transmitData(uriFileToSend); // send file
+
+            doTransmit(uriFileToSend);
         }
     }
 

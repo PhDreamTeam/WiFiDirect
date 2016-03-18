@@ -8,10 +8,12 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
+import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.ArrayList;
@@ -26,7 +28,7 @@ class NetworkInterfacesDetector {
     private final WifiP2pManager p2pManager;
     private final WifiP2pManager.Channel channel;
     private final ConnectivityManager connectivityManager;
-    private final IntentFilter intentFilterForWFD = new IntentFilter(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+    private final IntentFilter intentFilterForWFD = new IntentFilter();
     private final IntentFilter intentFilterForWF = new IntentFilter();
 
 
@@ -36,6 +38,8 @@ class NetworkInterfacesDetector {
     private final WifiP2pManager.GroupInfoListener wfdGroupInfoListener;
     private final WFNetworkInterfaceListener wfNetworkInterfaceListener;
     private BroadcastReceiver wfBroadcastReceiver;
+
+    private InetAddress goAddress;
 
 
     /*
@@ -55,6 +59,16 @@ class NetworkInterfacesDetector {
 
         //intentFilterForWF.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
         intentFilterForWF.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+
+        intentFilterForWFD.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        intentFilterForWFD.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+    }
+
+    /**
+     *
+     */
+    public InetAddress getGoAddress() {
+        return goAddress;
     }
 
     /*
@@ -84,11 +98,23 @@ class NetworkInterfacesDetector {
                         Log.d(ClientActivity.TAG, "WFD BDC: WIFI_P2P_CONNECTION_CHANGED");
                         update_P2P_connection_changed(intent);
                     }
+//                    if (intent.getAction().equals(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)) {
+//                        Log.d(ClientActivity.TAG, "WFD BDC: WIFI_P2P_THIS_DEVICE_CHANGED_ACTION");
+//                        update_P2P_this_device_changed(intent);
+//                    }
                 }
             };
         }
         return wfdBroadcastReceiver;
     }
+
+    /*
+     *
+     */
+//    private void update_P2P_this_device_changed(Intent intent) {
+//        WifiP2pDevice dev = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
+//        Log.d(ClientActivity.TAG, "WFD BDC: WifiP2pDevice:  " + dev.toString());
+//    }
 
     /*
      * singleton for WF broadcast receiver
@@ -179,8 +205,11 @@ class NetworkInterfacesDetector {
         if (!wifiP2pInfo.groupFormed) {
             // call groupInfoAvailable with null on group
             wfdGroupInfoListener.onGroupInfoAvailable(null);
+            goAddress = null;
             return;
         }
+
+        goAddress = wifiP2pInfo.groupOwnerAddress;
 
         // get wifiP2pGroup in asynchronous way for API 16
         p2pManager.requestGroupInfo(channel, wfdGroupInfoListener);

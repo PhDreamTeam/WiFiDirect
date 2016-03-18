@@ -7,8 +7,17 @@ import android.os.BatteryManager;
 import android.util.Log;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.WiFiDirectActivity;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Scanner;
 
 /**
  * Created by DR AT on 26/11/2015
@@ -16,7 +25,7 @@ import java.lang.reflect.Method;
  */
 public class SystemInfo {
 
-    private static IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+    private static IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
     private static Intent batteryStatus = null;
 
     // unnecessary - from here
@@ -39,7 +48,7 @@ public class SystemInfo {
      */
     public static BatteryInfo getBatteryInfo(Context context) {
         if (batteryStatus == null) {
-            batteryStatus = context.registerReceiver(null, ifilter);
+            batteryStatus = context.registerReceiver(null, iFilter);
             if (batteryStatus == null)
                 return null;
         }
@@ -62,6 +71,74 @@ public class SystemInfo {
         }
         return null;
     }
+
+    /**
+     * Problem: the mac address reported by WifiP2PDevice are not the ones watched in arp tables
+     * WifiP2PDevice is 00:00:00:00:80:00 more than ARP tables.
+     * So here we check if that digit is in range [8-F] to enable the operation (-8)
+     */
+    public static String getIPFromMac(String macAddress) {
+
+        String[] parts = macAddress.split(":");
+        if (parts[4].charAt(0) < '8')
+            throw new IllegalStateException("The MAC address, to be searched in ARP file, " +
+                    "don't have the expected values - see commented bug: " + macAddress);
+
+        // subtract 8 to that digit
+        int n = Character.digit(parts[4].charAt(0), 16);
+        parts[4] = "" + Character.forDigit(n - 8, 16) + parts[4].charAt(1);
+
+        // build new mac address
+        macAddress = parts[0] + ":" + parts[1] + ":" + parts[2] + ":" + parts[3] + ":" + parts[4] + ":" + parts[5];
+
+        Scanner scan = null;
+        try {
+            scan = new Scanner(new File("/proc/net/arp"));
+            while (scan.hasNextLine()) {
+                String line = scan.nextLine();
+                Scanner tokens = new Scanner(line);
+                String ip = tokens.next();
+                tokens.next();
+                tokens.next();
+                String mac = tokens.next();
+                if (mac.equalsIgnoreCase(macAddress)) {
+                    return ip;
+                }
+                tokens.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (scan != null)
+                scan.close();
+        }
+        return null;
+    }
+
+    /**
+     *
+     */
+    public static String getInterfaceMacAddress(String interfaceName) throws SocketException {
+        List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+        for (NetworkInterface ntwInterface : interfaces) {
+
+            if (ntwInterface.getName().equalsIgnoreCase(interfaceName)) {
+                byte[] byteMac = ntwInterface.getHardwareAddress();
+                if (byteMac == null) {
+                    return null;
+                }
+                // get hardware address fro interface
+                StringBuilder strBuilder = new StringBuilder();
+                for (int i = 0; i < byteMac.length; i++) {
+                    strBuilder.append(String.format("%02x" + (i < byteMac.length - 1 ? ":" : ""), byteMac[i]));
+                }
+                return strBuilder.toString();
+            }
+        }
+        return null;
+    }
+
+
 }
 
 //    public static void goToSleep(Context context, Activity act) {

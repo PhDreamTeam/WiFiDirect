@@ -88,7 +88,7 @@ public class MeteringActivity extends Activity {
 
         // used with Notifications ============================================
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
 
         // Battery info ===============================================
         tvLevelScale = (TextView) findViewById(R.id.textViewLevelScale);
@@ -339,15 +339,12 @@ public class MeteringActivity extends Activity {
         // avoid nested calls
         btnRunBackgroundTask.setEnabled(false);
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_SCREEN_OFF);
-
         // acquire a partial wake lock, to stay with cpu running when screen off
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WFDMeterActivity");
         wakeLock.acquire();
 
-
+        // screen off broadcast receiver
         screenOffBroadcastReceiver = new BroadcastReceiver() {
 
             @Override
@@ -412,7 +409,7 @@ public class MeteringActivity extends Activity {
         };
 
         // register broadcast receiver for screen off
-        registerReceiver(screenOffBroadcastReceiver, filter);
+        registerReceiver(screenOffBroadcastReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF));
 
         // warn user to turn screen off
         tvTurnScreenOFF.setVisibility(View.VISIBLE);
@@ -425,7 +422,7 @@ public class MeteringActivity extends Activity {
      *
      */
     public void doNotificationStart() {
-        notification(0, "Test", "Started...", Color.RED, 100, 1000);
+        notify(0, "Test", "Started...", Color.RED, 100, 1000);
     }
 
     private void writeValuesToFile(String msg, String filename) {
@@ -458,14 +455,14 @@ public class MeteringActivity extends Activity {
         // notification(0, "Test", "Finished...", Notification.FLAG_SHOW_LIGHTS, 1000, 500);
 
         // led on
-        notification(0, "Test", "Finished...", Color.RED, 1, 0);
+        notify(0, "Test", "Finished...", Color.RED, 1, 0);
     }
 
 
     /*
      * Create and launch a notification with sound
      */
-    public void notification(int notificationID, String title, String text, int lightArg, int ledOnMs, int ledOffMs) {
+    public void notify(int notificationID, String title, String text, int lightArg, int ledOnMs, int ledOffMs) {
 
         Notification notification = new Notification.Builder(context)
                 .setContentTitle(title)

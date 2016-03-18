@@ -17,6 +17,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.*;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.AndroidUtils;
+import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.SystemInfo;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -789,6 +790,34 @@ public class WiFiDirectControlActivity extends Activity {
         tvP2PCGONumberOfClients.setText(Integer.toString(devList.size()) + getStrDeviceList(devList));
     }
 
+    /*
+     * Broadcast intent action indicating that this device details have changed.
+     */
+    private void update_P2P_this_device_changed(Intent intent) {
+        WifiP2pDevice dev = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
+        tvConsole.append("\n  WifiP2pDevice:\n  " + dev.toString());
+        tvConsole.append("\n   Status: " + DeviceListFragment.getDeviceStatus(dev.status));
+        Log.d(TAG, "Device status: " + DeviceListFragment.getDeviceStatus(dev.status));
+
+        tvP2PDeviceName.setText(dev.deviceName);
+        tvP2PDeviceStatus.setText(DeviceListFragment.getDeviceStatus(dev.status));
+
+        if (deviceName == null) {
+            deviceName = dev.deviceName;
+            initP2PFinalActions();
+        }
+
+        if (DeviceListFragment.getDeviceStatus(dev.status).equals("Connected")) {
+            logEndOfOperation("WFD this device connected in (ms): ");
+        }
+
+        if (DeviceListFragment.getDeviceStatus(dev.status).equals("Available")) {
+            logEndOfOperation("WFD this device available in (ms): ");
+        }
+
+        // NOTE: dev.isGroupOwner() always show false
+    }
+
 
     /**
      *
@@ -905,6 +934,8 @@ public class WiFiDirectControlActivity extends Activity {
 
                 tvP2PCGONumberOfClients.setText(Integer.toString(group.getClientList().size()) +
                         getStrDeviceList(group.getClientList()));
+
+                Log.d(TAG, "DeviceList: " + ClientActivity.getClients(group) );
             } else {
                 // Client: show group name, GO name, GO IP, my address
                 tvP2PCCGroupName.setText(networkName);
@@ -922,8 +953,12 @@ public class WiFiDirectControlActivity extends Activity {
     private String getStrDeviceList(Collection<WifiP2pDevice> devList) {
         StringBuilder devListMsg = new StringBuilder(100);
         devListMsg.append(" [ ");
+        boolean firstItem = true;
         for (WifiP2pDevice dev : devList) {
-            devListMsg.append(dev.deviceName + ":" + dev.deviceAddress);
+            if (firstItem)
+                firstItem = false;
+            else devListMsg.append(", ");
+            devListMsg.append(dev.deviceName + " " + SystemInfo.getIPFromMac(dev.deviceAddress));
             devListMsg.append(" ");
         }
         devListMsg.append("]");
@@ -949,33 +984,7 @@ public class WiFiDirectControlActivity extends Activity {
         return null;
     }
 
-    /*
-     * Broadcast intent action indicating that this device details have changed.
-     */
-    private void update_P2P_this_device_changed(Intent intent) {
-        WifiP2pDevice dev = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
-        tvConsole.append("\n  WifiP2pDevice:\n  " + dev.toString());
-        tvConsole.append("\n   Status: " + DeviceListFragment.getDeviceStatus(dev.status));
-        Log.d(TAG, "Device status: " + DeviceListFragment.getDeviceStatus(dev.status));
 
-        tvP2PDeviceName.setText(dev.deviceName);
-        tvP2PDeviceStatus.setText(DeviceListFragment.getDeviceStatus(dev.status));
-
-        if (deviceName == null) {
-            deviceName = dev.deviceName;
-            initP2PFinalActions();
-        }
-
-        if (DeviceListFragment.getDeviceStatus(dev.status).equals("Connected")) {
-            logEndOfOperation("WFD this device connected in (ms): ");
-        }
-
-        if (DeviceListFragment.getDeviceStatus(dev.status).equals("Available")) {
-            logEndOfOperation("WFD this device available in (ms): ");
-        }
-
-        // NOTE: dev.isGroupOwner() always show false
-    }
 
     /*
      *

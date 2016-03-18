@@ -238,7 +238,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         tvSentData.post(new Runnable() {
             @Override
             public void run() {
-                clientActivity.stopTransmittingGuiActions(sourceUri);
+                clientActivity.endTransmittingGuiActions(sourceUri);
             }
         });
     }
