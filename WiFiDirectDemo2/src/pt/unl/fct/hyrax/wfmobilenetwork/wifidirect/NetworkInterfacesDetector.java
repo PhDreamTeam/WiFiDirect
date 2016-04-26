@@ -12,11 +12,13 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
+import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.SystemInfo;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 
 /**
@@ -161,6 +163,7 @@ class NetworkInterfacesDetector {
         try {
             Log.d(ClientActivity.TAG, "List of network interfaces:");
             for (NetworkInterface netInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                Log.d("NETINT", netInterface.toString() + " " + SystemInfo.getMACStringFromBytes(netInterface.getHardwareAddress()));
                 // 3G networks don't support broadcast
                 if (!netInterface.isLoopback() && netInterface.isUp() && Collections.list(
                         netInterface.getInetAddresses()).size() == 2 &&

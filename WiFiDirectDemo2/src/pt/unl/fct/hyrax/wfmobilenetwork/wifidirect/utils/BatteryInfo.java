@@ -20,6 +20,6 @@ public class BatteryInfo {
     @Override
     public String toString() {
         return "level " + batteryLevel + ", scale " + batteryScale +
-                ", voltage " + batteryVoltage/1000.0 + "V, temperature " + batteryTemperature / 10.0 + "ºC";
+                ", voltage " + batteryVoltage / 1000.0 + "V, temperature " + batteryTemperature / 10.0 + "ºC";
     }
 }

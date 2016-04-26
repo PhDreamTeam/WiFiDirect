@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
-import android.media.RingtoneManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.*;
@@ -27,9 +26,8 @@ import java.io.PrintWriter;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by AT DR on 08-01-2016
@@ -65,16 +63,19 @@ public class MeteringActivity extends Activity {
     private Intent intent;
     private Button btnRunCpuTask;
     private Button btnRunFileTask;
-
-    private double dummyDouble;
     private Button btnStopFileTask;
-
     private Button btnStopCpuTask;
-    private boolean runTaskThreadFlag;
-
-
     private boolean fileTaskThreadFlag;
     private int counter;
+    private CpuWorkThread runCPUTaskThread;
+    private String systemStat;
+    private PowerManager powerManager;
+    private Button btnRunBatteryTest;
+    private EditText etBatteryTestsTestDuration;
+    private EditText etBatteryTestsDelay;
+    private EditText etBatteryTestNThreads;
+    private int logValuesNumber;
+    private int numberOnlineProcessors;
 
 
     @Override
@@ -88,7 +89,10 @@ public class MeteringActivity extends Activity {
 
         // used with Notifications ============================================
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        powerManager = (PowerManager) getSystemService(POWER_SERVICE);
 
+        // needed for screen off tests
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WFDScreenOFF");
 
         // Battery info ===============================================
         tvLevelScale = (TextView) findViewById(R.id.textViewLevelScale);
@@ -123,6 +127,12 @@ public class MeteringActivity extends Activity {
 
         etMulticastNetworkInterface = (EditText) findViewById(R.id.etMAMulticastInterface);
 
+        // battery tests ===========================================================
+        btnRunBatteryTest = (Button) findViewById(R.id.btnMARunBatteryTest);
+        etBatteryTestsTestDuration = (EditText) findViewById(R.id.etMABatteryTestsTestDuration);
+        etBatteryTestsDelay = (EditText) findViewById(R.id.etMABatteryTestsDelay);
+        etBatteryTestNThreads = (EditText) findViewById(R.id.etMABatteryTestNThreads);
+
         // ==========================================================================
         intent = context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (intent == null)
@@ -141,7 +151,7 @@ public class MeteringActivity extends Activity {
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    BatteryHelper.readBatteryApiLollipop(context);
+                    BatteryHelper.readBatteryValues(context);
                     int batteryCurrentNow = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
                     tvCurrent.setText("" + batteryCurrentNow + "mcA");
                 }
@@ -165,31 +175,31 @@ public class MeteringActivity extends Activity {
 
                 // on actions
                 btnBatteryAutoUpdateOff.setVisibility(View.GONE);
-                counter = 0;
+                counter = 1;
 
                 timer = new Timer("batteryTimer");
-                timer.schedule(new TimerTask() {
+                timer.scheduleAtFixedRate(new TimerTask() {
                     @Override
                     public void run() {
-                        BatteryHelper.readBatteryApiLollipop(context);
+                        // BatteryHelper.readBatteryValues(context);
+                        Log.d(TAG, "Battery current_now from file " + counter + " = " + SystemInfo.getBatteryCurrentNowFromFile());
                         final BatteryInfo bi = SystemInfo.getBatteryInfo(context);
 
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                            final int batteryCurrentNow = batManager.getIntProperty(
-                                    BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+                            final int batteryCurrentNow = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
 
                             tvCurrent.post(new Runnable() {
                                 @Override
                                 public void run() {
 
                                     if (bi != null) {
-                                        tvLevelScale.setText("" + bi.batteryLevel + " / " + bi.batteryScale);
+                                        tvLevelScale.setText("" + counter + " " + "" + bi.batteryLevel + " / " + bi.batteryScale);
                                         tvVoltage.setText("" + bi.batteryVoltage / 1000.0 + "V");
                                         tvTemperature.setText("" + bi.batteryTemperature / 10.0 + "ºC");
-                                        //Log.i("MeteringActivity", "Battery info -> " + bi);
+                                        Log.i("MeteringActivity", "Battery info -> " + bi);
                                     }
 
-                                    tvCurrent.setText("" + (++counter)+ " "+batteryCurrentNow);
+                                    tvCurrent.setText("" + (counter++) + " " + batteryCurrentNow);
                                 }
                             });
                         }
@@ -199,6 +209,7 @@ public class MeteringActivity extends Activity {
                 btnBatteryAutoUpdateOn.setVisibility(View.VISIBLE);
             }
         });
+
 
         btnGetCPUInfo.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -217,7 +228,8 @@ public class MeteringActivity extends Activity {
             @Override
             public void onClick(View v) {
                 btnRunCpuTask.setVisibility(View.GONE);
-                runCpuTask();
+                runCPUTaskThread = createCpuTask();
+                runCPUTaskThread.start();
                 btnStopCpuTask.setVisibility(View.VISIBLE);
             }
         });
@@ -226,7 +238,7 @@ public class MeteringActivity extends Activity {
             @Override
             public void onClick(View v) {
                 btnStopCpuTask.setVisibility(View.GONE);
-                runTaskThreadFlag = false;
+                runCPUTaskThread.getThread().interrupt();
                 btnRunCpuTask.setVisibility(View.VISIBLE);
             }
         });
@@ -246,6 +258,16 @@ public class MeteringActivity extends Activity {
                 btnStopFileTask.setVisibility(View.GONE);
                 fileTaskThreadFlag = false;
                 btnRunFileTask.setVisibility(View.VISIBLE);
+            }
+        });
+
+        btnRunBatteryTest.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                int nThreads = Integer.parseInt(etBatteryTestNThreads.getText().toString());
+                int testDuration = Integer.parseInt(etBatteryTestsTestDuration.getText().toString());
+                int testDelay = Integer.parseInt(etBatteryTestsDelay.getText().toString());
+
+                testBattery(testDuration * 60, testDelay, nThreads);
             }
         });
 
@@ -283,23 +305,278 @@ public class MeteringActivity extends Activity {
                 mst.start();
             }
         });
+
+        // avoid keyboard popping up
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
+        // Process task string (from file passed as argument, used in ADB sessions) if exists
+
+        String taskStr = getIntent().getStringExtra("taskStr");
+        Log.d(TAG, "TaskStr = " + taskStr);
+        if (taskStr != null)
+            processTaskStr(taskStr);
+    }
+
+    /**
+     *
+     */
+    private void processTaskStr(String taskStr) {
+        Log.d(TAG, "TaskString: " + taskStr);
+        HashMap<String, String> map = MainActivity.getParamsMap(taskStr);
+
+        String action = map.get("action");
+        if (action == null || !(action.equalsIgnoreCase("testBattery")))
+            throw new IllegalStateException("Metering activity, received invalid action: " + action);
+
+        if (action.equalsIgnoreCase("testBattery")) {
+            // get test Battery params
+            int testDurationInMinutes = Integer.parseInt(map.get("testDurationInMinutes"));
+            int testRegisterValuesIntervalInSeconds = Integer.parseInt(map.get("testRegisterValuesIntervalInSeconds"));
+            int numberOfThreads = Integer.parseInt(map.get("numberOfThreads"));
+
+            // do testBattery
+            testBattery(testDurationInMinutes * 60, testRegisterValuesIntervalInSeconds, numberOfThreads);
+        }
+    }
+
+    /*
+     * Charge the battery to 100%, ad let it be charging for more 10 min (just in case).
+     * Then disconnect the device and start the test.
+     */
+    private void testBattery(final int testDurationInSeconds, final int testRegisterValuesIntervalInSeconds,
+                             final int numberOfThreads) {
+        Log.d(TAG, "Battery test with: | duration = " + (testDurationInSeconds / 60) +
+                "m; interval = " + testRegisterValuesIntervalInSeconds + "s; threads = " + numberOfThreads);
+
+        // place to keep working threads
+        final ArrayList<CpuWorkThread> workingThreads = new ArrayList<>();
+
+        // create timer to register battery and cpu data
+        final Timer workTimer = new Timer(true);
+
+        // delay in milliseconds
+        final int delay = testRegisterValuesIntervalInSeconds * 1000;
+
+        logValuesNumber = 0;
+
+        // read battery level, battery voltage, instantaneous current, battery temperature
+        String batteryHeaderValues = BatteryHelper.readBatteryHeaderValues(context);
+        Log.d(TAG, "| reading; " + batteryHeaderValues + "; cpu load (%); " + getProcessorsHeader(numberOfThreads));
+
+        // acquire wake lock
+        wakeLock.acquire();
+
+        btnRunBatteryTest.setEnabled(false);
+        btnRunBatteryTest.setText("Running: 0%");
+
+        // define timer task
+        final TimerTask timerTask = new TimerTask() {
+            int secondsElapsed = 0;
+
+            public void run() {
+
+                logBatteryAndCpuValues(workingThreads);
+
+                // count minutes passed
+                secondsElapsed += testRegisterValuesIntervalInSeconds;
+                final int elapsed = secondsElapsed * 100 / testDurationInSeconds;
+                btnRunBatteryTest.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        btnRunBatteryTest.setText("Running: " + elapsed + "%");
+                    }
+                });
+
+                // check for termination
+                if (secondsElapsed >= testDurationInSeconds) {
+                    // cancel timer
+                    workTimer.cancel();
+
+                    // stop working threads
+                    for (CpuWorkThread t : workingThreads) {
+                        t.getThread().interrupt();
+                    }
+                    Log.d(TAG, "End test");
+                    wakeLock.release();
+                    btnRunBatteryTest.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            btnRunBatteryTest.setText("Run Battery test");
+                            btnRunBatteryTest.setEnabled(true);
+                        }
+                    });
+                }
+            }
+        };
+
+        // get initial cpu values
+        systemStat = LinuxUtils.readSystemStat();
+
+        // timer task to start test only after 5 second
+        TimerTask initialTimerTask = new TimerTask() {
+            @Override
+            public void run() {
+
+                // create working threads and keep their references
+                for (int i = 0; i < numberOfThreads; i++) {
+                    workingThreads.add(createCpuTask());
+                }
+
+                // log initial values, zeros
+                logBatteryAndCpuValues(workingThreads);
+
+                // start working threads
+                for (CpuWorkThread t : workingThreads) {
+                    t.start();
+                }
+
+                // start timer to fire at fixed rate
+                workTimer.scheduleAtFixedRate(timerTask, delay, delay);
+            }
+        };
+
+        // schedule to init test in 5 seconds, get first values at that time
+        workTimer.schedule(initialTimerTask, 5_000);
+    }
+
+    /**
+     *
+     */
+    private String getProcessorsHeader(int numberOfThreads) {
+        int nProcessors = LinuxUtils.getSystemNumberOfProcessors();
+        StringBuilder header = new StringBuilder();
+
+        // get processors header
+        for (int i = 0; i < nProcessors; ++i) {
+            if (i > 0)
+                header.append("; ");
+
+            header.append("cpu").append(i);
+        }
+
+        // get threads header
+        for (int i = 0; i < numberOfThreads; ++i) {
+            header.append("; thread").append(i);
+        }
+
+        return header.toString();
+    }
+
+    /**
+     *
+     */
+    private String getProcessorsGovernors() {
+        int nProcessors = LinuxUtils.getSystemNumberOfProcessors();
+        String processorsOnlineString = LinuxUtils.getProcessorOnline();
+        String processorsOfflineString = LinuxUtils.getProcessorOffline();
+        Log.d(TAG, "Processors: online -> " + processorsOnlineString + ", offline -> " + processorsOfflineString);
+
+        StringBuilder procGovs = new StringBuilder();
+
+        // for all processors
+        for (int i = 0; i < nProcessors; ++i) {
+            if (i > 0)
+                procGovs.append("; ");
+
+            procGovs.append(LinuxUtils.isProcessorOnline(processorsOnlineString, i) ?
+                    LinuxUtils.getProcessorGovernor(i)  + "; " + LinuxUtils.getProcessorScalingCurrentFreq(i):
+                    LinuxUtils.isProcessorOffline(processorsOfflineString, i) ? "offline" : "unknown");
+        }
+
+        return procGovs.toString();
+    }
+
+    /**
+     *
+     */
+    private void logBatteryAndCpuValues(ArrayList<CpuWorkThread> workingThreads) {
+        // read battery level, battery voltage, instantaneous current, battery temperature
+        String batteryValues = BatteryHelper.readBatteryValues(context);
+
+        // read cpu occupation
+        String oldStat = systemStat;
+        systemStat = LinuxUtils.readSystemStat();
+        float cpuLoad = LinuxUtils.getSystemCpuUsage(oldStat, systemStat);
+
+
+        // get working thread values
+        StringBuilder workingThreadsValues = new StringBuilder();
+        for (CpuWorkThread t : workingThreads) {
+            workingThreadsValues.append("; " ).append(t.getValue());
+            t.resetValue();
+        }
+
+        Log.d(TAG, "| " + logValuesNumber++ + "; " + batteryValues + "; " + String.format("%.2f", cpuLoad) +
+                "; " + getProcessorsGovernors() + workingThreadsValues.toString());
     }
 
     /*
      *
      */
-    private void runCpuTask() {
-        Thread cpuTaskThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                runTaskThreadFlag = true;
-                double y = 1.000000000000000000122;
-                for (; runTaskThreadFlag; ) {
-                    dummyDouble *= (y *= 1.000000000001) + 0.00000000001;
+    private CpuWorkThread createCpuTask() {
+        return new CpuWorkThread();
+    }
+
+
+    /**
+     *
+     */
+    class CpuWorkThread {
+        AtomicLong value = new AtomicLong(0);
+
+        Thread thread;
+
+        /**
+         *
+         */
+        public void start() {
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+
+                    double y = 1.0;
+                    for (long n = 0; n < Long.MAX_VALUE; ++n ) {
+                        // some double work
+                        y *= 1.000000000001 + 0.00000000001;
+                        if (y > 10000000000000.0)
+                            y = 1.0;
+
+                        // increment counter, every few iterations
+                        if(n == 1_000) {
+                            CpuWorkThread.this.value.getAndIncrement();
+                            n = 0;
+                        }
+
+                        // check finishing time
+                        if (Thread.currentThread().isInterrupted())
+                            break;
+                    }
                 }
-            }
-        });
-        cpuTaskThread.start();
+            };
+            thread = new Thread(runnable);
+            thread.start();
+        }
+
+        /**
+         *
+         */
+        public long getValue() {
+            return value.longValue();
+        }
+
+        /**
+         *
+         */
+        public void resetValue() {
+            value.set(0);
+        }
+
+        /**
+         *
+         */
+        public Thread getThread() {
+            return thread;
+        }
     }
 
     /*

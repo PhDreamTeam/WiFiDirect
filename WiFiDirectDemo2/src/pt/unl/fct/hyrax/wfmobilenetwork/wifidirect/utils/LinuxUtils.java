@@ -85,13 +85,109 @@ public class LinuxUtils {
      * Return the first line of /proc/stat or null if failed.
      */
     public static String readSystemStat() {
+        return readSystemFileFirstLine("/proc/stat");
+    }
+
+    /**
+     * Return the number of processors or null if failed.
+     */
+    public static int getSystemNumberOfProcessors() {
+        String line = readSystemFileFirstLine("/sys/devices/system/cpu/kernel_max");
+        if (line == null)
+            return -1;
+
+        return Integer.parseInt(line) + 1;
+    }
+
+    /**
+     *
+     */
+    public static String getProcessorOnline() {
+        String line = readSystemFileFirstLine("/sys/devices/system/cpu/online");
+        if (line == null)
+            return null;
+        return line.trim();
+    }
+
+    /**
+     *
+     */
+    public static String getProcessorOffline() {
+        String line = readSystemFileFirstLine("/sys/devices/system/cpu/offline");
+        if (line == null)
+            return null;
+        return line.trim();
+    }
+
+    /**
+     *
+     */
+    public static String getProcessorScalingCurrentFreq(int nProcessor) {
+        String line = readSystemFileFirstLine("/sys/devices/system/cpu/cpu" + nProcessor + "/cpufreq/scaling_cur_freq");
+        if (line == null)
+            return null;
+        return line.trim();
+    }
+
+    /**
+     *
+     */
+    public static boolean isProcessorOnline(String processorsOnlineString, int nProcessor) {
+        return isProcessorOnState(processorsOnlineString, nProcessor);
+    }
+
+    /**
+     *
+     */
+    public static boolean isProcessorOffline(String processorsOfflineString, int nProcessor) {
+        return isProcessorOnState(processorsOfflineString, nProcessor);
+    }
+
+    /**
+     *
+     */
+    public static boolean isProcessorOnState(String processorsOnStateString, int nProcessor) {
+        if (processorsOnStateString == null)
+            return false;
+
+        // split by main separator: coma
+        String[] tokens = processorsOnStateString.split(",");
+
+        // check every token
+        for (String token : tokens) {
+            if (token.contains("-")) {
+                // interval of values, return true if nProcessor is in between
+                String[] interval = token.split("-");
+                if (nProcessor >= Integer.parseInt(interval[0].trim()) &&
+                        nProcessor <= Integer.parseInt(interval[1].trim()))
+                    return true;
+            } else {
+                // single value, return true if is equals to nProcessor
+                if (Integer.parseInt(token.trim()) == nProcessor)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     *
+     */
+    public static String getProcessorGovernor(int nProcessor) {
+        return readSystemFileFirstLine("/sys/devices/system/cpu/cpu" + nProcessor + "/cpufreq/scaling_governor");
+    }
+
+    /**
+     * Return the file first line or null if failed.
+     */
+    public static String readSystemFileFirstLine(String fileName) {
 
         RandomAccessFile reader = null;
-        String load = null;
+        String line = null;
         try {
             try {
-                reader = new RandomAccessFile("/proc/stat", "r");
-                load = reader.readLine();
+                reader = new RandomAccessFile(fileName, "r");
+                line = reader.readLine().trim();
             } catch (IOException ex) {
                 ex.printStackTrace();
             } finally {
@@ -102,7 +198,7 @@ public class LinuxUtils {
             e.printStackTrace();
         }
 
-        return load;
+        return line;
     }
 
     /**

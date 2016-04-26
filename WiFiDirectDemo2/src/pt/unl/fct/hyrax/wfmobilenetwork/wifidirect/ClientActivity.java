@@ -25,6 +25,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.*;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.AndroidUtils;
+import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.Configurations;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.SystemInfo;
 
 import java.io.IOException;
@@ -145,6 +146,7 @@ public class ClientActivity extends Activity {
 
     IntentFilter intentFilterScreenOff = new IntentFilter(Intent.ACTION_SCREEN_OFF);
     private WifiP2pGroup p2pLastKnownGroup;
+    private Configurations configurations;
 
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
 
@@ -170,6 +172,8 @@ public class ClientActivity extends Activity {
 
         notificationSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         notificationSoundEndUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+
+        configurations = Configurations.readFromConfigurationsFile();
 
         //AndroidUtils.toast(this, "onCreate");
         setContentView(R.layout.client_activity);
@@ -484,16 +488,9 @@ public class ClientActivity extends Activity {
             public void updateWFNetworkInterface(NetworkInterface wfInterface) {
                 wfNetworkInterface = wfInterface;
 
-                if (wfInterface == null) {
-                    tvWFState.setText("WF:  OFF/NC");
-                    rbMulticastNetIntWF.setVisibility(View.GONE);
-                } else {
-                    tvWFState.setText("WF:  " + AndroidUtils.getWifiSSID(ClientActivity.this) + "  " +
-                            wfInterface.getName() + "  " +
-                            AndroidUtils.getWifiLinkSpeed(ClientActivity.this) + "Mbps  " +
-                            getIPV4AddressWithBroadcast(wfInterface).toString().substring(1));
-                    rbMulticastNetIntWF.setVisibility(View.VISIBLE);
-                }
+                updateWFInterfaceInfo(wfInterface);
+
+
             }
         };
 
@@ -504,7 +501,7 @@ public class ClientActivity extends Activity {
         //        updateNetworkInterfaces();
         networkInterfacesDetector.updateNetworkInterfaces();
 
-        // Process task string if exists
+        // Process task string (from file passed as argument, used in ADB sessions) if exists
         String taskStr = intent.getStringExtra("taskStr");
         if (taskStr != null)
             processTaskStr(taskStr);
@@ -513,28 +510,48 @@ public class ClientActivity extends Activity {
     /**
      *
      */
+    private void updateWFInterfaceInfo(NetworkInterface wfInterface) {
+        String baseStr = "WF " + (configurations.isPriorityInterfaceWF() ? "(P)": "") + ":  ";
+        if (wfInterface == null) {
+            tvWFState.setText(baseStr + "OFF/NC");
+            rbMulticastNetIntWF.setVisibility(View.GONE);
+        } else {
+            tvWFState.setText(baseStr + AndroidUtils.getWifiSSID(ClientActivity.this) + "  " +
+                    wfInterface.getName() + "  " +
+                    AndroidUtils.getWifiLinkSpeed(ClientActivity.this) + "Mbps  " +
+                    getIPV4AddressWithBroadcast(wfInterface).toString().substring(1));
+            rbMulticastNetIntWF.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     *
+     */
     private void updateWFDInterfaceInfo() {
+        String baseStr = "WFD " + (configurations.isPriorityInterfaceWFD() ? "(P)": "") + ":  ";
         if (p2pLastKnownGroup == null)
-            tvWFDState.setText("WFD:  OFF/NC");
+            tvWFDState.setText(baseStr + "OFF/NC");
         else if (p2pLastKnownGroup.isGroupOwner()) {
+            //Log.d("NETINT", AndroidUtils.getHostName());  // net hostname, not wfd device name
             // Group owner
-            tvWFDState.setText("WFD:  (GO)  " + p2pLastKnownGroup.getInterface() + "  " +
+            tvWFDState.setText(baseStr + "(GO)  " + p2pLastKnownGroup.getInterface() + "  " +
                     WiFiDirectControlActivity.getLocalIpAddress(p2pLastKnownGroup.getInterface()) + " " +
-                    p2pLastKnownGroup.getOwner().deviceAddress + " " + ", clients: " + getClients(p2pLastKnownGroup));
+                    // p2pLastKnownGroup.getOwner().deviceAddress + " " +  // this method gives a different value
+                    SystemInfo.getInterfaceMacAddress(p2pLastKnownGroup.getInterface()) +
+                    ", clients: " + getClients(p2pLastKnownGroup));
         } else {
             // CLIENT: The GO IP address could not be obtained from arp file
-            try {
-                String myMacAddressOnWFDInterface = SystemInfo.getInterfaceMacAddress(p2pLastKnownGroup.getInterface());
+            //String myMacAddressOnWFDInterface = SystemInfo.getInterfaceMacAddress(p2pLastKnownGroup.getInterface());
+           // Log.d("NETINT", AndroidUtils.getHostName()); // net hostname, not wfd device name
 
-                tvWFDState.setText("WFD:  (" + p2pLastKnownGroup.getOwner().deviceName + ")  " +
-                        p2pLastKnownGroup.getInterface() + "  " +
-                        WiFiDirectControlActivity.getLocalIpAddress(p2pLastKnownGroup.getInterface()) + " " +
-                        myMacAddressOnWFDInterface + ", MyGO " +
-                        networkInterfacesDetector.getGoAddress().toString().substring(1) + " " +
-                        p2pLastKnownGroup.getOwner().deviceAddress);
-            } catch (SocketException e) {
-                Log.d(TAG, e.toString());
-            }
+            tvWFDState.setText(baseStr +
+                    p2pLastKnownGroup.getInterface() + "  " +
+                    WiFiDirectControlActivity.getLocalIpAddress(p2pLastKnownGroup.getInterface()) + " " +
+                    //SystemInfo.getInterfaceMacAddress(p2pLastKnownGroup.getInterface()) + " " +  // this method gives a different value
+                    SystemInfo.getInterfaceMacAddress(p2pLastKnownGroup.getInterface()) + ", MyGO: " +
+                    p2pLastKnownGroup.getOwner().deviceName  + " " +
+                    networkInterfacesDetector.getGoAddress().toString().substring(1) + " " +
+                    p2pLastKnownGroup.getOwner().deviceAddress);
         }
     }
 
@@ -578,7 +595,7 @@ public class ClientActivity extends Activity {
      */
     private void processTaskStr(String taskStr) {
         Log.d(TAG, "TaskString: " + taskStr);
-        HashMap<String, String> map = getParamsMap(taskStr);
+        HashMap<String, String> map = MainActivity.getParamsMap(taskStr);
 
         String commMode = map.get("mode");
         if (commMode == null || !(commMode.equalsIgnoreCase("tcp") || commMode.equalsIgnoreCase("udp")))
@@ -816,29 +833,6 @@ public class ClientActivity extends Activity {
         notificationManager.notify(notificationID, notification);
     }
 
-    /**
-     * Put all parameters in Map and return it
-     */
-    private HashMap<String, String> getParamsMap(String taskStr) {
-        // the map
-        HashMap<String, String> map = new HashMap<>();
-        // slip the string
-        String[] params = taskStr.split(";");
-        // process params
-        for (String param : params) {
-            // split by '='
-            String[] parts = param.split("=");
-            // check for repetitions
-            if (map.containsKey(parts[0]))
-                throw new IllegalStateException("Client activity received repeated param: " + param);
-            // keep param token and value
-            map.put(parts[0], parts[1]);
-        }
-        // return map
-        return map;
-    }
-
-
     /*
      *
      */
@@ -849,7 +843,6 @@ public class ClientActivity extends Activity {
         }
         return null;
     }
-
 
     /**
      *

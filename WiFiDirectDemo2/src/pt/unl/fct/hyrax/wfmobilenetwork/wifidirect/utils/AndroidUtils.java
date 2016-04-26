@@ -8,6 +8,7 @@ import android.graphics.LightingColorFilter;
 import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -16,6 +17,7 @@ import android.widget.Toast;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Collections;
@@ -160,6 +162,21 @@ public class AndroidUtils {
         Intent intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
         intent.setData(Uri.fromFile(file));
         context.sendBroadcast(intent);
+    }
+
+    /*
+     * THis should be a way to call by reflection
+     */
+    public static String getHostName() {
+        try {
+
+            Method getString = Build.class.getDeclaredMethod("getString", String.class);
+            getString.setAccessible(true);
+            return getString.invoke(null, "net.hostname").toString();
+
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
 }

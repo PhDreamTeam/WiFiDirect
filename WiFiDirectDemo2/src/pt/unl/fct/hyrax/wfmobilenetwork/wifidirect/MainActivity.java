@@ -21,12 +21,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 import pt.unl.fct.hyrax.wfmobilenetwork.accesspoint.WiFiApActivity;
 import pt.unl.fct.hyrax.wfmobilenetwork.accesspoint.WifiApControl;
+import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.AndroidUtils;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.Configurations;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.Logger;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.LoggerSession;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.HashMap;
 import java.util.IllegalFormatException;
 import java.util.Scanner;
 
@@ -69,6 +71,7 @@ public class MainActivity extends Activity {
     private RadioButton rbWF;
 
     private Configurations configurations;
+    private File logCatFile;
 
     /**
      *
@@ -82,7 +85,7 @@ public class MainActivity extends Activity {
         //APP_MAIN_FILES_DIR_PATH = getFilesDir().toString();
 
         // set logcat also to file
-        // Logger.setLogCatToFile(context);
+        logCatFile = Logger.setLogCatToFile(context);
 
         setContentView(R.layout.main_activity);
         myThis = this;
@@ -242,6 +245,9 @@ public class MainActivity extends Activity {
     public void onPause() {
         super.onPause();
         unregisterReceiver(receiver);
+
+        // update log file
+        AndroidUtils.executeMediaScanFile(logCatFile, context);
     }
 
     /**
@@ -468,15 +474,16 @@ public class MainActivity extends Activity {
             if (activityName != null) {
                 Log.d(TAG, "Activity name: " + activityName);
 
-                switch (activityName) {
-                    case "client":
-                        Intent intent = new Intent(myThis, ClientActivity.class);
-                        intent.putExtra("taskStr", sb.toString());
-                        startActivity(intent);
-                        break;
-                    default:
-                        throw new IllegalStateException("Activity not supported (yet): " + activityName);
-                }
+                Intent intent = null;
+
+                if (activityName.equalsIgnoreCase("client"))
+                    intent = new Intent(myThis, ClientActivity.class);
+                else if (activityName.equalsIgnoreCase("metering"))
+                    intent = new Intent(myThis, MeteringActivity.class);
+                else throw new IllegalStateException("Activity not supported (yet): " + activityName);
+
+                intent.putExtra("taskStr", sb.toString());
+                startActivity(intent);
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -484,6 +491,28 @@ public class MainActivity extends Activity {
             if (scan != null)
                 scan.close();
         }
+    }
+
+    /**
+     * Put all parameters in Map and return it
+     */
+    public static HashMap<String, String> getParamsMap(String taskStr) {
+        // the map
+        HashMap<String, String> map = new HashMap<>();
+        // slip the string
+        String[] params = taskStr.split(";");
+        // process params
+        for (String param : params) {
+            // split by '='
+            String[] parts = param.split("=");
+            // check for repetitions
+            if (map.containsKey(parts[0]))
+                throw new IllegalStateException("Task string with repeated param: " + param);
+            // keep param token and value
+            map.put(parts[0], parts[1]);
+        }
+        // return map
+        return map;
     }
 
     /**

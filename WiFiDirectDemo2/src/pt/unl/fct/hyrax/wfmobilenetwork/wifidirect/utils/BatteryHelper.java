@@ -8,6 +8,8 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.util.Log;
 
+import java.util.Locale;
+
 /**
  * Created by AT DR on 08-01-2016
  * .
@@ -33,28 +35,57 @@ public class BatteryHelper {
         }
     }
 
+    public static String readBatteryHeaderValues(Context context) {
+        final Intent intent = context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        if (intent == null)
+            throw new IllegalStateException("Battery helper can't register ACTION_BATTERY_CHANGED intent");
+
+        int batteryScale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 0);
+
+        return "Current now; current average; energy; charge counter; voltage (V); capacity (%); level/" +
+                batteryScale + "; temperature (ºc); health";
+    }
+
+
     /*
-    * readBattery
-    */
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public static void readBatteryApiLollipop(Context context) {
+     * read battery changeable values
+     */
+    public static String readBatteryValues(Context context) {
 
         final BatteryManager batManager = new BatteryManager();
         final Intent intent = context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (intent == null)
             throw new IllegalStateException("Battery helper can't register ACTION_BATTERY_CHANGED intent");
 
-
         // read battery values and register them
-        int batteryCapacity = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
-        int batteryChargeCounter = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER);
-        int batteryCurrentAverage = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE);
-        int batteryCurrentNow = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-        int batteryEnergy = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_ENERGY_COUNTER);
-        int batteryVoltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0);
 
-        Log.d("Battery info", "Current now = " + batteryCurrentNow + ", voltage = " + batteryVoltage + ", capacity = " + batteryCapacity);
-        Log.d("Battery info",  "Charge counter = " + batteryChargeCounter + ", current average = " + batteryCurrentAverage + ", energy = " + batteryEnergy);
+        int batteryCurrentNow = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+        int batteryCurrentAverage = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE);
+
+        int batteryChargeCounter = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER);
+        int batteryEnergy = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_ENERGY_COUNTER);
+
+        int batteryVoltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0);
+        int batteryCapacity = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+        int batteryLevel = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
+
+        int batteryTemperature = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0);
+        String batteryHealth = batteryHealthToString(intent.getIntExtra(BatteryManager.EXTRA_HEALTH, 0));
+
+        return "" + batteryCurrentNow + "; " + batteryCurrentAverage + "; " + batteryEnergy +
+                "; " + batteryChargeCounter + "; " + String.format("%.3f", batteryVoltage / 1000.0) +
+                "; " + batteryCapacity + "; " + batteryLevel +
+                "; " + String.format("%.1f", batteryTemperature / 10.0) + "; " + batteryHealth;
+    }
+
+    /**
+     *
+     */
+    private static String batteryHealthToString(int intExtraBatteryHealth) {
+        String[] healthValues = {"ERROR", "BATTERY_HEALTH_UNKNOWN", "BATTERY_HEALTH_GOOD", "BATTERY_HEALTH_OVERHEAT",
+                "BATTERY_HEALTH_DEAD", "BATTERY_HEALTH_OVER_VOLTAGE", "BATTERY_HEALTH_UNSPECIFIED_FAILURE",
+                "BATTERY_HEALTH_COLD"};
+        return healthValues[intExtraBatteryHealth];
     }
 
 

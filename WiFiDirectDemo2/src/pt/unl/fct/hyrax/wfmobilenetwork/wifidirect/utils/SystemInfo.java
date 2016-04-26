@@ -7,16 +7,11 @@ import android.os.BatteryManager;
 import android.util.Log;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.WiFiDirectActivity;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Collections;
-import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -26,7 +21,7 @@ import java.util.Scanner;
 public class SystemInfo {
 
     private static IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-    private static Intent batteryStatus = null;
+    private static Intent batteryStatusIntent = null;
 
     // unnecessary - from here
 //    private static Method getGoToSleepMethod = null;
@@ -47,17 +42,32 @@ public class SystemInfo {
      *
      */
     public static BatteryInfo getBatteryInfo(Context context) {
-        if (batteryStatus == null) {
-            batteryStatus = context.registerReceiver(null, iFilter);
-            if (batteryStatus == null)
-                return null;
-        }
+
+        batteryStatusIntent = context.registerReceiver(null, iFilter);
+        if (batteryStatusIntent == null)
+            return null;
+
 
         return new BatteryInfo(
-                batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-                , batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-                , batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0)
-                , batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0));
+                batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                , batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                , batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0)
+                , batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0));
+    }
+
+    /*
+     *
+     */
+    public static int getBatteryCurrentNowFromFile() {
+        try {
+            Scanner scan = new Scanner(new File("/sys/class/power_supply/battery/current_now"));
+            int current_now = scan.nextInt();
+            scan.close();
+            return current_now;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return -1000000000;
     }
 
     /*
@@ -74,19 +84,22 @@ public class SystemInfo {
 
     /**
      * Problem: the mac address reported by WifiP2PDevice are not the ones watched in arp tables
-     * WifiP2PDevice is 00:00:00:00:80:00 more than ARP tables.
-     * So here we check if that digit is in range [8-F] to enable the operation (-8)
+     * WifiP2PDevice is 00:00:00:00:80:00 more than ARP tables. The +8 is circular.
      */
     public static String getIPFromMac(String macAddress) {
 
         String[] parts = macAddress.split(":");
-        if (parts[4].charAt(0) < '8')
-            throw new IllegalStateException("The MAC address, to be searched in ARP file, " +
-                    "don't have the expected values - see commented bug: " + macAddress);
+//        if (parts[4].charAt(0) != '0'){
+//            parts[4] = "8"  + parts[4].charAt(1);
+//        } else {
+//            if (parts[4].charAt(0) < '8')
+//                throw new IllegalStateException("The MAC address, to be searched in ARP file, " +
+//                        "don't have the expected values - see commented bug: " + macAddress);
 
         // subtract 8 to that digit
         int n = Character.digit(parts[4].charAt(0), 16);
-        parts[4] = "" + Character.forDigit(n - 8, 16) + parts[4].charAt(1);
+        parts[4] = "" + Character.forDigit((n + 8) % 16, 16) + parts[4].charAt(1);
+//    }
 
         // build new mac address
         macAddress = parts[0] + ":" + parts[1] + ":" + parts[2] + ":" + parts[3] + ":" + parts[4] + ":" + parts[5];
@@ -118,24 +131,32 @@ public class SystemInfo {
     /**
      *
      */
-    public static String getInterfaceMacAddress(String interfaceName) throws SocketException {
-        List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
-        for (NetworkInterface ntwInterface : interfaces) {
+    public static String getInterfaceMacAddress(String interfaceName) {
+        try {
 
-            if (ntwInterface.getName().equalsIgnoreCase(interfaceName)) {
-                byte[] byteMac = ntwInterface.getHardwareAddress();
-                if (byteMac == null) {
-                    return null;
-                }
-                // get hardware address fro interface
-                StringBuilder strBuilder = new StringBuilder();
-                for (int i = 0; i < byteMac.length; i++) {
-                    strBuilder.append(String.format("%02x" + (i < byteMac.length - 1 ? ":" : ""), byteMac[i]));
-                }
-                return strBuilder.toString();
-            }
+            NetworkInterface ntwInterface = NetworkInterface.getByName(interfaceName);
+            if (ntwInterface == null)
+                return null;
+            return getMACStringFromBytes(ntwInterface.getHardwareAddress());
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     *
+     */
+    public static String getMACStringFromBytes(byte[] macBytes) {
+        if (macBytes == null)
+            return null;
+        // get hardware address from interface
+        StringBuilder strBuilder = new StringBuilder();
+        for (int i = 0; i < macBytes.length; i++) {
+            strBuilder.append(String.format("%02x" + (i < macBytes.length - 1 ? ":" : ""), macBytes[i]));
+        }
+        return strBuilder.toString();
     }
 
 

@@ -122,19 +122,27 @@ public class Logger {
     /**
      * Log also to file
      */
-    public static void setLogCatToFile(Context context) {
+    public static File setLogCatToFile(Context context) {
         String timestamp = dateFormatNormal.format(new Date());
 
         String appName = context.getResources().getString(R.string.app_name);
         appName = appName.replace(' ', '-');
-        String cmd = "logcat -v time -f " + LOG_DIR_PATH + "/logcat_" + timestamp + "_" + appName + ".txt";
+        String fileName  = LOG_DIR_PATH + "/logcat_" + timestamp + "_" + appName + ".txt";
+        String cmd = "logcat -v time -f " + fileName;
 
         AndroidUtils.buildPath(LOG_DIR_PATH);
 
         try {
+            Runtime.getRuntime().exec("logcat -c");
             Runtime.getRuntime().exec(cmd);
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // do a media scan on this file, to enable PC file recognition
+        File logCatFile = new File(fileName);
+        AndroidUtils.executeMediaScanFile(logCatFile, context);
+
+        return logCatFile;
     }
 }
