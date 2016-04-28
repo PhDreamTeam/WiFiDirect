@@ -15,8 +15,13 @@ import java.util.Scanner;
  *
  */
 public class Configurations {
-    boolean isPriorityInterfaceWFD = false;
-    boolean isPriorityInterfaceWF = false;
+
+    enum PriorityInterface {WFD, WF, NOTSET}
+
+    ;
+
+    PriorityInterface priorityInterface = PriorityInterface.NOTSET;
+    String deviceName = null;
 
     /*
      * empty and private constructor to avoid been called.
@@ -30,30 +35,50 @@ public class Configurations {
      *
      */
     public boolean isPriorityInterfaceWF() {
-        return isPriorityInterfaceWF;
-    }
-
-    /*
-     *
-     */
-    public void setPriorityInterfaceWF() {
-        this.isPriorityInterfaceWF = true;
-        this.isPriorityInterfaceWFD = false;
+        return priorityInterface == PriorityInterface.WF;
     }
 
     /*
      *
      */
     public boolean isPriorityInterfaceWFD() {
-        return isPriorityInterfaceWFD;
+        return priorityInterface == PriorityInterface.WFD;
     }
 
     /*
      *
      */
+    public void setPriorityInterfaceWF() {
+        priorityInterface = PriorityInterface.WF;
+    }
+
+    /*
+     *
+     */
+    public void clearPriorityInterface() {
+        priorityInterface = PriorityInterface.NOTSET;
+    }
+
+    /*
+     *
+     */
+    public void setDeviceName(String deviceName) {
+        this.deviceName = deviceName;
+    }
+
+    /*
+     *
+     */
+    public String getDeviceName() {
+        return this.deviceName;
+    }
+
+
+    /*
+     *
+     */
     public void setPriorityInterfaceWFD() {
-        this.isPriorityInterfaceWFD = true;
-        this.isPriorityInterfaceWF = false;
+        priorityInterface = PriorityInterface.WFD;
     }
 
     /*
@@ -66,10 +91,15 @@ public class Configurations {
         File confFile = new File(MainActivity.APP_MAIN_FILES_DIR_PATH, MainActivity.CONFIG_FILENAME);
         try {
             PrintWriter pw = new PrintWriter(confFile);
-            if(isPriorityInterfaceWFD)
-                pw.print("priorityInterface = WFD\r\n");
-            if(isPriorityInterfaceWF)
-                pw.print("priorityInterface = WF\r\n");
+
+            // write device name
+            if (deviceName != null)
+                pw.println("deviceName = " + deviceName);
+
+            // write priority interface
+            if (priorityInterface != PriorityInterface.NOTSET)
+                pw.println("priorityInterface = " + priorityInterface);
+
             pw.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -89,12 +119,12 @@ public class Configurations {
             Scanner scan = new Scanner(confFile);
 
             // process lines
-            while(scan.hasNextLine()) {
+            while (scan.hasNextLine()) {
                 // read line
                 String line = scan.nextLine();
 
                 //ignore empty lines
-                if(line.trim().length() == 0)
+                if (line.trim().length() == 0)
                     continue;
 
                 // process line
@@ -104,23 +134,27 @@ public class Configurations {
                 String firstToken = tokens.next();
 
                 // get second token, must be "="
-                if(!tokens.hasNext())
+                if (!tokens.hasNext())
                     throw new IllegalStateException("Configurations file: line badly formed: " + line);
                 String secondToken = tokens.next();
-                if(!secondToken.equals("="))
-                    throw new IllegalStateException("Configurations file: line badly formed: " + line);
+                if (!secondToken.equals("="))
+                    throw new IllegalStateException("Configurations file: line badly formed, missing '=' in second place: " + line);
 
                 // get third token
-                if(!tokens.hasNext())
-                    throw new IllegalStateException("Configurations file: line badly formed: " + line);
+                if (!tokens.hasNext())
+                    throw new IllegalStateException("Configurations file: line badly formed, no third value: " + line);
                 String thirdToken = tokens.next();
 
+                // checking for device name configuration item
+                if (firstToken.equalsIgnoreCase("deviceName")) {
+                    cnf.setDeviceName(thirdToken);
+                }
+
                 // checking for Priority Interface configuration item
-                if(firstToken.equalsIgnoreCase("priorityInterface")) {
-                    if(thirdToken.equalsIgnoreCase("WFD")) {
+                if (firstToken.equalsIgnoreCase("priorityInterface")) {
+                    if (thirdToken.equalsIgnoreCase("WFD")) {
                         cnf.setPriorityInterfaceWFD();
-                    }
-                    else if (thirdToken.equalsIgnoreCase("WF") ){
+                    } else if (thirdToken.equalsIgnoreCase("WF")) {
                         cnf.setPriorityInterfaceWF();
                     } else
                         throw new IllegalStateException("Configurations file: line badly formed: " + line);

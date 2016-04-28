@@ -41,7 +41,6 @@ public class MeteringActivity extends Activity {
     private TextView tvTemperature;
     private Button btnUpdateBatteryInfo;
     private Context context;
-    private Button btnGetCPUInfo;
     private TextView tvPID;
     private TextView tvPPID;
     private TextView tvUTime;
@@ -66,7 +65,6 @@ public class MeteringActivity extends Activity {
     private Button btnStopFileTask;
     private Button btnStopCpuTask;
     private boolean fileTaskThreadFlag;
-    private int counter;
     private CpuWorkThread runCPUTaskThread;
     private String systemStat;
     private PowerManager powerManager;
@@ -75,7 +73,9 @@ public class MeteringActivity extends Activity {
     private EditText etBatteryTestsDelay;
     private EditText etBatteryTestNThreads;
     private int logValuesNumber;
-    private int numberOnlineProcessors;
+    private Button btnStopBatteryTest;
+    private Timer workTimer;
+    private ArrayList<CpuWorkThread> workingThreads;
 
 
     @Override
@@ -115,7 +115,12 @@ public class MeteringActivity extends Activity {
         btnStopCpuTask = (Button) findViewById(R.id.btnMAStopCpuTask);
         btnStopFileTask = (Button) findViewById(R.id.btnMAStopFileTask);
 
-        btnGetCPUInfo = (Button) findViewById(R.id.btnGetCPUInfo);
+        // battery tests ===========================================================
+        btnRunBatteryTest = (Button) findViewById(R.id.btnMARunBatteryTest);
+        btnStopBatteryTest = (Button) findViewById(R.id.btnMAStopBatteryTest);
+        etBatteryTestsTestDuration = (EditText) findViewById(R.id.etMABatteryTestsTestDuration);
+        etBatteryTestsDelay = (EditText) findViewById(R.id.etMABatteryTestsDelay);
+        etBatteryTestNThreads = (EditText) findViewById(R.id.etMABatteryTestNThreads);
 
         // run background task ===============================================
         btnRunBackgroundTask = (Button) findViewById(R.id.btnMARunBackgroundTask);
@@ -127,12 +132,6 @@ public class MeteringActivity extends Activity {
 
         etMulticastNetworkInterface = (EditText) findViewById(R.id.etMAMulticastInterface);
 
-        // battery tests ===========================================================
-        btnRunBatteryTest = (Button) findViewById(R.id.btnMARunBatteryTest);
-        etBatteryTestsTestDuration = (EditText) findViewById(R.id.etMABatteryTestsTestDuration);
-        etBatteryTestsDelay = (EditText) findViewById(R.id.etMABatteryTestsDelay);
-        etBatteryTestNThreads = (EditText) findViewById(R.id.etMABatteryTestNThreads);
-
         // ==========================================================================
         intent = context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (intent == null)
@@ -143,18 +142,8 @@ public class MeteringActivity extends Activity {
             @Override
             public void onClick(View v) {
                 BatteryInfo bi = SystemInfo.getBatteryInfo(context);
-                if (bi != null) {
-                    tvLevelScale.setText("" + bi.batteryLevel + " / " + bi.batteryScale);
-                    tvVoltage.setText("" + bi.batteryVoltage / 1000.0 + "V");
-                    tvTemperature.setText("" + bi.batteryTemperature / 10.0 + "ºC");
-                    Log.i("MeteringActivity", "Battery info -> " + bi);
-                }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    BatteryHelper.readBatteryValues(context);
-                    int batteryCurrentNow = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-                    tvCurrent.setText("" + batteryCurrentNow + "mcA");
-                }
+                updateProcessInfo();
+                updateBatteryInfo(bi);
             }
         });
 
@@ -175,52 +164,26 @@ public class MeteringActivity extends Activity {
 
                 // on actions
                 btnBatteryAutoUpdateOff.setVisibility(View.GONE);
-                counter = 1;
 
                 timer = new Timer("batteryTimer");
                 timer.scheduleAtFixedRate(new TimerTask() {
                     @Override
                     public void run() {
                         // BatteryHelper.readBatteryValues(context);
-                        Log.d(TAG, "Battery current_now from file " + counter + " = " + SystemInfo.getBatteryCurrentNowFromFile());
+                        // Log.d(TAG, "Battery current_now from file " + counter + " = " + SystemInfo.getBatteryCurrentNowFromFile());
                         final BatteryInfo bi = SystemInfo.getBatteryInfo(context);
 
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                            final int batteryCurrentNow = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-
-                            tvCurrent.post(new Runnable() {
-                                @Override
-                                public void run() {
-
-                                    if (bi != null) {
-                                        tvLevelScale.setText("" + counter + " " + "" + bi.batteryLevel + " / " + bi.batteryScale);
-                                        tvVoltage.setText("" + bi.batteryVoltage / 1000.0 + "V");
-                                        tvTemperature.setText("" + bi.batteryTemperature / 10.0 + "ºC");
-                                        Log.i("MeteringActivity", "Battery info -> " + bi);
-                                    }
-
-                                    tvCurrent.setText("" + (counter++) + " " + batteryCurrentNow);
-                                }
-                            });
-                        }
+                        tvCurrent.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                updateProcessInfo();
+                                updateBatteryInfo(bi);
+                            }
+                        });
                     }
                 }, 0, 1000);
 
                 btnBatteryAutoUpdateOn.setVisibility(View.VISIBLE);
-            }
-        });
-
-
-        btnGetCPUInfo.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ProcessInfo pInfo = LinuxUtils.getProcessInfo();
-                tvPID.setText("" + pInfo.pid);
-                tvPPID.setText("" + pInfo.ppid);
-                tvUTime.setText("" + pInfo.utime * 100);
-                tvSTime.setText("" + pInfo.stime * 100);
-                String pInfoStr = pInfo.getFormattedString();
-                Log.i(TAG, "Process info -> " + pInfoStr);
             }
         });
 
@@ -267,7 +230,15 @@ public class MeteringActivity extends Activity {
                 int testDuration = Integer.parseInt(etBatteryTestsTestDuration.getText().toString());
                 int testDelay = Integer.parseInt(etBatteryTestsDelay.getText().toString());
 
+                btnStopBatteryTest.setVisibility(View.VISIBLE);
+
                 testBattery(testDuration * 60, testDelay, nThreads);
+            }
+        });
+
+        btnStopBatteryTest.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                endOfBatteryTestActions("Test stopped");
             }
         });
 
@@ -349,10 +320,10 @@ public class MeteringActivity extends Activity {
                 "m; interval = " + testRegisterValuesIntervalInSeconds + "s; threads = " + numberOfThreads);
 
         // place to keep working threads
-        final ArrayList<CpuWorkThread> workingThreads = new ArrayList<>();
+        workingThreads = new ArrayList<>();
 
         // create timer to register battery and cpu data
-        final Timer workTimer = new Timer(true);
+        workTimer = new Timer(true);
 
         // delay in milliseconds
         final int delay = testRegisterValuesIntervalInSeconds * 1000;
@@ -389,22 +360,8 @@ public class MeteringActivity extends Activity {
 
                 // check for termination
                 if (secondsElapsed >= testDurationInSeconds) {
-                    // cancel timer
-                    workTimer.cancel();
-
-                    // stop working threads
-                    for (CpuWorkThread t : workingThreads) {
-                        t.getThread().interrupt();
-                    }
-                    Log.d(TAG, "End test");
-                    wakeLock.release();
-                    btnRunBatteryTest.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            btnRunBatteryTest.setText("Run Battery test");
-                            btnRunBatteryTest.setEnabled(true);
-                        }
-                    });
+                    // do termination actions
+                    endOfBatteryTestActions("End test");
                 }
             }
         };
@@ -442,6 +399,32 @@ public class MeteringActivity extends Activity {
     /**
      *
      */
+    private void endOfBatteryTestActions(String msg) {
+
+        // cancel timer
+        workTimer.cancel();
+
+        // stop working threads
+        for (CpuWorkThread t : workingThreads) {
+            t.getThread().interrupt();
+        }
+
+        Log.d(TAG, msg);
+
+        wakeLock.release();
+        btnRunBatteryTest.post(new Runnable() {
+            @Override
+            public void run() {
+                btnStopBatteryTest.setVisibility(View.GONE);
+                btnRunBatteryTest.setText("Run Battery test");
+                btnRunBatteryTest.setEnabled(true);
+            }
+        });
+    }
+
+    /**
+     *
+     */
     private String getProcessorsHeader(int numberOfThreads) {
         int nProcessors = LinuxUtils.getSystemNumberOfProcessors();
         StringBuilder header = new StringBuilder();
@@ -451,7 +434,7 @@ public class MeteringActivity extends Activity {
             if (i > 0)
                 header.append("; ");
 
-            header.append("cpu").append(i);
+            header.append("cpu").append(i).append("gov; cpu").append(i).append("freq");
         }
 
         // get threads header
@@ -469,7 +452,7 @@ public class MeteringActivity extends Activity {
         int nProcessors = LinuxUtils.getSystemNumberOfProcessors();
         String processorsOnlineString = LinuxUtils.getProcessorOnline();
         String processorsOfflineString = LinuxUtils.getProcessorOffline();
-        Log.d(TAG, "Processors: online -> " + processorsOnlineString + ", offline -> " + processorsOfflineString);
+        //Log.d(TAG, "Processors: online -> " + processorsOnlineString + ", offline -> " + processorsOfflineString);
 
         StringBuilder procGovs = new StringBuilder();
 
@@ -479,8 +462,8 @@ public class MeteringActivity extends Activity {
                 procGovs.append("; ");
 
             procGovs.append(LinuxUtils.isProcessorOnline(processorsOnlineString, i) ?
-                    LinuxUtils.getProcessorGovernor(i)  + "; " + LinuxUtils.getProcessorScalingCurrentFreq(i):
-                    LinuxUtils.isProcessorOffline(processorsOfflineString, i) ? "offline" : "unknown");
+                    LinuxUtils.getProcessorGovernor(i) + "; " + LinuxUtils.getProcessorScalingCurrentFreq(i) :
+                    LinuxUtils.isProcessorOffline(processorsOfflineString, i) ? "offline; 0" : "unknown");
         }
 
         return procGovs.toString();
@@ -502,12 +485,35 @@ public class MeteringActivity extends Activity {
         // get working thread values
         StringBuilder workingThreadsValues = new StringBuilder();
         for (CpuWorkThread t : workingThreads) {
-            workingThreadsValues.append("; " ).append(t.getValue());
+            workingThreadsValues.append("; ").append(t.getValue());
             t.resetValue();
         }
 
         Log.d(TAG, "| " + logValuesNumber++ + "; " + batteryValues + "; " + String.format("%.2f", cpuLoad) +
                 "; " + getProcessorsGovernors() + workingThreadsValues.toString());
+    }
+
+    /**
+     *
+     */
+    public void updateProcessInfo() {
+        ProcessInfo pInfo = LinuxUtils.getProcessInfo();
+        tvPID.setText("" + pInfo.pid);
+        tvPPID.setText("" + pInfo.ppid);
+        tvUTime.setText("" + pInfo.utime * 100);
+        tvSTime.setText("" + pInfo.stime * 100);
+        Log.i(TAG, "Process info -> " + pInfo.getFormattedString());
+    }
+
+    public void updateBatteryInfo(BatteryInfo bi) {
+        final int batteryCurrentNow = batManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+
+        tvLevelScale.setText( + bi.batteryLevel + " / " + bi.batteryScale);
+        tvVoltage.setText("" + bi.batteryVoltage / 1000.0 + "V");
+        tvTemperature.setText("" + bi.batteryTemperature / 10.0 + "ºC");
+        tvCurrent.setText("" + batteryCurrentNow);
+
+        Log.i("MeteringActivity", "Battery info -> " + bi);
     }
 
     /*
@@ -535,14 +541,14 @@ public class MeteringActivity extends Activity {
                 public void run() {
 
                     double y = 1.0;
-                    for (long n = 0; n < Long.MAX_VALUE; ++n ) {
+                    for (long n = 0; n < Long.MAX_VALUE; ++n) {
                         // some double work
                         y *= 1.000000000001 + 0.00000000001;
                         if (y > 10000000000000.0)
                             y = 1.0;
 
                         // increment counter, every few iterations
-                        if(n == 1_000) {
+                        if (n == 1_000) {
                             CpuWorkThread.this.value.getAndIncrement();
                             n = 0;
                         }
@@ -596,6 +602,7 @@ public class MeteringActivity extends Activity {
                         PrintWriter pw = new PrintWriter(f);
                         pw.print("Test message");
                         pw.close();
+                        //noinspection ResultOfMethodCallIgnored
                         f.delete();
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
@@ -745,7 +752,7 @@ public class MeteringActivity extends Activity {
                 .setContentTitle(title)
                 .setContentText(text)
                 .setSmallIcon(R.drawable.icon)
-                .setSound(soundUri)
+                // .setSound(soundUri)
                 .setLights(lightArg, ledOnMs, ledOffMs)
                 .setPriority(Notification.PRIORITY_HIGH)
                 .build();
@@ -930,6 +937,7 @@ public class MeteringActivity extends Activity {
 
                 Log.d(TAG, "Multicast receiver: receiving at " + INET_ADDR + ":" + PORT);
 
+                //noinspection InfiniteLoopStatement
                 while (true) {
                     // Receive the information and print it.
                     DatagramPacket msgPacket = new DatagramPacket(buf, buf.length);

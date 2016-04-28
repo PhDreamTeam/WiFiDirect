@@ -29,6 +29,8 @@ public class Logger {
     private int activeLogSessions = 0;
     private String mainLogName;
 
+    private String deviceName;
+
 
 
     /**
@@ -39,6 +41,13 @@ public class Logger {
         AndroidUtils.buildPath(LOG_DIR_PATH);
 
         this.mainLogName = mainLogName;
+    }
+
+    /**
+     *
+     */
+    public void setDeviceName(String deviceName) {
+        this.deviceName = deviceName;
     }
 
     /**
@@ -94,7 +103,7 @@ public class Logger {
         String timestamp = dateFormatNormal.format(initialLogTime);
 
         // build file to log data
-        final File f = new File(LOG_DIR_PATH + "/WD_" + timestamp + "_log.txt");
+        final File f = new File(LOG_DIR_PATH + "/log_" + deviceName + "-" + timestamp + "_log.txt");
 
         PrintWriter pw = null;
 
@@ -122,12 +131,13 @@ public class Logger {
     /**
      * Log also to file
      */
-    public static File setLogCatToFile(Context context) {
+    public static File setLogCatToFile(Context context, String deviceName) {
         String timestamp = dateFormatNormal.format(new Date());
 
         String appName = context.getResources().getString(R.string.app_name);
         appName = appName.replace(' ', '-');
-        String fileName  = LOG_DIR_PATH + "/logcat_" + timestamp + "_" + appName + ".txt";
+        deviceName = deviceName == null ? "" : deviceName;
+        String fileName  = LOG_DIR_PATH + "/logcat_" + deviceName + "_" + timestamp + "_" + appName + ".txt";
         String cmd = "logcat -v time -f " + fileName;
 
         AndroidUtils.buildPath(LOG_DIR_PATH);

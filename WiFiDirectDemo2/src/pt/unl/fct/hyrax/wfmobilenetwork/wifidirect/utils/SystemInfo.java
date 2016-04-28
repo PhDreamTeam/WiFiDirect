@@ -45,7 +45,7 @@ public class SystemInfo {
 
         batteryStatusIntent = context.registerReceiver(null, iFilter);
         if (batteryStatusIntent == null)
-            return null;
+            throw new RuntimeException("registerReceiver returned null");
 
 
         return new BatteryInfo(

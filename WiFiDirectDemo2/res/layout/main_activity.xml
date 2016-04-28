@@ -4,6 +4,98 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent">
 
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                  android:layout_height="wrap_content" android:gravity="center_horizontal"
+                  android:id="@+id/llConfigurations">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceSmall" android:text="Name: "
+                  android:id="@+id/textView73"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium"
+                  android:id="@+id/tvMainADeviceName"/>
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text=",  Priority interface: "
+                android:id="@+id/textView83"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium"
+                  android:id="@+id/tvMainAPriorityInterface"/>
+        <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:id="@+id/btnMainAEditConfigurations"
+                android:drawableLeft="@android:drawable/ic_menu_preferences"/>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:id="@+id/llMainAChangeConfigurations"
+            android:visibility="gone">
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" android:gravity="center_vertical|center_horizontal">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text="Device name: "
+                    android:id="@+id/textView84"/>
+            <EditText
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/etMainADeviceName" android:minEms="7"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:gravity="center_vertical|center_horizontal">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:text="Priority interface:"
+                    android:id="@+id/textView75"/>
+            <RadioGroup
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:orientation="horizontal"
+                    android:layout_gravity="center_vertical">
+                <RadioButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="WFD"
+                        android:id="@+id/rbMAWFD" android:checked="false"/>
+                <RadioButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="WF"
+                        android:id="@+id/rbMAWF" android:checked="false"/>
+                <RadioButton android:layout_width="wrap_content" android:layout_height="wrap_content"
+                             android:id="@+id/rbMAPINotSet" android:checked="false" android:text="Not set"
+                             android:textAppearance="?android:attr/textAppearanceSmall"/>
+            </RadioGroup>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" android:gravity="center_horizontal"
+                android:isScrollContainer="true">
+            <Button
+                    style="?android:attr/buttonStyleSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/btnMainAEditConfigurationsSave"
+                    android:drawableStart="@android:drawable/ic_menu_save"/>
+            <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:id="@+id/btnMainAEditConfigurationsCancel"
+                    android:drawableStart="@android:drawable/ic_menu_delete"/>
+        </LinearLayout>
+    </LinearLayout>
+    <TextView android:layout_width="match_parent" android:layout_height="10dp" android:id="@+id/textView45"
+              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"
+            />
+    <TextView android:layout_width="match_parent" android:layout_height="3dp" android:id="@+id/textView20"
+              android:gravity="center" android:background="#000001" android:textColor="#fffaf9ff"/>
     <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
                   android:layout_height="wrap_content" android:background="#ff877f3d"
     >
@@ -24,43 +116,8 @@
                 android:id="@+id/buttonMainWiFiTurnOFF"  />
     </LinearLayout>
 
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView45"
-              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"
-            />
-    <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:gravity="center_horizontal">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:text="Pririty interface:"
-                android:id="@+id/textView75"/>
-        <RadioGroup
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" android:orientation="horizontal"
-                android:layout_gravity="center_vertical">
-            <RadioButton
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="WFD"
-                    android:id="@+id/rbMAWFD" android:checked="false"/>
-            <RadioButton
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="WF"
-                    android:id="@+id/rbMAWF" android:checked="false"/>
-        </RadioGroup>
-        <Button
-                style="?android:attr/buttonStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Save"
-                android:id="@+id/btnMASavePriInterface"/>
-    </LinearLayout>
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView73"
-              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"/>
+    <TextView android:layout_width="match_parent" android:layout_height="3dp" android:id="@+id/textView57"
+              android:gravity="center" android:background="#000001" android:textColor="#fffaf9ff"/>
     <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
@@ -75,8 +132,8 @@
                 android:id="@+id/buttonMainWiFiAP" android:layout_gravity="center_horizontal"
                 android:layout_weight="1"/>
     </LinearLayout>
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView26"
-              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"/>
+    <TextView android:layout_width="match_parent" android:layout_height="10dp" android:id="@+id/textView26"
+              android:gravity="center" android:background="#ff877f3d" android:textColor="#fffaf9ff"/>
     <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
@@ -93,14 +150,39 @@
                 android:text="Relay"
                 android:layout_gravity="center_horizontal" android:id="@+id/buttonMainRelay" android:layout_weight="1"/>
     </LinearLayout>
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView15"
-              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"
+    <TextView android:layout_width="match_parent" android:layout_height="10dp" android:id="@+id/textView15"
+              android:gravity="center" android:background="#ff877f3d" android:textColor="#fffaf9ff"
               android:layout_gravity="center_horizontal"/>
     <Button android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Show info"
             android:id="@+id/buttonShowInfo" android:layout_gravity="center_horizontal"/>
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/textView61"
-              android:gravity="center" android:background="#ff536aaf" android:textColor="#fffaf9ff"
+    <TextView android:layout_width="match_parent" android:layout_height="10dp" android:id="@+id/textView61"
+              android:gravity="center" android:background="#ff877f3d" android:textColor="#fffaf9ff"
               android:layout_gravity="center_horizontal"/>
+    <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="WFD Initial Code"
+                android:id="@+id/textView68"/>
+        <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Group Owner"
+                android:id="@+id/buttonMainWFDGroupOwner" android:layout_gravity="center_horizontal"
+                android:layout_weight="1" style="?android:attr/buttonStyleSmall"/>
+        <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Client"
+                android:id="@+id/buttonMainWFDClient" android:layout_weight="1" style="?android:attr/buttonStyleSmall"/>
+    </LinearLayout>
+    <TextView android:layout_width="match_parent" android:layout_height="10dp"
+              android:id="@+id/textView21" android:gravity="center" android:background="#ff536aaf"
+              android:textColor="#fffaf9ff"/>
     <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
@@ -129,31 +211,6 @@
                 android:layout_height="wrap_content"
                 android:text="Log msg"
                 android:id="@+id/btnMALogMsg"/>
-    </LinearLayout>
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-              android:id="@+id/textView21" android:gravity="center" android:background="#ff536aaf"
-              android:textColor="#fffaf9ff"/>
-    <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceSmall"
-                android:text="WFD Initial Code"
-                android:id="@+id/textView68"/>
-        <Button
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Group Owner"
-                android:id="@+id/buttonMainWFDGroupOwner" android:layout_gravity="center_horizontal"
-                android:layout_weight="1" style="?android:attr/buttonStyleSmall"/>
-        <Button
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Client"
-                android:id="@+id/buttonMainWFDClient" android:layout_weight="1" style="?android:attr/buttonStyleSmall"/>
     </LinearLayout>
 
 </LinearLayout>

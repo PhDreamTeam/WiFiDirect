@@ -15,10 +15,7 @@ import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.RadioButton;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
 import pt.unl.fct.hyrax.wfmobilenetwork.accesspoint.WiFiApActivity;
 import pt.unl.fct.hyrax.wfmobilenetwork.accesspoint.WifiApControl;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.AndroidUtils;
@@ -29,7 +26,6 @@ import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.LoggerSession;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
-import java.util.IllegalFormatException;
 import java.util.Scanner;
 
 /**
@@ -66,12 +62,19 @@ public class MainActivity extends Activity {
     private Button btnLogMsg;
     private TextView etLogMsg;
     private TextView etLogDir;
-    private Button btnSavePriInterface;
+    private Button btnSaveConfigurations;
     private RadioButton rbWFD;
     private RadioButton rbWF;
 
     private Configurations configurations;
     private File logCatFile;
+    private Button btnEditConfigurations;
+    private Button btnCancelEditConfigurations;
+    private TextView etDeviceName;
+    private LinearLayout llEditConfigurations;
+    private TextView tvDeviceName;
+    private TextView tvPriorityInterface;
+    private RadioButton rbPINotSet;
 
     /**
      *
@@ -83,9 +86,6 @@ public class MainActivity extends Activity {
         context = getApplicationContext();
 
         //APP_MAIN_FILES_DIR_PATH = getFilesDir().toString();
-
-        // set logcat also to file
-        logCatFile = Logger.setLogCatToFile(context);
 
         setContentView(R.layout.main_activity);
         myThis = this;
@@ -99,16 +99,24 @@ public class MainActivity extends Activity {
         //checking if WiFIDirect is supported
         p2pSupported = isWifiDirectSupported(context);
 
+
+        tvDeviceName = (TextView) findViewById(R.id.tvMainADeviceName);
+        tvPriorityInterface = (TextView) findViewById(R.id.tvMainAPriorityInterface);
+        llEditConfigurations = (LinearLayout) findViewById(R.id.llMainAChangeConfigurations);
+        btnEditConfigurations = (Button) findViewById(R.id.btnMainAEditConfigurations);
+        btnSaveConfigurations = (Button) findViewById(R.id.btnMainAEditConfigurationsSave);
+        btnCancelEditConfigurations = (Button) findViewById(R.id.btnMainAEditConfigurationsCancel);
+        etDeviceName = (TextView) findViewById(R.id.etMainADeviceName);
+        rbWFD = (RadioButton) findViewById(R.id.rbMAWFD);
+        rbWF = (RadioButton) findViewById(R.id.rbMAWF);
+        rbPINotSet = (RadioButton) findViewById(R.id.rbMAPINotSet);
+
         tvMainWiFiState = (TextView) findViewById(R.id.textViewMainWiFiState);
         btnMainWiFiTurnOn = (Button) findViewById(R.id.buttonMainWiFiTurnOn);
         btnMainWiFiTurnOff = (Button) findViewById(R.id.buttonMainWiFiTurnOFF);
 
         btnWFDGroupOwner = (Button) findViewById(R.id.buttonMainWFDGroupOwner);
         btnWFDClient = (Button) findViewById(R.id.buttonMainWFDClient);
-
-        btnSavePriInterface = (Button) findViewById(R.id.btnMASavePriInterface);
-        rbWFD = (RadioButton) findViewById(R.id.rbMAWFD);
-        rbWF = (RadioButton) findViewById(R.id.rbMAWF);
 
         btnWFDControl = (Button) findViewById(R.id.buttonMainWFDControl);
         btnWiFiControl = (Button) findViewById(R.id.buttonMainWiFiControl);
@@ -140,9 +148,14 @@ public class MainActivity extends Activity {
         // read configurations from file
         configurations = Configurations.readFromConfigurationsFile();
 
-        // show priority interface configuration
-        rbWFD.setChecked(configurations.isPriorityInterfaceWFD());
-        rbWF.setChecked(configurations.isPriorityInterfaceWF());
+        // show configurations on GUI
+        showConfigurations();
+
+        // update logger device name
+        logger.setDeviceName(configurations.getDeviceName());
+
+        // set logcat also to file
+        logCatFile = Logger.setLogCatToFile(context, configurations.getDeviceName());
 
         adjustWifiApControlButton();
 
@@ -331,18 +344,54 @@ public class MainActivity extends Activity {
                     }
                 });
 
-        btnSavePriInterface.setOnClickListener(new View.OnClickListener() {
+        btnEditConfigurations.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                btnEditConfigurations.setVisibility(View.GONE);
+                llEditConfigurations.setVisibility(View.VISIBLE);
+            }
+        });
+
+        btnCancelEditConfigurations.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                llEditConfigurations.setVisibility(View.GONE);
+                btnEditConfigurations.setVisibility(View.VISIBLE);
+            }
+        });
+
+        btnSaveConfigurations.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                // device name
+                String deviceName = etDeviceName.getText().toString().trim();
+                if (deviceName.length() > 0)
+                    configurations.setDeviceName(deviceName);
 
                 // read GUI state and update configurations
                 if (rbWFD.isChecked())
                     configurations.setPriorityInterfaceWFD();
                 if (rbWF.isChecked())
                     configurations.setPriorityInterfaceWF();
+                if (rbPINotSet.isChecked())
+                    configurations.clearPriorityInterface();
 
                 // save configurations to file
                 configurations.saveToConfigurationsFile();
+
+                // show configurations on GUI
+                showConfigurations();
+
+                // set logcat to file, with possible new name
+                logCatFile = Logger.setLogCatToFile(context, configurations.getDeviceName());
+
+                // update logger device name
+                logger.setDeviceName(configurations.getDeviceName());
+
+                // update gui state
+                llEditConfigurations.setVisibility(View.GONE);
+                btnEditConfigurations.setVisibility(View.VISIBLE);
             }
         });
 
@@ -426,6 +475,32 @@ public class MainActivity extends Activity {
             }
         });
     }
+
+    /**
+     *
+     */
+    private void showConfigurations() {
+
+        // show device name
+        String deviceName = configurations.getDeviceName();
+        if (deviceName != null) {
+            tvDeviceName.setText(deviceName);
+            etDeviceName.setText(deviceName);
+        }
+
+        // show priority interface configuration
+        if(configurations.isPriorityInterfaceWFD()) {
+            tvPriorityInterface.setText("WFD");
+            rbWFD.setChecked(true);
+        } else if(configurations.isPriorityInterfaceWF()) {
+            tvPriorityInterface.setText("WF");
+            rbWF.setChecked(true);
+        } else {
+            tvPriorityInterface.setText("");
+            rbPINotSet.setChecked(true);
+        }
+    }
+
 
     /**
      * Parse and execute task file. File contents will be placed on a String and sent to the activity
