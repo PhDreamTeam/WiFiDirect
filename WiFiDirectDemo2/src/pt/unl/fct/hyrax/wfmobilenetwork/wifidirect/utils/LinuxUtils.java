@@ -5,7 +5,9 @@ package pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils;
  * .
  */
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -560,6 +562,31 @@ public class LinuxUtils {
         return 100;
     }
 
+    /**
+     *
+     */
+    public static String executeShellCommandAndGetOuput(String command) {
+        try {
+            // Executes the command.
+            Process process = Runtime.getRuntime().exec(command);
 
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            int read;
+            char[] buffer = new char[4096];
+            StringBuilder output = new StringBuilder();
+            while ((read = reader.read(buffer)) > 0) {
+                output.append(buffer, 0, read);
+            }
+            reader.close();
+
+            // Waits for the command to finish.
+            process.waitFor();
+
+            return output.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
 
