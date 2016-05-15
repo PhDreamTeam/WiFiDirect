@@ -9,7 +9,9 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 
 /**
  *
@@ -60,7 +62,7 @@ public class FileGui {
         TextView tvFileNameAux = new TextView(context);
         //tvFileNameAux.setTextAppearance(context, android.R.style.TextAppearance_Medium);
         tvFileNameAux.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT));
+                LinearLayout.LayoutParams.MATCH_PARENT));
         //tvFileNameAux.setTextColor(Color.WHITE);
         tvFileNameAux.setText("File: ");
         tvFileNameAux.setGravity(Gravity.CENTER_VERTICAL);
@@ -70,8 +72,9 @@ public class FileGui {
         TextView tvFileName = new TextView(context);
         tvFileName.setTextColor(Color.WHITE);
         llHeader.addView(tvFileName, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+                ViewGroup.LayoutParams.MATCH_PARENT, 1.0f));
         tvFileName.setGravity(Gravity.CENTER_VERTICAL);
+
 
         // remove button
         TextView tvRemoveFile = new TextView(context);
@@ -115,16 +118,19 @@ public class FileGui {
         }
 
         isFavorite = mainActivity.isFavoriteFile(file.toString());
-        setFavoriteState();
+        updateFavoriteState();
 
         // set data
-        tvFileName.setText(file.toString() + "    " + file.length() + " " + (isContinuousUpdateFile() ? "AU" : ""));
+        tvFileName.setText(file.toString() + "    " + file.length() +
+                /*" " + getFileLengthFromLsCommand(file.toString()) + */
+                " " + (isContinuousUpdateFile() ? "AU" : ""));
     }
+
 
     /**
      *
      */
-    public void setFavoriteState() {
+    public void updateFavoriteState() {
         tvFavorite.setCompoundDrawablesWithIntrinsicBounds(isFavorite ? android.R.drawable.star_big_on :
                 android.R.drawable.star_big_off, 0, 0, 0); // presence_offline
     }
@@ -152,7 +158,8 @@ public class FileGui {
                     mainActivity.addFavoriteFile(file.toString());
 
                 isFavorite = !isFavorite;
-                setFavoriteState();
+                updateFavoriteState();
+                mainActivity.updateFavoriteFiles();
             }
         };
     }
@@ -204,5 +211,46 @@ public class FileGui {
      */
     public String toString() {
         return file.toString();
+    }
+
+    /**
+     *
+     */
+    public void setFavoriteState(boolean isFavorite) {
+        this.isFavorite = isFavorite;
+        updateFavoriteState();
+    }
+
+    public static int getFileLengthFromLsCommand(String file) {
+        String fileLengthStr = executeShellCommandAndGetOutput("ls -ls " + file);
+        String[] tokens = fileLengthStr.split("\\s+");
+        return Integer.parseInt(tokens[3]);
+    }
+
+    /**
+     *
+     */
+    public static String executeShellCommandAndGetOutput(String command) {
+        try {
+            // Executes the command.
+            Process process = Runtime.getRuntime().exec(command);
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            int read;
+            char[] buffer = new char[4096];
+            StringBuilder output = new StringBuilder();
+            while ((read = reader.read(buffer)) > 0) {
+                output.append(buffer, 0, read);
+            }
+            reader.close();
+
+            // Waits for the command to finish.
+            process.waitFor();
+
+            return output.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

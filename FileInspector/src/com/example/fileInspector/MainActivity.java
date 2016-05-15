@@ -3,7 +3,7 @@ package com.example.fileInspector;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
+import android.view.*;
 import android.widget.*;
 
 import java.io.*;
@@ -19,9 +19,19 @@ import java.util.Scanner;
  */
 public class MainActivity extends Activity {
 
-    private static final String APP_MAIN_FILES_DIR_PATH = "/sdcard/Android/data/com.example.fileInspector";
-    private static final String INTERNAL_STATE_FILENAME = "internalState.txt";
+    public static final String APP_MAIN_FILES_DIR_PATH = "/sdcard/Android/data/com.example.fileInspector";
+    public static final String INTERNAL_STATE_FILENAME = "internalState.txt";
     public static final String TAG = "MainActivity";
+    private LinearLayout llFavoriteFiles;
+    private LinearLayout llFavoriteDirs;
+
+    enum SHOW_STATUS {DIRS_AND_FILES, FAVORITE_DIRS, FAVORITE_FILES}
+
+    ;
+
+    SHOW_STATUS[] show_status_values = SHOW_STATUS.values();
+
+    SHOW_STATUS show_status = SHOW_STATUS.DIRS_AND_FILES;
 
     private TextView tvFSRoot;
     private ListView lvFSDirs;
@@ -44,10 +54,10 @@ public class MainActivity extends Activity {
         }
     };
 
-    private ArrayList<FileGui> fileGuiContainer = new ArrayList<>();
+    private final ArrayList<FileGui> fileGuiContainer = new ArrayList<>();
 
-    private ArrayList<String> favoriteFiles = new ArrayList<>();
-    private ArrayList<String> favoriteDirectories = new ArrayList<>();
+    private final ArrayList<String> favoriteFiles = new ArrayList<>();
+    private final ArrayList<String> favoriteDirectories = new ArrayList<>();
 
     private ArrayAdapter<String> fsDirsLVAdapter;
     private ListView lvFSFiles;
@@ -57,6 +67,7 @@ public class MainActivity extends Activity {
     private Thread readFileThread;
     private LinearLayout llFSContents;
     private TextView tvFavoriteDir;
+    private LinearLayout llDirsAndFiles;
 
     /**
      * Called when the activity is first created.
@@ -72,6 +83,9 @@ public class MainActivity extends Activity {
 
         lvFSDirs = (ListView) findViewById(R.id.lvFSDirs);
         lvFSFiles = (ListView) findViewById(R.id.lvFSFiles);
+        llDirsAndFiles = (LinearLayout) findViewById(R.id.llDirsAndFiles);
+        llFavoriteDirs = (LinearLayout) findViewById(R.id.llFavoriteDirs);
+        llFavoriteFiles = (LinearLayout) findViewById(R.id.llFavoriteFiles);
         llFSContents = (LinearLayout) findViewById(R.id.llFSContents);
 
         tvFSPrevious.setOnClickListener(new View.OnClickListener() {
@@ -83,10 +97,7 @@ public class MainActivity extends Activity {
 
         tvFavoriteDir.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                if (isFavoriteDir(currentDir.toString()))
-                    removeFavoriteDir(currentDir.toString());
-                else addFavoriteDir(currentDir.toString());
-                setFavoriteDirGuiState();
+                changeCurrentDirectoryFavoriteState();
             }
         });
 
@@ -145,7 +156,205 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * @param newDir
+     *
+     */
+    private void changeCurrentDirectoryFavoriteState() {
+        if (isFavoriteDir(currentDir.toString()))
+            removeFavoriteDir(currentDir.toString());
+        else addFavoriteDir(currentDir.toString());
+        setFavoriteDirGuiState();
+        updateFavoriteDirectories();
+    }
+
+    /**
+     *
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    /* Called whenever we call invalidateOptionsMenu() */
+//    @Override
+//    public boolean onPrepareOptionsMenu(Menu menu) {
+//        // If the nav drawer is open, hide action items related to the content view
+//        boolean drawerOpen = mDrawerLayout.isDrawerOpen(mDrawerList);
+//        menu.findItem(R.id.action_websearch).setVisible(!drawerOpen);
+//        return super.onPrepareOptionsMenu(menu);
+//    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        // Handle action buttons
+        switch (item.getItemId()) {
+            case R.id.action_favorites:
+                Log.d(TAG, "Favorites menu clicked");
+
+                // next scenario
+                show_status = show_status_values[(show_status.ordinal() + 1) % show_status_values.length];
+
+                switch (show_status) {
+                    case DIRS_AND_FILES:
+                        llFavoriteFiles.setVisibility(View.GONE);
+                        llDirsAndFiles.setVisibility(View.VISIBLE);
+                        break;
+                    case FAVORITE_DIRS:
+                        llDirsAndFiles.setVisibility(View.GONE);
+                        llFavoriteDirs.setVisibility(View.VISIBLE);
+                        updateFavoriteDirectories();
+                        break;
+                    case FAVORITE_FILES:
+                        llFavoriteDirs.setVisibility(View.GONE);
+                        llFavoriteFiles.setVisibility(View.VISIBLE);
+                        updateFavoriteFiles();
+                }
+        }
+        return true;
+    }
+
+    /**
+     *
+     */
+    public void updateFavoriteDirectories() {
+        for (int i = 1, size = llFavoriteDirs.getChildCount(); i < size; ++i)
+            llFavoriteDirs.removeViewAt(1);
+
+        for (final String favDir : favoriteDirectories) {
+            if (!favDir.equals(favoriteDirectories.get(0))) {
+                TextView tvSeparator = new TextView(this);
+                tvSeparator.setBackgroundColor(0xff945774); // colors must stat with ff (transparent if not)
+                llFavoriteDirs.addView(tvSeparator, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 2));
+            }
+
+            // linear layout
+            LinearLayout ll = new LinearLayout(this);
+            ll.setOrientation(LinearLayout.HORIZONTAL);
+            ll.setBackgroundColor(0xff190b7d); // colors must stat with ff (transparent if not)
+            ll.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+
+
+            TextView tv = new TextView(this);
+            tv.setText(favDir);
+            tv.setGravity(Gravity.CENTER_VERTICAL);
+            ll.addView(tv, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1.0f));
+
+            TextView tvRemove = new TextView(this);
+            tvRemove.setBackgroundColor(0xff750b72); // colors must stat with ff (transparent if not)
+            tvRemove.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_delete, 0, 0, 0); // presence_offline
+            ll.addView(tvRemove, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+            tvRemove.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    favoriteDirectories.remove(favDir);
+                    updateFavoriteDirectories();
+                    setFavoriteDirGuiState();
+                }
+            });
+
+            TextView tvSpace = new TextView(this);
+            tvSpace.setText("  ");
+            ll.addView(tvSpace);
+
+            // favorite button
+            TextView tvGo = new TextView(this);
+            tvGo.setBackgroundColor(0xff750b72);
+            tvGo.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_set_as, 0, 0, 0); // presence_offline
+            ll.addView(tvGo);
+            tvGo.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    changeToNewDir(new File(favDir));
+                    setFavoriteDirGuiState();
+                }
+            });
+
+
+            llFavoriteDirs.addView(ll);
+        }
+    }
+
+
+    /**
+     *
+     */
+    public void updateFavoriteFiles() {
+        for (int i = 1, size = llFavoriteFiles.getChildCount(); i < size; ++i)
+            llFavoriteFiles.removeViewAt(1);
+
+        for (final String favFile : favoriteFiles) {
+            if (!favFile.equals(favoriteFiles.get(0))) {
+                TextView tvSeparator = new TextView(this);
+                tvSeparator.setBackgroundColor(0xff945774); // colors must stat with ff (transparent if not)
+                llFavoriteFiles.addView(tvSeparator, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 2));
+            }
+
+            // linear layout
+            LinearLayout ll = new LinearLayout(this);
+            ll.setOrientation(LinearLayout.HORIZONTAL);
+            ll.setBackgroundColor(0xff190b7d); // colors must stat with ff (transparent if not)
+            ll.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+
+
+            TextView tv = new TextView(this);
+            tv.setText(favFile);
+            tv.setGravity(Gravity.CENTER_VERTICAL);
+            ll.addView(tv, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1.0f));
+
+            TextView tvRemove = new TextView(this);
+            tvRemove.setBackgroundColor(0xff750b72); // colors must stat with ff (transparent if not)
+            tvRemove.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_delete, 0, 0, 0); // presence_offline
+            ll.addView(tvRemove, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+            tvRemove.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    favoriteFiles.remove(favFile);
+                    // update this view
+                    updateFavoriteFiles();
+                    // update files shown view
+                    updateFavoritesOnFilesShown();
+                }
+            });
+
+            TextView tvSpace = new TextView(this);
+            tvSpace.setText("  ");
+            ll.addView(tvSpace);
+
+            // View file
+            TextView tvViewFile = new TextView(this);
+            tvViewFile.setBackgroundColor(0xff750b72);
+            tvViewFile.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_input_add, 0, 0, 0); // presence_offline
+            ll.addView(tvViewFile);
+            tvViewFile.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    // add file to viewed files
+                    processFile(new File(favFile));
+                }
+            });
+
+            llFavoriteFiles.addView(ll);
+        }
+    }
+
+
+    /**
+     *
+     */
+    private void updateFavoritesOnFilesShown() {
+        for (FileGui fg : fileGuiContainer) {
+            fg.setFavoriteState(favoriteFiles.contains(fg.getFile().toString()));
+        }
+    }
+
+    /**
+     *
      */
     private void changeToNewDir(File newDir) {
 
@@ -156,6 +365,9 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     *
+     */
     public void setFavoriteDirGuiState() {
         tvFavoriteDir.setCompoundDrawablesWithIntrinsicBounds(isFavoriteDir(currentDir.toString()) ?
                 android.R.drawable.star_big_on :
@@ -343,9 +555,8 @@ public class MainActivity extends Activity {
 
         Log.d(TAG, "Saving app state to file: " + stateFile.toString());
 
-        PrintWriter pw = null;
         try {
-            pw = new PrintWriter(stateFile);
+            PrintWriter pw = new PrintWriter(stateFile);
 
             // write main path
             pw.println("mainPath  = " + tvFSRoot.getText().toString());
@@ -387,9 +598,8 @@ public class MainActivity extends Activity {
 
         Log.d(TAG, "Loading app state from file: " + stateFile.toString());
 
-        Scanner scan = null;
         try {
-            scan = new Scanner(stateFile);
+            Scanner scan = new Scanner(stateFile);
 
             // process lines
             while (scan.hasNextLine()) {

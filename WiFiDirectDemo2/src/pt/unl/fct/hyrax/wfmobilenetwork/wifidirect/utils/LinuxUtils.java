@@ -562,10 +562,17 @@ public class LinuxUtils {
         return 100;
     }
 
+
+    public static int getFileLengthFromLsCommand(String file) {
+        String fileLengthStr = executeShellCommandAndGetOutput("ls -ls " + file);
+        String[] tokens = fileLengthStr.split("\\s+");
+        return Integer.parseInt(tokens[3]);
+    }
+
     /**
      *
      */
-    public static String executeShellCommandAndGetOuput(String command) {
+    public static String executeShellCommandAndGetOutput(String command) {
         try {
             // Executes the command.
             Process process = Runtime.getRuntime().exec(command);

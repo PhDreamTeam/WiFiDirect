@@ -37,7 +37,7 @@
     <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" android:layout_weight="1">
+            android:layout_height="match_parent" android:layout_weight="1" android:id="@+id/llDirsAndFiles">
         <LinearLayout
                 android:orientation="vertical"
                 android:layout_width="match_parent"
@@ -70,6 +70,27 @@
                     android:id="@+id/lvFSFiles" android:choiceMode="singleChoice"
                     android:background="#7da7f0"/>
         </LinearLayout>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" android:id="@+id/llFavoriteDirs" android:layout_weight="1"
+            android:visibility="gone">
+        <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="Favorite Directories"
+                android:id="@+id/textView4" android:gravity="center_vertical|center_horizontal"
+                android:background="#945774"/>
+    </LinearLayout>
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent"
+                  android:layout_height="match_parent" android:id="@+id/llFavoriteFiles" android:layout_weight="1"
+                  android:visibility="gone">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="Favorite Files"
+                  android:id="@+id/textView5" android:gravity="center_vertical|center_horizontal"
+                  android:background="#945774"/>
     </LinearLayout>
     <LinearLayout
             android:orientation="vertical"
