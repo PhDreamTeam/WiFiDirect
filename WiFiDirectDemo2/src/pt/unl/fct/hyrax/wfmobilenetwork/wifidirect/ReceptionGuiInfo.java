@@ -28,6 +28,7 @@ class ReceptionGuiInfo {
     Context context;
     String ipAddress;
     int localPort;
+    boolean isTcp;
     boolean terminated = false;
 
     private TextView tvReceivedData;
@@ -51,6 +52,7 @@ class ReceptionGuiInfo {
         context = parentLinearLayout.getContext();
         this.ipAddress = ipAddress.substring(1);
         this.localPort = localPort;
+        this.isTcp = tcpUdp.equalsIgnoreCase("tcp");
         this.transferInfoArrayList = transferInfoArrayList;
         this.clientDataReceiverThreadTCP = cliThread;
 
@@ -349,14 +351,14 @@ class ReceptionGuiInfo {
         });
     }
 
-    /*
+    /**
      *
      */
     public boolean isTerminated() {
         return terminated;
     }
 
-    /*
+    /**
      *
      */
     public static void showYesNoDialog(Context context, String tittle, String msg

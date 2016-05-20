@@ -518,14 +518,13 @@ public class WiFiDirectControlActivity extends Activity {
                 RemoteDeviceServiceInfo rdsi = new RemoteDeviceServiceInfo((HashMap<String, String>) record,
                         device);
 
-                // update list view of bonjour nodes
-                if (!discoveredNodesServicesInfo.containsKey(device.deviceAddress)) {
-                    RemoteDeviceServiceInfo rdsi2 = discoveredNodesServicesInfo.get(device.deviceAddress);
-                    listAdapterPeersWithServices.remove(rdsi2);
+                // remove previous registers if it exist
+                if (discoveredNodesServicesInfo.containsKey(device.deviceAddress)) {
+                    listAdapterPeersWithServices.remove(discoveredNodesServicesInfo.get(device.deviceAddress));
                 }
-                listAdapterPeersWithServices.add(rdsi);
 
-                // update MAP
+                // add new register
+                listAdapterPeersWithServices.add(rdsi);
                 discoveredNodesServicesInfo.put(device.deviceAddress, rdsi);
             }
         };
@@ -752,33 +751,10 @@ public class WiFiDirectControlActivity extends Activity {
      * #requestPeers.
      */
     private void update_P2P_peers_changed(Intent intent) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2 || !update_P2P_peers_changed_API18(intent)) {
-            // API less than 18
-            p2pManager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
-                @Override
-                public void onPeersAvailable(WifiP2pDeviceList peers) {
-                    update_P2P_peers_change_base(peers);
-                }
-            });
-        }
-    }
-
-    /*
-     * Needs API 18 - JELLY_BEAN_MR2
-     */
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-    private boolean update_P2P_peers_changed_API18(Intent intent) {
         WifiP2pDeviceList peers = intent.getParcelableExtra(WifiP2pManager.EXTRA_P2P_DEVICE_LIST);
         if (peers == null)
-            return false;
-        update_P2P_peers_change_base(peers);
-        return true;
-    }
+            return;
 
-    /*
-     *
-     */
-    private void update_P2P_peers_change_base(WifiP2pDeviceList peers) {
         listAdapterPeers.clear();
 
         Collection<WifiP2pDevice> devList = peers.getDeviceList();
@@ -789,6 +765,7 @@ public class WiFiDirectControlActivity extends Activity {
         tvConsole.append("\n  Device list: " + devList.size() + getStrDeviceList(devList));
         tvP2PCGONumberOfClients.setText(Integer.toString(devList.size()) + getStrDeviceList(devList));
     }
+
 
     /*
      * Broadcast intent action indicating that this device details have changed.
@@ -873,19 +850,8 @@ public class WiFiDirectControlActivity extends Activity {
         NetworkInfo networkInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
         tvConsole.append("\n NetworkInfo:  " + networkInfo.toString());
 
-
-        //  EXTRA_WIFI_P2P_GROUP provides the details of the group. Only valid for API >= 18
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2 ||
-                !update_P2P_connection_changed_API18(intent, wifiP2pInfo)) {
-
-            // get wifiP2pGroup in asynchronous way for API 16
-            p2pManager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
-                @Override
-                public void onGroupInfoAvailable(WifiP2pGroup group) {
-                    updateGuiWithP2PGroupInfo(group, wifiP2pInfo);
-                }
-            });
-        }
+        // update p2p connection info
+        update_P2P_connection_changed(intent, wifiP2pInfo);
 
         // we should update the role only if we have the device name
         if (getDeviceName() != null) {
@@ -897,55 +863,46 @@ public class WiFiDirectControlActivity extends Activity {
     }
 
     /*
-     * Needs API 18 - JELLY_BEAN_MR2
-     */
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-    private boolean update_P2P_connection_changed_API18(Intent intent, WifiP2pInfo wifiP2pInfo) {
-        WifiP2pGroup wifiP2pGroup = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
-        if (wifiP2pGroup == null)
-            return false;
-        updateGuiWithP2PGroupInfo(wifiP2pGroup, wifiP2pInfo);
-        return true;
-    }
-
-    /*
      * NOTE: System shows this change, at the beginning or when the connection change,
      * but to get the client list is best to wait for "peers changed"
      */
-    void updateGuiWithP2PGroupInfo(WifiP2pGroup group, WifiP2pInfo wifiP2pInfo) {
-        if (group != null) {
-            tvConsole.append("\n\nP2P CONNECTION CHANGED (cont): p2pGroup:\n " + group.toString());
-            // tvConsole.append(
-            //       "\n-- persistent Group ID (networkID): " + getPersistentGroupIdFromWifiP2PGroup(group));
-            String networkName = group.getNetworkName();
-            textViewWifiDirectState.setText(
-                    "WFD state: " + networkName + (wifiP2pInfo.isGroupOwner ? " (GO)" : ""));
+    private void update_P2P_connection_changed(Intent intent, WifiP2pInfo wifiP2pInfo) {
+        WifiP2pGroup group = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
+        if (group == null)
+            return;
 
-            Log.d(TAG, "P2P CONNECTION CHANGED p2pGroup: " + group.toString());
-            Log.d(TAG, "P2P CONNECTION CHANGED wifiP2pInfo: " + wifiP2pInfo);
+        tvConsole.append("\n\nP2P CONNECTION CHANGED (cont): p2pGroup:\n " + group.toString());
+        // tvConsole.append(
+        //       "\n-- persistent Group ID (networkID): " + getPersistentGroupIdFromWifiP2PGroup(group));
+        String networkName = group.getNetworkName();
+        textViewWifiDirectState.setText(
+                "WFD state: " + networkName + (wifiP2pInfo.isGroupOwner ? " (GO)" : ""));
 
-            if (wifiP2pInfo.isGroupOwner) {
-                // GO
-                tvP2PCGOGroupName.setText(networkName);
-                tvP2PCGOGroupPassword.setText(group.getPassphrase());
-                String goAddress = wifiP2pInfo.groupOwnerAddress.toString().substring(1);
-                tvP2PCGOGOAddress.setText(goAddress);
-                tvP2PDeviceIPAddress.setText(goAddress);
+        Log.d(TAG, "P2P CONNECTION CHANGED p2pGroup: " + group.toString());
+        Log.d(TAG, "P2P CONNECTION CHANGED wifiP2pInfo: " + wifiP2pInfo);
 
-                tvP2PCGONumberOfClients.setText(Integer.toString(group.getClientList().size()) +
-                        getStrDeviceList(group.getClientList()));
+        if (wifiP2pInfo.isGroupOwner) {
+            // GO
+            tvP2PCGOGroupName.setText(networkName);
+            tvP2PCGOGroupPassword.setText(group.getPassphrase());
+            String goAddress = wifiP2pInfo.groupOwnerAddress.toString().substring(1);
+            tvP2PCGOGOAddress.setText(goAddress);
+            tvP2PDeviceIPAddress.setText(goAddress);
 
-                Log.d(TAG, "DeviceList: " + ClientActivity.getClients(group) );
-            } else {
-                // Client: show group name, GO name, GO IP, my address
-                tvP2PCCGroupName.setText(networkName);
-                tvP2PCCGOName.setText(group.getOwner().deviceName);
-                tvP2PCCGOIPAddress.setText(wifiP2pInfo.groupOwnerAddress.toString().substring(1));
-                tvP2PCCMyAddress.setText(getLocalIpAddress(group.getInterface()));
-                tvP2PDeviceIPAddress.setText(getLocalIpAddress(group.getInterface()));
-            }
+            tvP2PCGONumberOfClients.setText(Integer.toString(group.getClientList().size()) +
+                    getStrDeviceList(group.getClientList()));
+
+            Log.d(TAG, "DeviceList: " + ClientActivity.getClients(group));
+        } else {
+            // Client: show group name, GO name, GO IP, my address
+            tvP2PCCGroupName.setText(networkName);
+            tvP2PCCGOName.setText(group.getOwner().deviceName);
+            tvP2PCCGOIPAddress.setText(wifiP2pInfo.groupOwnerAddress.toString().substring(1));
+            tvP2PCCMyAddress.setText(getLocalIpAddress(group.getInterface()));
+            tvP2PDeviceIPAddress.setText(getLocalIpAddress(group.getInterface()));
         }
     }
+
 
     /*
      *
@@ -983,7 +940,6 @@ public class WiFiDirectControlActivity extends Activity {
         }
         return null;
     }
-
 
 
     /*

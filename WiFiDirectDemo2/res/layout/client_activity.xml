@@ -41,14 +41,14 @@
                         android:text="TCP"
                         android:id="@+id/btnCATCP" android:layout_gravity="center_horizontal"
                         android:layout_weight="10"
-                        android:clickable="true"/>
+                        android:clickable="true" android:backgroundTint="#df41ff"/>
                 <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UDP"
                         android:id="@+id/btnCAUDP" android:layout_gravity="center_horizontal"
                         android:layout_weight="10" android:clickable="true" android:backgroundTint="#f41fa021"
                         android:visibility="gone"/>
                 <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UDP Multicast"
                         android:id="@+id/btnCAUDPMulticast" android:layout_gravity="center_horizontal"
-                        android:layout_weight="10" android:clickable="true" android:backgroundTint="#d47222"
+                        android:layout_weight="10" android:clickable="true" android:backgroundTint="#bebd16"
                         android:visibility="gone"/>
                 <Button
                         android:layout_width="wrap_content"

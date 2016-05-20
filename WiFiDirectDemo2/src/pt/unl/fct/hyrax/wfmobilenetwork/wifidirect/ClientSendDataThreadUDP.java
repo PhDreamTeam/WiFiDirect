@@ -15,6 +15,8 @@ import java.nio.ByteBuffer;
  * .
  */
 public class ClientSendDataThreadUDP extends Thread implements IStoppable {
+    public static final String LOG_TAG = ClientActivity.TAG + " UDP";
+
     private int bufferSizeBytes;
     UDPSocket sock;
     String destIpAddress;
@@ -47,12 +49,12 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     }
 
 
-
-
     @Override
     public void run() {
 
         AndroidUtils.toast(tvSentDataKB, "Start transmitting!!!!!");
+        Log.d(LOG_TAG, "Start transmission to CR " + crIpAddress + ":" + crPortNumber + " with dest " +
+                destIpAddress + ":" + destPortNumber);
 
         // get number of buffers to send
         int nBuffersToSend = (int) (dataLimitBytes / bufferSizeBytes) +
@@ -85,7 +87,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             // send destination information for the forward node, at index 8
             System.arraycopy(addressData.getBytes(), 0, buffer, 8, addressData.getBytes().length);
 
-            Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + bufferSizeBytes);
+            Log.d(LOG_TAG, "Using BufferSize: " + bufferSizeBytes);
 
             DatagramPacket packet;
 
@@ -101,19 +103,32 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
                 // build packet and send it
                 packet = new DatagramPacket(buffer, buffer.length, iadCrIpAddress, crPortNumber);
                 cliSocket.send(packet);
-                Log.d(ClientActivity.TAG, "Transmitter UDP: sent datagram number: " + nBuffersToSend);
+                // Log.d(ClientActivity.TAG, "Transmitter UDP: sent datagram number: " + nBuffersToSend);
 
                 nBytesSent += buffer.length;
 
                 updateSentData(nBytesSent, false);
 
                 if (dataLimitBytes != 0 && nBytesSent >= dataLimitBytes) {
-                    run = false;
+                    break;
                 }
 
                 if (delayInterDatagramsMs != 0) {
                     Thread.sleep(delayInterDatagramsMs);
                 }
+            }
+
+            if (!run) {
+                logSession.logMsg("Transmission stopped, by user action");
+                Log.d(LOG_TAG, "Transmission stopped, by user action");
+                cliSocket.close();
+                logSession.close(tvSentDataKB.getContext());
+                tvSentDataKB.post(new Runnable() {
+                    public void run() {
+                        clientActivity.endTransmittingGuiActions(null);
+                    }
+                });
+                return;
             }
 
             // log end writing time
@@ -129,10 +144,9 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             double sentDataMb = (nBytesSent * 8.0) / (1024.0 * 1024.0);
             double globalSentSpeedMbps = sentDataMb / deltaTimeSegs;
             logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", globalSentSpeedMbps));
-            logSession.close(tvSentDataKB.getContext());
+            Log.d(LOG_TAG, "End of transmission, data sent: " + nBytesSent);
 
             cliSocket.close();
-
             tvSentDataKB.post(new Runnable() {
                 public void run() {
                     clientActivity.endTransmittingGuiActions(null);
@@ -140,14 +154,15 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             });
 
         } catch (Exception e) {
-            Log.e(WiFiDirectActivity.TAG, "Error transmitting data: " + e.getMessage());
+            Log.e(LOG_TAG, "Error transmitting data: " + e.getMessage());
             e.printStackTrace();
             AndroidUtils.toast(tvSentDataKB, "Error transmitting data: " + e.getMessage());
             logSession.logMsg("Transmission stopped by user - GUI");
-            logSession.close(tvSentDataKB.getContext());
         } finally {
             AndroidUtils.close(cliSocket);
         }
+
+        logSession.close(tvSentDataKB.getContext());
     }
 
     /*

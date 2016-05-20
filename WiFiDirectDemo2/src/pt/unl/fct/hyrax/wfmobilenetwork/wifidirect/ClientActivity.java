@@ -328,10 +328,7 @@ public class ClientActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        // stop receiving server
-                        clientReceiver.stopThread();
-                        clientReceiver = null;
-                        endReceivingGuiActions();
+                       stopReceivingServerActions();
                     }
                 }
         );
@@ -340,13 +337,7 @@ public class ClientActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        for (Iterator<ReceptionGuiInfo> it = receptionGuiInfos.iterator(); it.hasNext(); ) {
-                            ReceptionGuiInfo rgi = it.next();
-                            if (rgi.isTerminated()) {
-                                llReceptionLogs.removeView(rgi.getView());
-                                it.remove();
-                            }
-                        }
+                        clearReceptionLogs();
                     }
                 }
         );
@@ -510,8 +501,31 @@ public class ClientActivity extends Activity {
     /**
      *
      */
+    private void stopReceivingServerActions() {
+        // stop receiving server
+        clientReceiver.stopThread();
+        clientReceiver = null;
+        endReceivingGuiActions();
+    }
+
+    /**
+     *
+     */
+    private void clearReceptionLogs() {
+        for (Iterator<ReceptionGuiInfo> it = receptionGuiInfos.iterator(); it.hasNext(); ) {
+            ReceptionGuiInfo rgi = it.next();
+            if (rgi.isTerminated()) {
+                llReceptionLogs.removeView(rgi.getView());
+                it.remove();
+            }
+        }
+    }
+
+    /**
+     *
+     */
     private void updateWFInterfaceInfo(NetworkInterface wfInterface) {
-        String baseStr = "WF " + (configurations.isPriorityInterfaceWF() ? "(P)": "") + ":  ";
+        String baseStr = "WF " + (configurations.isPriorityInterfaceWF() ? "(P)" : "") + ":  ";
         if (wfInterface == null) {
             tvWFState.setText(baseStr + "OFF/NC");
             rbMulticastNetIntWF.setVisibility(View.GONE);
@@ -528,7 +542,7 @@ public class ClientActivity extends Activity {
      *
      */
     private void updateWFDInterfaceInfo() {
-        String baseStr = "WFD " + (configurations.isPriorityInterfaceWFD() ? "(P)": "") + ":  ";
+        String baseStr = "WFD " + (configurations.isPriorityInterfaceWFD() ? "(P)" : "") + ":  ";
         if (p2pLastKnownGroup == null)
             tvWFDState.setText(baseStr + "OFF/NC");
         else if (p2pLastKnownGroup.isGroupOwner()) {
@@ -542,14 +556,14 @@ public class ClientActivity extends Activity {
         } else {
             // CLIENT: The GO IP address could not be obtained from arp file
             //String myMacAddressOnWFDInterface = SystemInfo.getInterfaceMacAddress(p2pLastKnownGroup.getInterface());
-           // Log.d("NETINT", AndroidUtils.getHostName()); // net hostname, not wfd device name
+            // Log.d("NETINT", AndroidUtils.getHostName()); // net hostname, not wfd device name
 
             tvWFDState.setText(baseStr +
                     p2pLastKnownGroup.getInterface() + "  " +
                     WiFiDirectControlActivity.getLocalIpAddress(p2pLastKnownGroup.getInterface()) + " " +
                     //SystemInfo.getInterfaceMacAddress(p2pLastKnownGroup.getInterface()) + " " +  // this method gives a different value
                     SystemInfo.getInterfaceMacAddress(p2pLastKnownGroup.getInterface()) + ", MyGO: " +
-                    p2pLastKnownGroup.getOwner().deviceName  + " " +
+                    p2pLastKnownGroup.getOwner().deviceName + " " +
                     networkInterfacesDetector.getGoAddress().toString().substring(1) + " " +
                     p2pLastKnownGroup.getOwner().deviceAddress);
         }

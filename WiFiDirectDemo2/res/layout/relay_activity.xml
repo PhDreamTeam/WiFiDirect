@@ -211,7 +211,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Start Relaying"
-                    android:id="@+id/buttonStartStop"/>
+                    android:id="@+id/buttonStartRelaying"/>
+            <Button android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Sop Relaying" android:id="@+id/buttonStopRelaying" android:backgroundTint="#d47222"
+                    android:visibility="gone"/>
             <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
                           android:layout_height="wrap_content">
                 <TextView

@@ -7,15 +7,12 @@ import android.view.*;
 import android.widget.*;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Scanner;
+import java.util.*;
 
 
 /**
  * The following aspects should be improved:
- * - show favorite in a list, manage them and enable go to Favorite
+ * - ...
  */
 public class MainActivity extends Activity {
 

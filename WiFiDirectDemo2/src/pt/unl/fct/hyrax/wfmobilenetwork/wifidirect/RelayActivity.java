@@ -28,9 +28,13 @@ import java.util.HashMap;
 public class RelayActivity extends Activity {
     public static final String TAG = "Relay Activity";
 
-    RelayActivity myThis;
-    IStoppable crForwarder;
-    Button btnStartStop, btnTcp;
+    private RelayActivity myThis;
+    private IStoppable crForwarder;
+    private Button btnStartRelaying;
+    private Button btnStopRelaying;
+    private Button btnTcp;
+    private Button btnUdp;
+
     private Button btnAddNewRule;
     private EditText etCRNewRuleTo;
     private EditText etCRNewRuleUse;
@@ -50,7 +54,6 @@ public class RelayActivity extends Activity {
     private Button btnEditNewRule;
     private LinearLayout llAddNewRule;
     private Button btnClearRelayRule;
-    private Button btnUdp;
 
     RELAY_TYPE relayType;
     private Button btnTCPOne4All;
@@ -65,6 +68,7 @@ public class RelayActivity extends Activity {
     private TextView tvControlConnectionsFrom;
     private ControlReceiverThread cReveiverThread;
     private Configurations configurations;
+
 
     enum RELAY_TYPE {TCP, UDP, TCP_ONE4ALL, TCP_ONE4ONE}
 
@@ -81,7 +85,8 @@ public class RelayActivity extends Activity {
         configurations = Configurations.readFromConfigurationsFile();
 
         // get gui elements
-        btnStartStop = (Button) findViewById(R.id.buttonStartStop);
+        btnStartRelaying = (Button) findViewById(R.id.buttonStartRelaying);
+        btnStopRelaying = (Button) findViewById(R.id.buttonStopRelaying);
         btnTcp = (Button) findViewById(R.id.btnRATCP);
         btnUdp = (Button) findViewById(R.id.btnRAUDP);
         btnTCPOne4All = (Button) findViewById(R.id.btnRATCPOne4All);
@@ -116,75 +121,46 @@ public class RelayActivity extends Activity {
 
         // Listeners ==============================================
 
-        btnStartStop.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (btnStartStop.getText().toString().equals("Start Relaying")) {
-                            // start relaying
-                            Context context = getApplicationContext();
-                            CRPort = ((EditText) findViewById(R.id.editTextCrPortNumber)).getText().toString();
-                            int bufferSize = 1024 * Integer.parseInt(
-                                    ((EditText) findViewById(R.id.editTextCRMaxBufferSize)).getText().toString());
+        btnStartRelaying.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startRelaying();
+            }
+        });
 
-                            CharSequence text = "Start Relaying at localPort: " + CRPort + "!!!!!";
-                            Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
-                            toast.show();
+        btnStopRelaying.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopRelaying();
+            }
+        });
 
-                            switch (relayType) {
-                                case TCP:
-                                    crForwarder = new CrForwardServerTCP(Integer.parseInt(CRPort)
-                                            , ((TextView) findViewById(R.id.textViewTransferedDataOrigDest))
-                                            , ((TextView) findViewById(R.id.textViewTransferedDataDestOrig))
-                                            , bufferSize, relayRulesMap);
-                                    break;
-                                case UDP:
-                                    crForwarder = new CrForwardServerUDP(Integer.parseInt(CRPort)
-                                            , ((TextView) findViewById(R.id.textViewTransferedDataOrigDest))
-                                            , bufferSize);
-                                    break;
-                                case TCP_ONE4ALL:
+        btnTcp.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                relayType = RELAY_TYPE.TCP;
+                btnTcp.setVisibility(View.GONE);
+                btnTCPOne4All.setVisibility(View.VISIBLE);
+            }
+        });
 
-                            }
-                            crForwarder.start();
-                            btnStartStop.setText("Stop Relaying!!!");
-                        } else {
-                            // stop relaying
-                            crForwarder.stopThread();
-                            btnStartStop.setText("Start Relaying");
-                        }
-                    }
-                });
+        btnTCPOne4All.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                relayType = RELAY_TYPE.TCP_ONE4ALL;
+                btnUdp.setVisibility(View.VISIBLE);
+                btnTCPOne4All.setVisibility(View.GONE);
+            }
+        });
 
-        btnTcp.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        relayType = RELAY_TYPE.TCP;
-                        btnTcp.setVisibility(View.GONE);
-                        btnTCPOne4All.setVisibility(View.VISIBLE);
-                    }
-                });
-
-        btnTCPOne4All.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        relayType = RELAY_TYPE.TCP_ONE4ALL;
-                        btnUdp.setVisibility(View.VISIBLE);
-                        btnTCPOne4All.setVisibility(View.GONE);
-                    }
-                });
-
-        btnUdp.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        relayType = RELAY_TYPE.UDP;
-                        btnTcp.setVisibility(View.VISIBLE);
-                        btnUdp.setVisibility(View.GONE);
-                    }
-                });
+        btnUdp.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                relayType = RELAY_TYPE.UDP;
+                btnTcp.setVisibility(View.VISIBLE);
+                btnUdp.setVisibility(View.GONE);
+            }
+        });
 
         btnEditNewRule.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -213,19 +189,7 @@ public class RelayActivity extends Activity {
         btnClearRelayRule.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (tableLayoutCRRules.getChildCount() == 1) {
-                    Log.d(TAG, "Attempt to remove rule from an empty table, it was ignored.");
-                    return;
-                }
-
-                // get last relay rule
-                TableRow tr = (TableRow) tableLayoutCRRules.getChildAt(tableLayoutCRRules.getChildCount() - 1);
-                String toAddress = ((TextView) tr.getChildAt(0)).getText().toString();
-
-                // remove rule from GUI
-                tableLayoutCRRules.removeView(tr);
-                // remove rule from rules table
-                relayRulesMap.remove(toAddress);
+                clearRelayRule();
             }
         });
 
@@ -300,6 +264,70 @@ public class RelayActivity extends Activity {
 
         // avoid keyboard popping up
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+    }
+
+    /**
+     *
+     */
+    private void clearRelayRule() {
+        if (tableLayoutCRRules.getChildCount() == 1) {
+            Log.d(TAG, "Attempt to remove rule from an empty table, it was ignored.");
+            return;
+        }
+
+        // get last relay rule
+        TableRow tr = (TableRow) tableLayoutCRRules.getChildAt(tableLayoutCRRules.getChildCount() - 1);
+        String toAddress = ((TextView) tr.getChildAt(0)).getText().toString();
+
+        // remove rule from GUI
+        tableLayoutCRRules.removeView(tr);
+        // remove rule from rules table
+        relayRulesMap.remove(toAddress);
+    }
+
+    /**
+     *
+     */
+    private void startRelaying() {
+
+        // start relaying
+        Context context = getApplicationContext();
+        CRPort = ((EditText) findViewById(R.id.editTextCrPortNumber)).getText().toString();
+        int bufferSize = 1024 * Integer.parseInt(
+                ((EditText) findViewById(R.id.editTextCRMaxBufferSize)).getText().toString());
+
+        CharSequence text = "Start Relaying at localPort: " + CRPort + "!!!!!";
+        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
+        toast.show();
+
+        switch (relayType) {
+            case TCP:
+                crForwarder = new CrForwardServerTCP(Integer.parseInt(CRPort)
+                        , ((TextView) findViewById(R.id.textViewTransferedDataOrigDest))
+                        , ((TextView) findViewById(R.id.textViewTransferedDataDestOrig))
+                        , bufferSize, relayRulesMap);
+                break;
+            case UDP:
+                crForwarder = new CrForwardServerUDP(Integer.parseInt(CRPort)
+                        , ((TextView) findViewById(R.id.textViewTransferedDataOrigDest))
+                        , bufferSize);
+                break;
+            case TCP_ONE4ALL:
+
+        }
+        crForwarder.start();
+        btnStartRelaying.setVisibility(View.GONE);
+        btnStopRelaying.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     *
+     */
+    private void stopRelaying() {
+        // stop relaying
+        crForwarder.stopThread();
+        btnStopRelaying.setVisibility(View.GONE);
+        btnStartRelaying.setVisibility(View.VISIBLE);
     }
 
     /*
