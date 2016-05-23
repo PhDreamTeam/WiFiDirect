@@ -30,6 +30,7 @@ import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.SystemInfo;
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -80,6 +81,7 @@ public class ClientActivity extends Activity {
 
 
     private EditText editTextCrIpAddress;
+    private EditText editTextCrIpAddressLastPart;
     private EditText editTextCrPortNumber;
     private EditText editTextDestIpAddress;
     private EditText editTextDestPortNumber;
@@ -147,6 +149,15 @@ public class ClientActivity extends Activity {
     IntentFilter intentFilterScreenOff = new IntentFilter(Intent.ACTION_SCREEN_OFF);
     private WifiP2pGroup p2pLastKnownGroup;
     private Configurations configurations;
+    private EditText etLogDir;
+    private TextView tvChangeLogDir;
+
+    private String multicastLogDirIpAddress = "227.1.0.0";
+    private int multicastLogDirPort = 10000;
+    private TextView tvUpdateLogDirReceiver;
+    private Thread logDirThread;
+    private MulticastSocket multicastReceiverSocket;
+
 
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
 
@@ -182,6 +193,11 @@ public class ClientActivity extends Activity {
         tvWFDState = (TextView) findViewById(R.id.tvCAWFDState);
         tvWFState = (TextView) findViewById(R.id.tvCAWFState);
 
+        // Log Dir ========================================
+        etLogDir = (EditText) findViewById(R.id.etCALogDir);
+        tvChangeLogDir = (TextView) findViewById(R.id.tvCAChangeLogDir);
+        tvUpdateLogDirReceiver = (TextView) findViewById(R.id.tvCAUpdateLogDirReceiver);
+
         // Main zone =====================================
         btnTcp = (Button) findViewById(R.id.btnCATCP);
         btnUdp = (Button) findViewById(R.id.btnCAUDP);
@@ -206,15 +222,16 @@ public class ClientActivity extends Activity {
         llMulticastNetworkInterfaces = findViewByIdAndCast(R.id.llCAUDPMulticastNetInterfaces);
 
         tvCRAddress = (TextView) findViewById(R.id.tvCACRAddress);
-        editTextCrIpAddress = findViewByIdAndCast(R.id.editTextCrIpAddress);
-        editTextCrPortNumber = findViewByIdAndCast(R.id.editTextCrPortNumber);
-        editTextDestIpAddress = findViewByIdAndCast(R.id.editTextDestIpAddress);
-        editTextDestPortNumber = findViewByIdAndCast(R.id.editTextDestPortNumber);
-        editTextTotalBytesToSend = findViewByIdAndCast(R.id.editTextTotalBytesToSend);
-        editTextDelay = findViewByIdAndCast(R.id.editTextDelay);
-        editTextMaxBufferSize = findViewByIdAndCast(R.id.editTextMaxBufferSize);
-        tvTxThrdSentData = findViewByIdAndCast(R.id.textViewCATxThrdSentData);
-        tvTxThrdRcvData = findViewByIdAndCast(R.id.textViewCATxThrdRcvData);
+        editTextCrIpAddress = (EditText) findViewById(R.id.editTextCrIpAddress);
+        editTextCrIpAddressLastPart = (EditText) findViewById(R.id.editTextCrIpAddressLastPart);
+        editTextCrPortNumber = (EditText) findViewById(R.id.editTextCrPortNumber);
+        editTextDestIpAddress = (EditText) findViewById(R.id.editTextDestIpAddress);
+        editTextDestPortNumber = (EditText) findViewById(R.id.editTextDestPortNumber);
+        editTextTotalBytesToSend = (EditText) findViewById(R.id.editTextTotalBytesToSend);
+        editTextDelay = (EditText) findViewById(R.id.editTextDelay);
+        editTextMaxBufferSize = (EditText) findViewById(R.id.editTextMaxBufferSize);
+        tvTxThrdSentData = (TextView) findViewById(R.id.textViewCATxThrdSentData);
+        tvTxThrdRcvData = (TextView) findViewById(R.id.textViewCATxThrdRcvData);
 
         rbSentKBytes = (RadioButton) findViewById(R.id.radioButtonCAKBytesToSend);
         rbSentMBytes = (RadioButton) findViewById(R.id.radioButtonCAMBytesToSend);
@@ -256,9 +273,32 @@ public class ClientActivity extends Activity {
 
         Intent intent = getIntent();
         logDir = intent.getStringExtra("logDir");
+        etLogDir.setText(logDir);
+        etLogDir.setEnabled(false);
 
 
         // set listeners on buttons
+
+        tvChangeLogDir.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (etLogDir.isEnabled()) {
+                    etLogDir.setEnabled(false);
+                    processNewLogDir(etLogDir.getText().toString());
+                } else {
+                    // not enabled
+                    etLogDir.setEnabled(true);
+                }
+
+            }
+        });
+
+        tvUpdateLogDirReceiver.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                updateLogDirReceiver();
+            }
+        });
 
         tvTransmissionZone.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -328,7 +368,7 @@ public class ClientActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                       stopReceivingServerActions();
+                        stopReceivingServerActions();
                     }
                 }
         );
@@ -368,7 +408,12 @@ public class ClientActivity extends Activity {
                         btnSendImage.setEnabled(false);
                         llMulticastNetworkInterfaces.setVisibility(View.VISIBLE);
                         tvCRAddress.setText("MCR Address:");
-                        editTextCrIpAddress.setText(INITIAL_MULTICAST_UDP_IPADDRESS);
+
+                        editTextCrIpAddress.setText(INITIAL_MULTICAST_UDP_IPADDRESS.substring(0,
+                                INITIAL_MULTICAST_UDP_IPADDRESS.lastIndexOf('.')));
+                        editTextCrIpAddressLastPart.setText(INITIAL_MULTICAST_UDP_IPADDRESS.substring(
+                                INITIAL_MULTICAST_UDP_IPADDRESS.lastIndexOf('.') + 1));
+
                         editTextCrPortNumber.setText(String.valueOf(INITIAL_MULTICAST_UDP_PORT));
                         tvReceptionAddress.setText("Multicast Address: ");
                         etMulticastRcvIpAddress.setVisibility(View.VISIBLE);
@@ -389,7 +434,12 @@ public class ClientActivity extends Activity {
                         btnSendImage.setEnabled(true);
                         llMulticastNetworkInterfaces.setVisibility(View.GONE);
                         tvCRAddress.setText("CR Address:");
-                        editTextCrIpAddress.setText(INITIAL_TCP_UDP_IPADDRESS);
+
+                        editTextCrIpAddress.setText(INITIAL_TCP_UDP_IPADDRESS.substring(0,
+                                INITIAL_TCP_UDP_IPADDRESS.lastIndexOf('.')));
+                        editTextCrIpAddressLastPart.setText(INITIAL_TCP_UDP_IPADDRESS.substring(
+                                INITIAL_TCP_UDP_IPADDRESS.lastIndexOf('.') + 1));
+
                         editTextCrPortNumber.setText(String.valueOf(INITIAL_TCP_UDP_PORT));
                         tvReceptionAddress.setText("Receive Port Number: ");
                         etMulticastRcvIpAddress.setVisibility(View.GONE);
@@ -417,7 +467,9 @@ public class ClientActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        setTdlsEnabled(editTextCrIpAddress.getText().toString(), true);
+                        String crIpAddress = editTextCrIpAddress.getText().toString() + "." +
+                                editTextCrIpAddressLastPart.getText().toString();
+                        setTdlsEnabled(crIpAddress, true);
                     }
                 }
         );
@@ -426,7 +478,9 @@ public class ClientActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        setTdlsEnabled(editTextCrIpAddress.getText().toString(), false);
+                        String crIpAddress = editTextCrIpAddress.getText().toString() + "." +
+                                editTextCrIpAddressLastPart.getText().toString();
+                        setTdlsEnabled(crIpAddress, false);
                     }
                 }
         );
@@ -496,11 +550,153 @@ public class ClientActivity extends Activity {
         String taskStr = intent.getStringExtra("taskStr");
         if (taskStr != null)
             processTaskStr(taskStr);
+
+        initLogDirSystem();
+    }
+
+
+    /**
+     *
+     */
+    private void processNewLogDir(final String newLogDir) {
+        if (logDir.equalsIgnoreCase(newLogDir))
+            return;
+        logDir = newLogDir;
+
+        Log.d(TAG, "Processing a new log dir: " + newLogDir);
+
+        etLogDir.post(new Runnable() {
+            @Override
+            public void run() {
+                etLogDir.setText(logDir);
+            }
+        });
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                // get multicast socket, in a dynamic port
+                try {
+                    InetAddress multicastLogDirInetAddress = InetAddress.getByName(multicastLogDirIpAddress);
+
+                    byte buffer[] = new byte[1024];
+
+                    // first 4 bytes contains the string length
+                    ByteBuffer buf = ByteBuffer.allocate(4);
+                    buf.putInt(newLogDir.length());
+                    System.arraycopy(buf.array(), 0, buffer, 0, 4);
+
+                    // write message at index 4
+                    System.arraycopy(newLogDir.getBytes(), 0, buffer, 4, newLogDir.getBytes().length);
+
+                    // build packet and send it
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, multicastLogDirInetAddress, multicastLogDirPort);
+
+                    sendLogDirMessageThroughInterface(packet, wfdNetworkInterface);
+                    sendLogDirMessageThroughInterface(packet, wfNetworkInterface);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        thread.start();
     }
 
     /**
      *
      */
+    private void sendLogDirMessageThroughInterface(DatagramPacket packet, NetworkInterface netInterface) {
+        try {
+            MulticastSocket txLogDirSocket = new MulticastSocket();
+            txLogDirSocket.setTimeToLive(20);
+            txLogDirSocket.setNetworkInterface(netInterface);
+            txLogDirSocket.send(packet);
+            txLogDirSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     *
+     */
+    private void updateLogDirReceiver() {
+        Log.d(TAG, "Update log dir receiver...");
+
+        if (multicastReceiverSocket != null) {
+            //multicastReceiverSocket.close();
+            //multicastReceiverSocket = null;
+            logDirThread.interrupt();
+            logDirThread = null;
+        }
+
+        initLogDirSystem();
+    }
+
+    /**
+     *
+     */
+    private void initLogDirSystem() {
+        // get multicast socket in a local port - must be the same
+        logDirThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                multicastReceiverSocket = null;
+                try {
+                    multicastReceiverSocket = new MulticastSocket(multicastLogDirPort);
+
+
+                    // create multicast socket endpoint
+                    InetSocketAddress iSock = new InetSocketAddress(multicastLogDirIpAddress, multicastLogDirPort);
+
+                    //Log.d(TAG, "Multicast receiver: will use network interface: " + netInterface);
+
+                    // joint the sockets to the multicast group defined by the multicast endpoint using the
+                    // specified interface
+                    if (wfdNetworkInterface != null)
+                        multicastReceiverSocket.joinGroup(iSock, wfdNetworkInterface);
+                    if (wfNetworkInterface != null)
+                        multicastReceiverSocket.joinGroup(iSock, wfNetworkInterface);
+
+                    // return the UDPSocket wrapper class
+//                    final UDPSocket udpSocket = new UDPSocket(multicastLogDirIpAddress, multicastLogDirPort, multicastReceiverSocket);
+
+
+                    byte[] buffer = new byte[1024];
+
+//                    DatagramSocket serverLogDirDatagramSocket = MulticastSocket
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+
+                    try {
+                        while (true) {
+                            // wait for datagrams
+
+                            multicastReceiverSocket.receive(packet);
+
+                            byte[] bufferRcv = packet.getData();
+                            String newLogDir = new String(bufferRcv, 4, ByteBuffer.wrap(bufferRcv, 0, 4).getInt());
+                            Log.d(TAG, "Received new log dir: " + newLogDir);
+                            processNewLogDir(newLogDir);
+
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        logDirThread.start();
+    }
+
+    /**
+     *
+     */
+
     private void stopReceivingServerActions() {
         // stop receiving server
         clientReceiver.stopThread();
@@ -590,10 +786,12 @@ public class ClientActivity extends Activity {
      *
      */
     private void doTransmit(Uri fileToSend) {
-        String crIpAddress = editTextCrIpAddress.getText().toString();
+        String crIpAddress = editTextCrIpAddress.getText().toString() + "." + editTextCrIpAddressLastPart.getText().toString();
         int crPortNumber = Integer.parseInt(editTextCrPortNumber.getText().toString());
+
         String destIpAddress = editTextDestIpAddress.getText().toString();
         int destPortNumber = Integer.parseInt(editTextDestPortNumber.getText().toString());
+
         long totalBytesToSend = Long.parseLong(editTextTotalBytesToSend.getText().toString());
         if (rbSentMBytes.isChecked())
             totalBytesToSend *= 1024;
@@ -1165,6 +1363,7 @@ public class ClientActivity extends Activity {
      */
     private void setEnabledTransmissionInputViews(boolean enable) {
         editTextCrIpAddress.setEnabled(enable);
+        editTextCrIpAddressLastPart.setEnabled(enable);
         editTextCrPortNumber.setEnabled(enable);
         editTextDestIpAddress.setEnabled(enable);
         editTextDestPortNumber.setEnabled(enable);

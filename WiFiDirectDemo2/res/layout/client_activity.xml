@@ -34,6 +34,32 @@
             <LinearLayout
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:background="#910101">
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:text="Lod dir: "
+                        android:id="@+id/textView88" android:layout_gravity="center_vertical"/>
+                <EditText
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/etCALogDir" android:layout_weight="1"
+                        android:layout_gravity="center_vertical" android:textColor="#ffffff"/>
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:id="@+id/tvCAChangeLogDir" android:drawableLeft="@android:drawable/ic_menu_edit"
+                        android:layout_gravity="center_vertical"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:textAppearance="?android:attr/textAppearanceSmall" android:id="@+id/tvCAUpdateLogDirReceiver"
+                          android:drawableLeft="@android:drawable/stat_notify_sync"
+                          android:layout_gravity="center_vertical"/>
+            </LinearLayout>
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
                 <Button
                         android:layout_width="wrap_content"
@@ -41,14 +67,14 @@
                         android:text="TCP"
                         android:id="@+id/btnCATCP" android:layout_gravity="center_horizontal"
                         android:layout_weight="10"
-                        android:clickable="true" android:backgroundTint="#df41ff"/>
+                        android:clickable="true" android:backgroundTint="#2292ff"/>
                 <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UDP"
                         android:id="@+id/btnCAUDP" android:layout_gravity="center_horizontal"
-                        android:layout_weight="10" android:clickable="true" android:backgroundTint="#f41fa021"
+                        android:layout_weight="10" android:clickable="true" android:backgroundTint="#f452b94a"
                         android:visibility="gone"/>
                 <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UDP Multicast"
                         android:id="@+id/btnCAUDPMulticast" android:layout_gravity="center_horizontal"
-                        android:layout_weight="10" android:clickable="true" android:backgroundTint="#bebd16"
+                        android:layout_weight="10" android:clickable="true" android:backgroundTint="#cfb971"
                         android:visibility="gone"/>
                 <Button
                         android:layout_width="wrap_content"
@@ -133,8 +159,27 @@
                         <EditText android:layout_width="0px"
                                   android:layout_height="wrap_content"
                                   android:id="@+id/editTextCrIpAddress"
-                                  android:text="192.168.49.1"
-                                  android:layout_weight="50"/>
+                                  android:text="192.168.49"
+                                  android:layout_weight="40"/>
+                        <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="?android:attr/textAppearanceMedium"
+                                android:text="."
+                                android:id="@+id/textView85"/>
+                        <EditText
+                                android:layout_width="0px"
+                                android:layout_height="wrap_content"
+                                android:inputType="number"
+                                android:ems="10"
+                                android:id="@+id/editTextCrIpAddressLastPart" android:text="1"
+                                android:layout_weight="20"/>
+                        <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="?android:attr/textAppearanceMedium"
+                                android:text=":"
+                                android:id="@+id/textView86"/>
                         <EditText android:layout_width="0px"
                                   android:layout_height="wrap_content"
                                   android:inputType="number"
@@ -150,6 +195,9 @@
                         <EditText android:layout_width="0dp" android:layout_height="wrap_content"
                                   android:id="@+id/editTextDestIpAddress"
                                   android:layout_weight="50" android:text="Rt"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:textAppearance="?android:attr/textAppearanceMedium" android:text=":"
+                                  android:id="@+id/textView87"/>
                         <EditText android:layout_width="0dp" android:layout_height="wrap_content" android:inputType="number"
                                   android:ems="10" android:id="@+id/editTextDestPortNumber" android:text="30000"
                                   android:layout_weight="25"/>

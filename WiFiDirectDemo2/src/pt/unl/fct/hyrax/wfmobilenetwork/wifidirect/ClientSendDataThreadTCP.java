@@ -133,7 +133,8 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         LoggerSession logSession = null;
 
         try {
-            cliSocket = new Socket(getInetAddress(crIpAddress), crPortNumber);
+           // InetAddress localIpAddress = InetAddress.getByName("192.168.49.241");
+            cliSocket = new Socket(getInetAddress(crIpAddress), crPortNumber); //, null, 30001);
             dos = new DataOutputStream(cliSocket.getOutputStream());
             DataInputStream dis = new DataInputStream(cliSocket.getInputStream());
 
