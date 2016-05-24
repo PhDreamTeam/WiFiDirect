@@ -23,6 +23,7 @@ import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.AndroidUtils;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.Configurations;
@@ -150,16 +151,34 @@ public class ClientActivity extends Activity {
     private WifiP2pGroup p2pLastKnownGroup;
     private Configurations configurations;
     private EditText etLogDir;
-    private TextView tvChangeLogDir;
+    private Button btnChangeLogDir;
 
     private String multicastLogDirIpAddress = "227.1.0.0";
     private int multicastLogDirPort = 10000;
-    private TextView tvUpdateLogDirReceiver;
-    private Thread logDirThread;
-    private MulticastSocket multicastReceiverSocket;
+    private Button btnUpdateLogDirReceiver;
+
+    private LogDirMulticastSocketContainer logDirMulticastDataWFD;
+    private LogDirMulticastSocketContainer logDirMulticastDataWF;
 
 
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
+
+    /**
+     *
+     */
+    class LogDirMulticastSocketContainer {
+        boolean isWFDInterface;
+        MulticastSocket multicastSocket;
+        Thread thread;
+
+        public LogDirMulticastSocketContainer(boolean isWFDInterface) {
+            this.isWFDInterface = isWFDInterface;
+        }
+
+        public NetworkInterface getNetworkInterface() {
+            return isWFDInterface ? wfdNetworkInterface : wfNetworkInterface;
+        }
+    }
 
 
     /*
@@ -195,8 +214,8 @@ public class ClientActivity extends Activity {
 
         // Log Dir ========================================
         etLogDir = (EditText) findViewById(R.id.etCALogDir);
-        tvChangeLogDir = (TextView) findViewById(R.id.tvCAChangeLogDir);
-        tvUpdateLogDirReceiver = (TextView) findViewById(R.id.tvCAUpdateLogDirReceiver);
+        btnChangeLogDir = (Button) findViewById(R.id.btnCAChangeLogDir);
+        btnUpdateLogDirReceiver = (Button) findViewById(R.id.btnCAUpdateLogDirReceiver);
 
         // Main zone =====================================
         btnTcp = (Button) findViewById(R.id.btnCATCP);
@@ -279,21 +298,32 @@ public class ClientActivity extends Activity {
 
         // set listeners on buttons
 
-        tvChangeLogDir.setOnClickListener(new View.OnClickListener() {
+        btnChangeLogDir.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (etLogDir.isEnabled()) {
                     etLogDir.setEnabled(false);
-                    processNewLogDir(etLogDir.getText().toString());
+                    processNewLogDir(etLogDir.getText().toString(), null);
+                    // avoid keyboard popping up
+                    getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+                    etLogDir.setBackgroundColor(0xff800000);
                 } else {
-                    // not enabled
+                    // keyboard pop up
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+                    // enabled input
                     etLogDir.setEnabled(true);
+                    // request focus
+                    etLogDir.requestFocus();
+                    // to put focus on the right
+                    etLogDir.setSelection(etLogDir.getText().toString().length());
+                    etLogDir.setBackgroundColor(0xff500000);
                 }
-
             }
         });
+        etLogDir.setBackgroundColor(0xff800000);
 
-        tvUpdateLogDirReceiver.setOnClickListener(new View.OnClickListener() {
+        btnUpdateLogDirReceiver.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 updateLogDirReceiver();
@@ -534,8 +564,6 @@ public class ClientActivity extends Activity {
                 wfNetworkInterface = wfInterface;
 
                 updateWFInterfaceInfo(wfInterface);
-
-
             }
         };
 
@@ -558,7 +586,7 @@ public class ClientActivity extends Activity {
     /**
      *
      */
-    private void processNewLogDir(final String newLogDir) {
+    private void processNewLogDir(final String newLogDir, final NetworkInterface networkInterfaceReceivedData) {
         if (logDir.equalsIgnoreCase(newLogDir))
             return;
         logDir = newLogDir;
@@ -593,8 +621,11 @@ public class ClientActivity extends Activity {
                     // build packet and send it
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length, multicastLogDirInetAddress, multicastLogDirPort);
 
-                    sendLogDirMessageThroughInterface(packet, wfdNetworkInterface);
-                    sendLogDirMessageThroughInterface(packet, wfNetworkInterface);
+                    if (networkInterfaceReceivedData == null || networkInterfaceReceivedData == wfNetworkInterface)
+                        sendLogDirMessageThroughInterface(packet, wfdNetworkInterface);
+
+                    if (networkInterfaceReceivedData == null || networkInterfaceReceivedData == wfdNetworkInterface)
+                        sendLogDirMessageThroughInterface(packet, wfNetworkInterface);
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -608,6 +639,9 @@ public class ClientActivity extends Activity {
      *
      */
     private void sendLogDirMessageThroughInterface(DatagramPacket packet, NetworkInterface netInterface) {
+        if (netInterface == null)
+            return;
+
         try {
             MulticastSocket txLogDirSocket = new MulticastSocket();
             txLogDirSocket.setTimeToLive(20);
@@ -622,81 +656,130 @@ public class ClientActivity extends Activity {
     /**
      *
      */
+    private void stopLogDirReceivingMulticastThreads() {
+        Log.d(TAG, "Stop log dir receiver thread");
+
+        if (logDirMulticastDataWFD.multicastSocket != null) {
+            logDirMulticastDataWFD.multicastSocket.close();
+            logDirMulticastDataWFD.thread.interrupt();
+        }
+
+        if (logDirMulticastDataWF.multicastSocket != null) {
+            logDirMulticastDataWF.multicastSocket.close();
+            logDirMulticastDataWF.thread.interrupt();
+        }
+    }
+
+    /**
+     * just close multicast sockets
+     */
     private void updateLogDirReceiver() {
         Log.d(TAG, "Update log dir receiver...");
 
-        if (multicastReceiverSocket != null) {
-            //multicastReceiverSocket.close();
-            //multicastReceiverSocket = null;
-            logDirThread.interrupt();
-            logDirThread = null;
-        }
+        if (logDirMulticastDataWFD.multicastSocket != null) {
+            logDirMulticastDataWFD.multicastSocket.close();
+        } else if (wfdNetworkInterface != null)
+            logDirStartReceivingMulticastInterface(logDirMulticastDataWFD);
 
-        initLogDirSystem();
+
+        if (logDirMulticastDataWF.multicastSocket != null) {
+            logDirMulticastDataWF.multicastSocket.close();
+        } else if (wfNetworkInterface != null)
+            logDirStartReceivingMulticastInterface(logDirMulticastDataWF);
     }
 
     /**
      *
      */
     private void initLogDirSystem() {
-        // get multicast socket in a local port - must be the same
-        logDirThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                multicastReceiverSocket = null;
-                try {
-                    multicastReceiverSocket = new MulticastSocket(multicastLogDirPort);
+        logDirMulticastDataWFD = new LogDirMulticastSocketContainer(true);
+        logDirMulticastDataWF = new LogDirMulticastSocketContainer(false);
 
+        if (wfdNetworkInterface != null)
+            logDirStartReceivingMulticastInterface(logDirMulticastDataWFD);
 
-                    // create multicast socket endpoint
-                    InetSocketAddress iSock = new InetSocketAddress(multicastLogDirIpAddress, multicastLogDirPort);
-
-                    //Log.d(TAG, "Multicast receiver: will use network interface: " + netInterface);
-
-                    // joint the sockets to the multicast group defined by the multicast endpoint using the
-                    // specified interface
-                    if (wfdNetworkInterface != null)
-                        multicastReceiverSocket.joinGroup(iSock, wfdNetworkInterface);
-                    if (wfNetworkInterface != null)
-                        multicastReceiverSocket.joinGroup(iSock, wfNetworkInterface);
-
-                    // return the UDPSocket wrapper class
-//                    final UDPSocket udpSocket = new UDPSocket(multicastLogDirIpAddress, multicastLogDirPort, multicastReceiverSocket);
-
-
-                    byte[] buffer = new byte[1024];
-
-//                    DatagramSocket serverLogDirDatagramSocket = MulticastSocket
-                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-
-                    try {
-                        while (true) {
-                            // wait for datagrams
-
-                            multicastReceiverSocket.receive(packet);
-
-                            byte[] bufferRcv = packet.getData();
-                            String newLogDir = new String(bufferRcv, 4, ByteBuffer.wrap(bufferRcv, 0, 4).getInt());
-                            Log.d(TAG, "Received new log dir: " + newLogDir);
-                            processNewLogDir(newLogDir);
-
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        logDirThread.start();
+        if (wfNetworkInterface != null)
+            logDirStartReceivingMulticastInterface(logDirMulticastDataWF);
     }
 
     /**
      *
      */
+    private void logDirStartReceivingMulticastInterface(final LogDirMulticastSocketContainer logDirMulticastContainer) {
+        if (logDirMulticastContainer.getNetworkInterface() == null)
+            return;
 
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        try {
+
+                            NetworkInterface networkInterface = logDirMulticastContainer.getNetworkInterface();
+                            if (networkInterface == null) {
+                                logDirMulticastContainer.multicastSocket = null;
+                                logDirMulticastContainer.thread = null;
+                                break;
+                            }
+
+                            // get multicast socket in a local port - must be the same
+                            MulticastSocket multicastReceiverSocket = new MulticastSocket(multicastLogDirPort);
+
+                            // keep multicast socket to enable closing it fro outside
+                            logDirMulticastContainer.multicastSocket = multicastReceiverSocket;
+
+                            // create multicast socket endpoint
+                            InetSocketAddress iSock = new InetSocketAddress(multicastLogDirIpAddress, multicastLogDirPort);
+
+                            // joint multicast group defined by the multicast endpoint with the received interface
+                            Log.d(TAG, "Multicast Log Dir socket is registering in " + networkInterface.getName());
+                            multicastReceiverSocket.joinGroup(iSock, networkInterface);
+
+                            byte[] buffer = new byte[1024];
+                            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+
+                            while (true) {
+                                // wait for datagrams
+                                multicastReceiverSocket.receive(packet);
+
+                                byte[] bufferRcv = packet.getData();
+                                String newLogDir = new String(bufferRcv, 4, ByteBuffer.wrap(bufferRcv, 0, 4).getInt());
+
+                                Log.d(TAG, "Received new log dir: " + newLogDir + " from " +
+                                        packet.getAddress().toString().substring(1));
+
+                                processNewLogDir(newLogDir, networkInterface);
+                            }
+
+                        } catch (SocketException e) {
+
+                        }
+                        // check if to terminate thread
+                        if (Thread.currentThread().isInterrupted()) {
+                            Log.d(TAG, "Log dir receiving thread will die");
+                            return;
+                        }
+
+                        Log.d(TAG, "Log dir receiving thread will renew multicast receiver subscription");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Log.d(TAG, "Log dir receiving thread is dying");
+            }
+
+        });
+
+        thread.start();
+        logDirMulticastContainer.thread = thread;
+    }
+
+    /**
+     *
+     */
     private void stopReceivingServerActions() {
         // stop receiving server
         clientReceiver.stopThread();
@@ -1282,6 +1365,8 @@ public class ClientActivity extends Activity {
 
         if (clientReceiver != null)
             clientReceiver.stopThread();
+
+        stopLogDirReceivingMulticastThreads();
 
         super.onDestroy();
     }

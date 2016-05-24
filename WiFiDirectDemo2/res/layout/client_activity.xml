@@ -39,23 +39,22 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textAppearance="?android:attr/textAppearanceSmall"
-                        android:text="Lod dir: "
+                        android:text=" Log dir: "
                         android:id="@+id/textView88" android:layout_gravity="center_vertical"/>
                 <EditText
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:id="@+id/etCALogDir" android:layout_weight="1"
                         android:layout_gravity="center_vertical" android:textColor="#ffffff"/>
-                <TextView
+                <Button
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textAppearance="?android:attr/textAppearanceSmall"
-                        android:id="@+id/tvCAChangeLogDir" android:drawableLeft="@android:drawable/ic_menu_edit"
-                        android:layout_gravity="center_vertical"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                          android:textAppearance="?android:attr/textAppearanceSmall" android:id="@+id/tvCAUpdateLogDirReceiver"
-                          android:drawableLeft="@android:drawable/stat_notify_sync"
-                          android:layout_gravity="center_vertical"/>
+                        android:id="@+id/btnCAChangeLogDir" android:drawableLeft="@android:drawable/ic_menu_edit"
+                        android:layout_gravity="center_vertical" style="?android:attr/buttonStyleSmall"/>
+                <Button android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:id="@+id/btnCAUpdateLogDirReceiver"
+                        android:layout_gravity="center_vertical" style="?android:attr/buttonStyleSmall"
+                        android:text="Set"/>
             </LinearLayout>
             <LinearLayout
                     android:orientation="horizontal"
