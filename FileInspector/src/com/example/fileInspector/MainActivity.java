@@ -405,6 +405,10 @@ public class MainActivity extends Activity {
             fsFilesLVAdapter.add(fileOnDir.getName());
         }
 
+        // place scrolling to top
+        lvFSDirs.setSelectionAfterHeaderView();
+        lvFSFiles.setSelectionAfterHeaderView();
+
         return true;
     }
 
