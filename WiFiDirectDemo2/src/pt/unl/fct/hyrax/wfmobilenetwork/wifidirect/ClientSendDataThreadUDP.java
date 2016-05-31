@@ -89,6 +89,8 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
 
             Log.d(LOG_TAG, "Using BufferSize: " + bufferSizeBytes);
 
+            Log.d(LOG_TAG, "Sending data (B): " + dataLimitBytes +  ", with BufferSize (B): " + buffer.length);
+
             DatagramPacket packet;
 
             logSession.logTime("Initial time");

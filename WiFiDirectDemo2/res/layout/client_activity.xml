@@ -159,7 +159,7 @@
                                   android:layout_height="wrap_content"
                                   android:id="@+id/editTextCrIpAddress"
                                   android:text="192.168.49"
-                                  android:layout_weight="40"/>
+                                  android:layout_weight="40" android:gravity="center_horizontal"/>
                         <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -172,7 +172,7 @@
                                 android:inputType="number"
                                 android:ems="10"
                                 android:id="@+id/editTextCrIpAddressLastPart" android:text="1"
-                                android:layout_weight="20"/>
+                                android:layout_weight="20" android:gravity="center_horizontal"/>
                         <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -185,75 +185,69 @@
                                   android:ems="10"
                                   android:id="@+id/editTextCrPortNumber"
                                   android:text="30000"
-                                  android:layout_weight="25"/>
+                                  android:layout_weight="25" android:gravity="center_horizontal"/>
                     </LinearLayout>
                     <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
                                   android:layout_height="wrap_content" android:layout_gravity="center_horizontal">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                                  android:text="Dest:" android:id="@+id/textView82" android:layout_weight="25"/>
-                        <EditText android:layout_width="0dp" android:layout_height="wrap_content"
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:text="Dest:" android:id="@+id/textView82"/>
+                        <EditText android:layout_width="wrap_content" android:layout_height="wrap_content"
                                   android:id="@+id/editTextDestIpAddress"
-                                  android:layout_weight="50" android:text="Rt"/>
+                                  android:text="Rt" android:width="100dp" android:layout_weight="1"
+                                  android:gravity="center_horizontal"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                                   android:textAppearance="?android:attr/textAppearanceMedium" android:text=":"
                                   android:id="@+id/textView87"/>
-                        <EditText android:layout_width="0dp" android:layout_height="wrap_content" android:inputType="number"
+                        <EditText android:layout_width="wrap_content" android:layout_height="wrap_content" android:inputType="number"
                                   android:ems="10" android:id="@+id/editTextDestPortNumber" android:text="30000"
-                                  android:layout_weight="25"/>
+                                  android:width="80dp" android:gravity="center_horizontal"/>
+                        <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="/  Buffer (KB):"
+                                android:id="@+id/textView8"/>
+                        <EditText
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:inputType="number"
+                                android:ems="10"
+                                android:id="@+id/editTextMaxBufferSize" android:text="1" android:width="80dp"
+                                android:gravity="center_horizontal"/>
                     </LinearLayout>
                     <LinearLayout
                             android:orientation="horizontal"
                             android:layout_width="fill_parent"
                             android:layout_height="fill_parent">
                         <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:text="Buffer (KB):"
-                                android:id="@+id/textView8" android:layout_weight="1"/>
-                        <EditText
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:inputType="number"
-                                android:ems="10"
-                                android:id="@+id/editTextMaxBufferSize" android:text="1" android:layout_weight="1"/>
-                        <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:text="Delay (ms):"
-                                android:id="@+id/textView2" android:layout_weight="1"/>
-                        <EditText
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:text="0" android:id="@+id/editTextDelay" android:inputType="number"
-                                android:layout_weight="1"/>
-                    </LinearLayout>
-                    <LinearLayout
-                            android:orientation="horizontal" android:layout_width="match_parent"
-                            android:layout_height="wrap_content">
-                        <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Bytes to send:"
+                                android:text="Send: "
                                 android:id="@+id/textView" android:gravity="center_vertical"/>
-                        <RadioGroup
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" android:orientation="horizontal">
-                            <RadioButton
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="KB"
-                                    android:id="@+id/radioButtonCAKBytesToSend" android:checked="false"/>
-                            <RadioButton
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="MB"
-                                    android:id="@+id/radioButtonCAMBytesToSend" android:checked="true"/>
-                        </RadioGroup>
                         <EditText
-                                android:layout_width="match_parent"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:id="@+id/editTextTotalBytesToSend" android:text="100"
-                                android:inputType="number"/>
+                                android:inputType="number" android:width="80dp" android:gravity="center_horizontal"/>
+                        <Button
+                                style="?android:attr/buttonStyleSmall"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="KB"
+                                android:id="@+id/btnCAKBytesToSend" android:visibility="gone"/>
+                        <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:text="MB"
+                                android:id="@+id/btnCAMBytesToSend"/>
+                        <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="/  Delay (ms):"
+                                android:id="@+id/textView2"/>
+                        <EditText
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0" android:id="@+id/editTextDelay" android:inputType="number"
+                                android:width="80dp" android:textAlignment="center"
+                                android:gravity="center_horizontal"/>
                     </LinearLayout>
                 </LinearLayout>
                 <LinearLayout
@@ -362,7 +356,7 @@
                 <LinearLayout
                         android:orientation="horizontal"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent">
+                        android:layout_height="match_parent" android:id="@+id/linearLayoutCAReceptionReplyMode">
 
                     <TextView
                             android:layout_width="wrap_content"

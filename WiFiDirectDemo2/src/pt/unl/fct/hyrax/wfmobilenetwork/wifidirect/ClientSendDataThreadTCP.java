@@ -158,10 +158,11 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 fileName = getFileNameFromURI(sourceUri);
 
                 // Log.d(WiFiDirectActivity.TAG, "File URI: " + sourceUri.toString());
-                Log.d(LOG_TAG, "Sending file: " + fileName + " with length (B): " + fileSize);
+                Log.d(LOG_TAG, "Sending file: " + fileName + " with length (B): " + fileSize +
+                        ", with BufferSize (B): " + buffer.length);
                 dataLimit = 0; // send the complete image
             } else
-                Log.d(LOG_TAG, "Sending data (B): " + dataLimit);
+                Log.d(LOG_TAG, "Sending data (B): " + dataLimit +  ", with BufferSize (B): " + buffer.length);
 
 
             // receive replies from destination
@@ -174,8 +175,6 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             }
             dos.writeInt(addressData.getBytes().length);
             dos.write(addressData.getBytes());
-
-            Log.d(LOG_TAG, "Using BufferSize (B): " + buffer.length);
 
             int dataLen = buffer.length;
 

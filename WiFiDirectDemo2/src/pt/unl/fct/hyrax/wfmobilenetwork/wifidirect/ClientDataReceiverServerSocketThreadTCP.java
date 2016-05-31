@@ -304,7 +304,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
             } catch (IOException e) {
                 // reception terminated not normally
                 String msg =  "Reception from: " + originIP + ":" + originPort + " stopped, cause: " +
-                        (e.getMessage().equals("Socket closed") ? "by user action" : e.getMessage());
+                        (e.getMessage() != null ? (e.getMessage().equals("Socket closed") ? "by user action" : e.getMessage()) : e.getClass());
                 Log.e(LOG_TAG, msg);
                 AndroidUtils.toast(llReceptionZone, msg);
                 receptionGuiInfoGui.setTerminatedState(" - err");
