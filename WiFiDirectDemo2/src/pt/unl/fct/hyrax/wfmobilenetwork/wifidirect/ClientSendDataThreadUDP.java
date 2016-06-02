@@ -24,12 +24,13 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     String crIpAddress;
     int crPortNumber;
     long delayInterDatagramsMs = 0; // number of millis to sleep between each 4096 of sent Bytes
-    long dataLimitBytes = 0;
+    long nBytesToSend = 0;
     long nBytesSent = 0;
     TextView tvSentDataKB;
     boolean run = true;
     double lastUpdate;
     ClientActivity clientActivity;
+    private float nextNotificationValue = 0.1f;
 
     /**
      *
@@ -42,7 +43,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
         this.crIpAddress = sock.getCrIpAddress();
         this.crPortNumber = sock.getCrPort();
         this.delayInterDatagramsMs = delayInterDatagramsMs;
-        this.dataLimitBytes = dataLimitKB * 1024;
+        this.nBytesToSend = dataLimitKB * 1024;
         this.tvSentDataKB = tvSentDataKB;
         this.clientActivity = clientActivity;
         this.bufferSizeBytes = bufferSizeBytes;
@@ -57,8 +58,8 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
                 destIpAddress + ":" + destPortNumber);
 
         // get number of buffers to send
-        int nBuffersToSend = (int) (dataLimitBytes / bufferSizeBytes) +
-                (dataLimitBytes % bufferSizeBytes != 0 ? 1 : 0);
+        int nBuffersToSend = (int) (nBytesToSend / bufferSizeBytes) +
+                (nBytesToSend % bufferSizeBytes != 0 ? 1 : 0);
 
         // start log session and log initial time
         LoggerSession logSession = MainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName(),
@@ -73,6 +74,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
         }
 
         DatagramSocket cliSocket = sock.getSocket();
+        ByteBuffer buf = ByteBuffer.allocate(4);
 
         try {
             InetAddress iadCrIpAddress = InetAddress.getByName(crIpAddress);
@@ -80,16 +82,19 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
 
             // first 4 bytes contains the string length
-            ByteBuffer buf = ByteBuffer.allocate(4);
+            buf.rewind();
             buf.putInt(addressData.length());
             System.arraycopy(buf.array(), 0, buffer, 0, 4);
 
             // send destination information for the forward node, at index 8
             System.arraycopy(addressData.getBytes(), 0, buffer, 8, addressData.getBytes().length);
 
-            Log.d(LOG_TAG, "Using BufferSize: " + bufferSizeBytes);
+            // after the destination information follows the number of buffers
+            buf.rewind();
+            buf.putInt((int) (nBytesToSend / bufferSizeBytes));
+            System.arraycopy(buf.array(), 0, buffer, 8 + addressData.getBytes().length, 4);
 
-            Log.d(LOG_TAG, "Sending data (B): " + dataLimitBytes +  ", with BufferSize (B): " + buffer.length);
+            Log.d(LOG_TAG, "Sending data (B): " + nBytesToSend + ", with BufferSize (B): " + buffer.length);
 
             DatagramPacket packet;
 
@@ -98,7 +103,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
 
             while (run) {
                 // second 4 bytes contains the number fo the datagram, reverse order, last will be zero
-                buf = ByteBuffer.allocate(4);
+                buf.rewind();
                 buf.putInt(--nBuffersToSend);
                 System.arraycopy(buf.array(), 0, buffer, 4, 4);
 
@@ -111,7 +116,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
 
                 updateSentData(nBytesSent, false);
 
-                if (dataLimitBytes != 0 && nBytesSent >= dataLimitBytes) {
+                if (nBytesToSend != 0 && nBytesSent >= nBytesToSend) {
                     break;
                 }
 
@@ -119,6 +124,22 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
                     Thread.sleep(delayInterDatagramsMs);
                 }
             }
+
+            // send forced termination packets
+            Log.d(LOG_TAG, "Sending termination packets");
+            buf.rewind();
+            buf.putInt(-1);
+            System.arraycopy(buf.array(), 0, buffer, 0, 4);
+            packet = new DatagramPacket(buffer, buffer.length, iadCrIpAddress, crPortNumber);
+            cliSocket.send(packet);
+            sleep(100);
+            cliSocket.send(packet);
+            sleep(100);
+            cliSocket.send(packet);
+            sleep(100);
+            cliSocket.send(packet);
+            sleep(100);
+            cliSocket.send(packet);
 
             if (!run) {
                 logSession.logMsg("Transmission stopped, by user action");
@@ -181,6 +202,12 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
                     tvSentDataKB.setText("" + (sentData / 1024));
                 }
             });
+        }
+
+        float bytesSentPercentage = sentData / (float) nBytesToSend;
+        if (bytesSentPercentage > nextNotificationValue) {
+            Log.d(LOG_TAG, "Bytes sent: " + String.format("%.1f", bytesSentPercentage * 100) + "%");
+            nextNotificationValue += 0.1f;
         }
     }
 

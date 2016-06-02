@@ -11,7 +11,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
 import android.media.RingtoneManager;
-import android.net.Uri;
+import android.net.*;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -163,6 +163,8 @@ public class ClientActivity extends Activity {
     private Button btnSentKBytes;
     private Button btnSentMBytes;
     private LinearLayout llReceptionReplyMode;
+    private Button btnBindToNetwork;
+    private Network networkWifi;
 
 
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
@@ -184,8 +186,15 @@ public class ClientActivity extends Activity {
         }
     }
 
+    /**
+     *
+     */
+    public Network getNetworkWifi() {
+        return networkWifi;
+    }
 
-    /*
+
+    /**
      *
      */
     @Override
@@ -203,6 +212,11 @@ public class ClientActivity extends Activity {
 
         // needed for screen off tests
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WFDScreenOFF");
+        wakeLock.acquire();
+        WifiManager.WifiLock wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "wifiLock");
+        wifiLock.acquire();
+        WifiManager.MulticastLock wifiMulticastLock = wifiManager.createMulticastLock("wifiMulticastLock");
+        wifiMulticastLock.acquire();
 
         notificationSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         notificationSoundEndUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
@@ -263,6 +277,7 @@ public class ClientActivity extends Activity {
         rbMulticastNetIntWFD = (RadioButton) findViewById(R.id.rbCAUDPMulticastNetIntWFD);
         rbMulticastNetIntWF = (RadioButton) findViewById(R.id.rbCAUDPMulticastNetIntWF);
 
+        btnBindToNetwork = (Button) findViewById(R.id.btnCABindToNetwork);
 
         // reception zone ========================================
         tvReceptionZone = findViewByIdAndCast(R.id.textViewReceptionZone);
@@ -387,6 +402,13 @@ public class ClientActivity extends Activity {
                     }
                 }
         );
+
+        btnBindToNetwork.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                bindToNetwork();
+            }
+        });
 
         btnSendImage.setOnClickListener(
                 new View.OnClickListener() {
@@ -557,12 +579,6 @@ public class ClientActivity extends Activity {
         //        updateNetworkInterfaces();
         networkInterfacesDetector.updateNetworkInterfaces();
 
-        // Process task string (from file passed as argument, used in ADB sessions) if exists
-        String taskStr = intent.getStringExtra("taskStr");
-        if (taskStr != null)
-            processTaskStr(taskStr);
-
-
         // execute init log dir system but after 2 seconds, it initially is not available
         ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor();
         worker.schedule(new Runnable() {
@@ -570,6 +586,38 @@ public class ClientActivity extends Activity {
                 initLogDirSystem();
             }
         }, 2, TimeUnit.SECONDS);
+
+        // Process task string (from file passed as argument, used in ADB sessions) if exists
+        String taskStr = intent.getStringExtra("taskStr");
+        if (taskStr != null)
+            processTaskStr(taskStr);
+    }
+
+    /**
+     *
+     */
+    private void bindToNetwork() {
+
+        Log.d(TAG, "Bind to Network, calling requestNetwork with TRANSPORT-WIFI");
+
+        ConnectivityManager conManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkRequest.Builder builder = new NetworkRequest.Builder();
+        builder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+        NetworkRequest networkRequest = builder.build();
+
+        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+            public void onAvailable(Network network) {
+                Log.d(TAG, "Network callback, network TRANSPORT-WIFI available: " + network);
+
+                networkWifi = network;
+            }
+            public void onLosing(Network network, int maxMsToLive) {
+                Log.d(TAG, "Network callback, network TRANSPORT-WIFI lost");
+            }
+        };
+
+        conManager.requestNetwork(networkRequest, networkCallback);
     }
 
     /**
@@ -946,7 +994,7 @@ public class ClientActivity extends Activity {
      */
     private void processTaskStr(String taskStr) {
         Log.d(TAG, "TaskString: " + taskStr);
-        HashMap<String, String> map = MainActivity.getParamsMap(taskStr);
+        final HashMap<String, String> map = MainActivity.getParamsMap(taskStr);
 
         String commMode = map.get("mode");
         if (commMode == null || !(commMode.equalsIgnoreCase("tcp") || commMode.equalsIgnoreCase("udp")
@@ -976,9 +1024,17 @@ public class ClientActivity extends Activity {
         // udpMultitask
         else if (commMode.equalsIgnoreCase("udpMulticast")) {
             communicationMode = COMM_MODE.UDP_MULTICAST;
-            if (action.equalsIgnoreCase("receive"))
-                processUDPMulticastReceiveAction(map);
-            else
+            if (action.equalsIgnoreCase("receive")) {
+                // run with some delay to give time to stabilize network interfaces
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        processUDPMulticastReceiveAction(map);
+                    }
+                }, 500);
+
+
+            } else
                 processUDPMulticastTransmitAction(map);
         }
     }
@@ -1461,7 +1517,6 @@ public class ClientActivity extends Activity {
         // consider one test activated
         --numberOfTransmittingTestsToDo;
 
-
         // if screen should be off and it is on wait until user turns it off
 //        if (!screenONOnTests && ((PowerManager) getSystemService(Context.POWER_SERVICE)).isInteractive()) {
 //            // show alert dialog to wait for screen off
@@ -1616,12 +1671,13 @@ public class ClientActivity extends Activity {
             // start timer, after some time
             transmitHandler.postDelayed(transmitTask, delayBeforeEachTransmitTestMS);
         } else {
-            if (isWakeLockRunning) {
-                // end of tests, launch end notification and release wakelock
-                doNotificationEnd();
-                wakeLock.release();
-                isWakeLockRunning = false;
-            }
+            //if (isWakeLockRunning) {
+            // end of tests, launch end notification and release wakelock
+            doNotificationEnd();
+            Log.d(TAG, "END OF TEST .................................");
+            //wakeLock.release();
+            //isWakeLockRunning = false;
+            //}
         }
 
     }
@@ -1735,8 +1791,6 @@ public class ClientActivity extends Activity {
                     // get interface if any
                     NetworkInterface netInterface = rbMulticastNetIntWFD.isChecked() ? wfdNetworkInterface :
                             rbMulticastNetIntWF.isChecked() ? wfNetworkInterface : null;
-
-                    Log.d(TAG, "Multicast transmitter: will use network interface: " + netInterface);
 
                     // build he UDP multicast transmitter socket
                     UDPSocket msock = UDPSocket.getUDPMulticastTransmitterSocket(crIpAddress, crPortNumber,
@@ -1964,6 +2018,9 @@ class UDPSocket {
         MulticastSocket txSocket = new MulticastSocket();
         txSocket.setTimeToLive(20);
 
+        Log.d(ClientActivity.TAG, "Multicast transmitter: will use network interface: " +
+                (netInterface != null ? netInterface.getName() : null));
+
         if (netInterface != null)
             txSocket.setNetworkInterface(netInterface);
 
@@ -1980,8 +2037,8 @@ class UDPSocket {
 
 
     /*
-         * get UDP Multicast Receiver Socket
-         */
+     * get UDP Multicast Receiver Socket
+     */
     public static UDPSocket getUDPMulticastReceiverSocket(String crMulticastIpAddress, int crMulticastPort,
                                                           NetworkInterface netInterface) throws IOException {
         // get multicast socket in a local port - must be the same
@@ -1990,7 +2047,8 @@ class UDPSocket {
         // create multicast socket endpoint
         InetSocketAddress iSock = new InetSocketAddress(crMulticastIpAddress, crMulticastPort);
 
-        //Log.d(TAG, "Multicast receiver: will use network interface: " + netInterface);
+        Log.d(ClientActivity.TAG, "Multicast receiver: will use network interface: " +
+                (netInterface != null ? netInterface.getName() : null));
 
         if (netInterface != null) {
             // joint the sockets to the multicast group defined by the multicast endpoint using the

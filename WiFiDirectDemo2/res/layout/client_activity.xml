@@ -266,15 +266,20 @@
                             android:visibility="gone" android:backgroundTint="#dc650e"
                             android:backgroundTintMode="src_atop"/>
                     <Button
-                            android:layout_width="match_parent"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Send Image"
-                            android:id="@+id/buttonCASendImage" android:layout_weight="1"
+                            android:id="@+id/buttonCASendImage"
                     />
                     <Button android:layout_width="match_parent" android:layout_height="wrap_content"
                             android:text="Send Image" android:id="@+id/buttonCAStopSendingImage" android:layout_weight="1"
                             android:backgroundTint="#dc650e" android:visibility="gone"
                             android:backgroundTintMode="src_atop"/>
+                    <Button
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="B"
+                            android:id="@+id/btnCABindToNetwork"/>
                 </LinearLayout>
                 <LinearLayout
                         android:orientation="horizontal"

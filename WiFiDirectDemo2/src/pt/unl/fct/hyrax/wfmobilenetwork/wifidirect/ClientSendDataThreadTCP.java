@@ -2,6 +2,7 @@ package pt.unl.fct.hyrax.wfmobilenetwork.wifidirect;
 
 import android.content.ContentResolver;
 import android.database.Cursor;
+import android.net.Network;
 import android.net.Uri;
 import android.provider.OpenableColumns;
 import android.util.Log;
@@ -9,6 +10,7 @@ import android.widget.TextView;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.AndroidUtils;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.LoggerSession;
 
+import javax.net.SocketFactory;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -28,7 +30,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     String crIpAddress;
     int crPortNumber;
     long speed = 0; // number of millis to sleep between each 4096 of sent Bytes
-    long dataLimit = 0;
+    long nBytesToSend = 0;
     long rcvData = 0;
     double lastUpdate;
     Uri sourceUri;
@@ -39,19 +41,20 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
 
     Thread rcvThread;
     Socket cliSocket = null;
+    private double nextNotificationValue = 0.1f;
 
     /*
      *
      */
     public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
-            , long speed, long dataLimitKB, TextView tvSentData, TextView tvRcvData, ClientActivity clientActivity, int bufferSize
-            , Uri sourceUri) {
+            , long speed, long dataLimitKB, TextView tvSentData, TextView tvRcvData, ClientActivity clientActivity
+            , int bufferSize, Uri sourceUri) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
         this.crIpAddress = crIpAddress;
         this.crPortNumber = crPortNumber;
         this.speed = speed;
-        this.dataLimit = dataLimitKB * 1024;
+        this.nBytesToSend = dataLimitKB * 1024;
         this.tvSentData = tvSentData;
         this.tvRcvData = tvRcvData;
         this.clientActivity = clientActivity;
@@ -133,8 +136,13 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         LoggerSession logSession = null;
 
         try {
-           // InetAddress localIpAddress = InetAddress.getByName("192.168.49.241");
-            cliSocket = new Socket(getInetAddress(crIpAddress), crPortNumber); //, null, 30001);
+            // Force to used networkWifi, user must press button B in client activity
+//            Network networkWifi = clientActivity.getNetworkWifi();
+//            SocketFactory sf = networkWifi.getSocketFactory();
+//            cliSocket = sf.createSocket(getInetAddress(crIpAddress), crPortNumber);
+
+            // InetAddress localIpAddress = InetAddress.getByName("192.168.49.241");
+            cliSocket = new Socket(getInetAddress(crIpAddress), crPortNumber);
             dos = new DataOutputStream(cliSocket.getOutputStream());
             DataInputStream dis = new DataInputStream(cliSocket.getInputStream());
 
@@ -160,9 +168,9 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 // Log.d(WiFiDirectActivity.TAG, "File URI: " + sourceUri.toString());
                 Log.d(LOG_TAG, "Sending file: " + fileName + " with length (B): " + fileSize +
                         ", with BufferSize (B): " + buffer.length);
-                dataLimit = 0; // send the complete image
+                nBytesToSend = 0; // send the complete image
             } else
-                Log.d(LOG_TAG, "Sending data (B): " + dataLimit +  ", with BufferSize (B): " + buffer.length);
+                Log.d(LOG_TAG, "Sending data (B): " + nBytesToSend + ", with BufferSize (B): " + buffer.length);
 
 
             // receive replies from destination
@@ -175,6 +183,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             }
             dos.writeInt(addressData.getBytes().length);
             dos.write(addressData.getBytes());
+            dos.writeLong(nBytesToSend);
 
             int dataLen = buffer.length;
 
@@ -190,7 +199,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 sentData += dataLen;
                 updateSentData(sentData, false);
 
-                if (dataLimit != 0 && sentData >= dataLimit) {
+                if (nBytesToSend != 0 && sentData >= nBytesToSend) {
                     break;
                 }
                 if (speed != 0) {
@@ -313,6 +322,12 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 }
             });
             updateRcvData();
+        }
+
+        float bytesSentPercentage = sentData / (float)nBytesToSend;
+        if (bytesSentPercentage > nextNotificationValue) {
+            Log.d(LOG_TAG, "Bytes sent: " + String.format("%.1f", bytesSentPercentage * 100) + "%");
+            nextNotificationValue += 0.1f;
         }
     }
 

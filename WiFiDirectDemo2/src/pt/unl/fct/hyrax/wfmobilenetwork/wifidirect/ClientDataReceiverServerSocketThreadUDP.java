@@ -160,6 +160,8 @@ class UDPSession {
     private int senderPortNumber;
     private int bufferSizeBytes;
     private boolean isFinishedTransmission = false;
+    private int nBuffersToBeReceived;
+    private double nextNotificationValue = 0.1f;
 
 
     /**
@@ -198,32 +200,50 @@ class UDPSession {
     }
 
     /**
-     *
+     * first 4 bytes: string with content; second 4 bytes: sequence number (decedent), last is 0
+     * first 4  bytes with -1 means that transmission is already finished by the transmitter
      */
     void processUDPPackage(DatagramPacket packet) {
+        if (isFinishedTransmission())
+            return;
 
         byte[] bufferRcv = packet.getData();
 
-        if (++nBuffersReceived == 1) {
-            String addressInfo = new String(bufferRcv, 8, ByteBuffer.wrap(bufferRcv, 0, 4).getInt());
-            String dataStr[] = addressInfo.split(";");
-            logSession.logMsg("Destination: " + dataStr[0] + ":" + dataStr[1] + "\r\n");
-        }
+        int dimContentString = ByteBuffer.wrap(bufferRcv, 0, 4).getInt();
 
-        // extract datagram number
-        ByteBuffer bufferInt = ByteBuffer.wrap(bufferRcv, 4, 4);
-        int datagramNumber = bufferInt.getInt();
+        if (dimContentString != -1) {
 
-        // logSession.logMsg("Received buffer: " + datagramNumber);
-        // Log.d("FWD Receiver UDP", "Received datagram number: " + datagramNumber +
-        //        " from " + packet.getAddress().toString());
+            if (++nBuffersReceived == 1) {
+                String addressInfo = new String(bufferRcv, 8, dimContentString);
+                String dataStr[] = addressInfo.split(";");
+                logSession.logMsg("Destination: " + dataStr[0] + ":" + dataStr[1] + "\r\n");
 
-        nBytesReceived += bufferRcv.length;
+                nBuffersToBeReceived = ByteBuffer.wrap(bufferRcv, 8 + dimContentString, 4).getInt();
+                Log.d(ClientDataReceiverServerSocketThreadUDP.LOG_TAG,
+                        "Should receive " + nBuffersToBeReceived + " buffers");
+            }
 
-        if (datagramNumber != 0) {
-            // transmission did not finished
-            updateVisualDeltaInformation(false);
-            return;
+            // extract datagram number
+            ByteBuffer bufferInt = ByteBuffer.wrap(bufferRcv, 4, 4);
+            int datagramNumber = bufferInt.getInt();
+
+            // logSession.logMsg("Received buffer: " + datagramNumber);
+            // Log.d("FWD Receiver UDP", "Received datagram number: " + datagramNumber +
+            //        " from " + packet.getAddress().toString());
+
+            nBytesReceived += bufferRcv.length;
+
+            if (datagramNumber != 0) {
+                // transmission did not finished
+                updateVisualDeltaInformation(false);
+                return;
+            }
+        } else {
+            // end of transmission but already lost final packet
+            Log.d(ClientDataReceiverServerSocketThreadUDP.LOG_TAG, "INVALID SESSION: Received termination packet from: " +
+                    senderIpAddress + ":" + senderPortNumber);
+            logSession.logMsg("INVALID SESSION: Received termination packet from: " +
+                    senderIpAddress + ":" + senderPortNumber);
         }
 
         // end of transmission actions
@@ -304,6 +324,14 @@ class UDPSession {
             // logSession.logMsg("DeltaBytes: " + deltaReceivedBytes);
             // logSession.logMsg("CurrentSpeed (Mbps): " + speedMbps);
 
+        }
+
+
+        float bytesReceivedPercentage = nBytesReceived / ((float) nBuffersToBeReceived * bufferSizeBytes);
+        if (bytesReceivedPercentage > nextNotificationValue) {
+            Log.d(ClientDataReceiverServerSocketThreadUDP.LOG_TAG,
+                    "Bytes received: " + String.format("%.1f", bytesReceivedPercentage * 100) + "%");
+            nextNotificationValue += 0.1f;
         }
     }
 

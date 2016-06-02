@@ -138,6 +138,10 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         private String originIP;
         private int originPort;
 
+        float nextNotificationValue = 0.1f;
+
+        long bytesToBeReceived;
+
         ArrayList<DataTransferInfo> transferInfoArrayList = new ArrayList<>();
 
 
@@ -193,6 +197,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 int addressLen = dis.readInt();
                 dis.read(buffer, 0, addressLen);
 
+                bytesToBeReceived = dis.readLong();
+
                 String addressInfo = new String(buffer, 0, addressLen);
                 int firstIdx = addressInfo.indexOf(';');
                 String destIPAddress = addressInfo.substring(0, firstIdx);
@@ -201,7 +207,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 String destPort = addressInfo.substring(firstIdx + 1, secondIdx);
                 Log.d(LOG_TAG,
                         "Received a connection from " + originIP + ":" + originPort +
-                                " with destination: " + destIPAddress + ":" + destPort);
+                                " with destination: " + destIPAddress + ":" + destPort +
+                                " with " + bytesToBeReceived + " bytes to be received");
 
                 // if received data is to store on file
                 String aia[] = addressInfo.split(";");
@@ -367,6 +374,12 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 transferInfoArrayList.add(new DataTransferInfo(speedMbps, elapsedDeltaRcvTimeSeconds,
                         deltaReceivedBytes, currentNanoTime));
+            }
+
+            float bytesReceivedPercentage = nBytesReceived / (float)bytesToBeReceived;
+            if (bytesReceivedPercentage > nextNotificationValue) {
+                Log.d(LOG_TAG, "Bytes received: " + String.format("%.1f", bytesReceivedPercentage * 100) + "%");
+                nextNotificationValue += 0.1f;
             }
         }
 

@@ -94,7 +94,7 @@ public class AndroidUtils {
      */
     public static void buildPath(String path) {
 
-        Log.d("Logger", "Building path: " + path);
+        //Log.d("Logger", "Building path: " + path);
 
         String[] components = path.split("/");
 

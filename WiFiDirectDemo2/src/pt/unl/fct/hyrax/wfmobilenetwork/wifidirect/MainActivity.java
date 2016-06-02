@@ -179,7 +179,7 @@ public class MainActivity extends Activity {
         //getFile2(this, "logs2");
 
         // get task file and process it
-        String taskFile = getIntent().getStringExtra("taskFile");
+        String taskFile = getIntent().getStringExtra("taskFile");  // "taskN62.txt";
         Log.d(TAG, "Task File: " + taskFile);
         if (taskFile != null)
             parseAndExecuteTaskFile(taskFile);
