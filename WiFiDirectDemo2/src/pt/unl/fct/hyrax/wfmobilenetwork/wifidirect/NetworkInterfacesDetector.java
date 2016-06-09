@@ -163,13 +163,13 @@ class NetworkInterfacesDetector {
         try {
             Log.d(ClientActivity.TAG, "List of network interfaces:");
             for (NetworkInterface netInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                Log.d("NETINT", netInterface.toString() + " " + SystemInfo.getMACStringFromBytes(netInterface.getHardwareAddress()));
+                //Log.d("NETINT", netInterface.toString() + " " + SystemInfo.getMACStringFromBytes(netInterface.getHardwareAddress()));
                 // 3G networks don't support broadcast
                 if (!netInterface.isLoopback() && netInterface.isUp() && Collections.list(
                         netInterface.getInetAddresses()).size() == 2 &&
                         ClientActivity.getIPV4AddressWithBroadcast(netInterface) != null) {
-                    Log.d(ClientActivity.TAG, "> " + netInterface + " inetAdrrs " + Collections.list(
-                            netInterface.getInetAddresses()).size() + " " + netInterface.supportsMulticast());
+//                    Log.d(ClientActivity.TAG, "> " + netInterface + " inetAdrrs " + Collections.list(
+//                            netInterface.getInetAddresses()).size() + " " + netInterface.supportsMulticast());
 
                     if (wf == null && netInterface.getName().startsWith("wlan")) {
                         wf = netInterface;

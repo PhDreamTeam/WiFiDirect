@@ -45,16 +45,35 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:id="@+id/etCALogDir" android:layout_weight="1"
-                        android:layout_gravity="center_vertical" android:textColor="#ffffff"/>
+                        android:layout_gravity="center_vertical" android:textColor="#ffffff" android:enabled="false"/>
+                <Button
+                        style="?android:attr/buttonStyleSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Activate"
+                        android:id="@+id/btnCAActivateLogDirSystem"/>
                 <Button
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:id="@+id/btnCAChangeLogDir" android:drawableLeft="@android:drawable/ic_menu_edit"
-                        android:layout_gravity="center_vertical" style="?android:attr/buttonStyleSmall"/>
+                        android:layout_gravity="center_vertical" style="?android:attr/buttonStyleSmall"
+                        android:visibility="gone"/>
                 <Button android:layout_width="wrap_content" android:layout_height="wrap_content"
                         android:id="@+id/btnCAUpdateLogDirReceiver"
                         android:layout_gravity="center_vertical" style="?android:attr/buttonStyleSmall"
-                        android:text="Set"/>
+                        android:text="Set" android:visibility="gone"/>
+                <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:id="@+id/btnCAEditStartTest"
+                        android:layout_gravity="center_vertical" android:text="Edit T." android:visibility="gone"/>
+                <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:id="@+id/btnCASendStartTest"
+                        android:layout_gravity="center_vertical" android:text="Start T." android:visibility="gone"/>
+                <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:id="@+id/btnCACancelStartTest"
+                        android:layout_gravity="center_vertical" android:text="Cancel" android:visibility="gone"/>
+                <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="T. Off"
+                        android:id="@+id/btnCADeactivateLogDirSystem" android:visibility="gone"/>
             </LinearLayout>
             <LinearLayout
                     android:orientation="horizontal"
@@ -257,11 +276,11 @@
                     <Button
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Start Transmitting"
-                            android:id="@+id/buttonCAStartTransmitting" android:layout_gravity="center_horizontal"
+                            android:text="Send data"
+                            android:id="@+id/btnCASendData" android:layout_gravity="center_horizontal"
                             android:layout_weight="1" android:visibility="visible"/>
                     <Button android:layout_width="match_parent" android:layout_height="wrap_content"
-                            android:text="Stop Transmitting" android:id="@+id/buttonCAStopTransmitting"
+                            android:text="Stop Transmitting" android:id="@+id/btnCAStopTransmitting"
                             android:layout_gravity="center_horizontal" android:layout_weight="1"
                             android:visibility="gone" android:backgroundTint="#dc650e"
                             android:backgroundTintMode="src_atop"/>
@@ -269,16 +288,17 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Send Image"
-                            android:id="@+id/buttonCASendImage"
+                            android:id="@+id/btnCASendImage"
                     />
                     <Button android:layout_width="match_parent" android:layout_height="wrap_content"
-                            android:text="Send Image" android:id="@+id/buttonCAStopSendingImage" android:layout_weight="1"
+                            android:text="Send Image" android:id="@+id/btnCAStopSendingImage" android:layout_weight="1"
                             android:backgroundTint="#dc650e" android:visibility="gone"
                             android:backgroundTintMode="src_atop"/>
                     <Button
+                            style="?android:attr/buttonStyleSmall"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="B"
+                            android:text="No bind"
                             android:id="@+id/btnCABindToNetwork"/>
                 </LinearLayout>
                 <LinearLayout
@@ -403,9 +423,9 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Start Receiving"
-                        android:id="@+id/buttonStartServer" android:layout_gravity="center_horizontal"/>
+                        android:id="@+id/btnStartServer" android:layout_gravity="center_horizontal"/>
                 <Button android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:text="Stop Receiving" android:id="@+id/buttonStopServer"
+                        android:text="Stop Receiving" android:id="@+id/btnStopServer"
                         android:layout_gravity="center_horizontal"
                         android:visibility="gone"
                         android:singleLine="false"

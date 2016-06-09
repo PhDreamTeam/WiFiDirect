@@ -33,9 +33,6 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by DR e AT on 20/05/2015.
@@ -94,7 +91,7 @@ public class ClientActivity extends Activity {
     private EditText editTextMaxBufferSize;
     private EditText etReceivePortNumber;
 
-    private Button btnStartServer, btnStartTransmitting, btnTcp;
+    private Button btnStartServer, btnSendData, btnTcp;
     private Button btnRegCrTdls, btnUnRegCrTdls, btnSendImage;
     private Button btnTdls;
     private TextView tvTransmissionZone;
@@ -135,6 +132,7 @@ public class ClientActivity extends Activity {
 
     NetworkInterfacesDetector networkInterfacesDetector;
     private int numberOfTransmittingTestsToDo;
+    private int numberOfCurrentTest = 1;
     private Timer transmittingTimer;
     private int delayBeforeEachTransmitTestMS;
     private Runnable transmitTask;
@@ -165,9 +163,28 @@ public class ClientActivity extends Activity {
     private LinearLayout llReceptionReplyMode;
     private Button btnBindToNetwork;
     private Network networkWifi;
+    private Button btnActivateLogDirSystem;
+    private Button btnDeactivateLogDirSystem;
+    private WifiManager.WifiLock wifiLock;
+    private WifiManager.MulticastLock wifiMulticastLock;
+    private ConnectivityManager conManager;
+    private Network networkWifiDirect;
+    private BIND_TO_NETWORK currentBindToNetwork = BIND_TO_NETWORK.NONE;
+    private Button btnSendStartTest;
+
+    private String lastStartTestMsg = "";
+    private int nextStartTestID = 1;
+    private Button btnCancelStartTest;
+    private Button btnEditStartTest;
+    private Handler guiThreadLoopHandler;
+    private String deviceName;
 
 
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
+
+    enum BIND_TO_NETWORK {NONE, WF, WFD}
+
+    ;
 
     /**
      *
@@ -177,20 +194,46 @@ public class ClientActivity extends Activity {
         MulticastSocket multicastSocket;
         Thread thread;
 
+        /**
+         *
+         */
         public LogDirMulticastSocketContainer(boolean isWFDInterface) {
             this.isWFDInterface = isWFDInterface;
         }
 
+        /**
+         *
+         */
         public NetworkInterface getNetworkInterface() {
             return isWFDInterface ? wfdNetworkInterface : wfNetworkInterface;
+        }
+
+        /**
+         *
+         */
+        void stopReceiving() {
+            if (thread != null) {
+                Log.d(TAG, "Stop receiving logDir system, interface: " + (isWFDInterface ? "WFD" : "WF"));
+                // signal thread to end
+                thread.interrupt();
+                // close socket to force wakeup thread
+                multicastSocket.close();
+            }
         }
     }
 
     /**
      *
      */
-    public Network getNetworkWifi() {
+    public Network getNetworkWF() {
         return networkWifi;
+    }
+
+    /**
+     *
+     */
+    public Network getNetworkWFD() {
+        return networkWifiDirect;
     }
 
 
@@ -207,21 +250,29 @@ public class ClientActivity extends Activity {
         p2pManager = (WifiP2pManager) getSystemService(WIFI_P2P_SERVICE);
         powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        conManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
         channel = p2pManager.initialize(this, getMainLooper(), null);
+
+        guiThreadLoopHandler = new Handler();
 
         // needed for screen off tests
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WFDScreenOFF");
         wakeLock.acquire();
-        WifiManager.WifiLock wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "wifiLock");
+        wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "wifiLock");
         wifiLock.acquire();
-        WifiManager.MulticastLock wifiMulticastLock = wifiManager.createMulticastLock("wifiMulticastLock");
-        wifiMulticastLock.acquire();
+        // multicast lock created, but only activated only when multicast is selected
+        // I suspect that this slows down communications
+        wifiMulticastLock = wifiManager.createMulticastLock("wifiMulticastLock");
 
         notificationSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         notificationSoundEndUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
 
         configurations = Configurations.readFromConfigurationsFile();
+
+        deviceName = configurations.getDeviceName();
+
+        lastStartTestMsg = "start " + deviceName + " ";
 
         //AndroidUtils.toast(this, "onCreate");
         setContentView(R.layout.client_activity);
@@ -234,18 +285,23 @@ public class ClientActivity extends Activity {
         etLogDir = (EditText) findViewById(R.id.etCALogDir);
         btnChangeLogDir = (Button) findViewById(R.id.btnCAChangeLogDir);
         btnUpdateLogDirReceiver = (Button) findViewById(R.id.btnCAUpdateLogDirReceiver);
+        btnActivateLogDirSystem = (Button) findViewById(R.id.btnCAActivateLogDirSystem);
+        btnDeactivateLogDirSystem = (Button) findViewById(R.id.btnCADeactivateLogDirSystem);
+        btnEditStartTest = (Button) findViewById(R.id.btnCAEditStartTest);
+        btnSendStartTest = (Button) findViewById(R.id.btnCASendStartTest);
+        btnCancelStartTest = (Button) findViewById(R.id.btnCACancelStartTest);
 
         // Main zone =====================================
         btnTcp = (Button) findViewById(R.id.btnCATCP);
         btnUdp = (Button) findViewById(R.id.btnCAUDP);
         btnUdpMulticast = (Button) findViewById(R.id.btnCAUDPMulticast);
 
-        btnStartTransmitting = (Button) findViewById(R.id.buttonCAStartTransmitting);
-        btnStopTransmitting = (Button) findViewById(R.id.buttonCAStopTransmitting);
-        btnStartServer = (Button) findViewById(R.id.buttonStartServer);
-        btnStopServer = (Button) findViewById(R.id.buttonStopServer);
-        btnSendImage = (Button) findViewById(R.id.buttonCASendImage);
-        btnStopSendingImage = (Button) findViewById(R.id.buttonCAStopSendingImage);
+        btnSendData = (Button) findViewById(R.id.btnCASendData);
+        btnStopTransmitting = (Button) findViewById(R.id.btnCAStopTransmitting);
+        btnStartServer = (Button) findViewById(R.id.btnStartServer);
+        btnStopServer = (Button) findViewById(R.id.btnStopServer);
+        btnSendImage = (Button) findViewById(R.id.btnCASendImage);
+        btnStopSendingImage = (Button) findViewById(R.id.btnCAStopSendingImage);
 
         btnTdls = (Button) findViewById(R.id.buttonTdls);
         btnRegCrTdls = (Button) findViewById(R.id.buttonRegCrTdls);
@@ -319,6 +375,20 @@ public class ClientActivity extends Activity {
 
         // set listeners on buttons
 
+        btnActivateLogDirSystem.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                activateLogDirSystem();
+            }
+        });
+
+        btnDeactivateLogDirSystem.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deactivateLogDirSystem();
+            }
+        });
+
         btnChangeLogDir.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -350,6 +420,62 @@ public class ClientActivity extends Activity {
                 updateLogDirReceiver();
             }
         });
+
+        btnEditStartTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                btnEditStartTest.setVisibility(View.GONE);
+                btnDeactivateLogDirSystem.setVisibility(View.GONE);
+                btnChangeLogDir.setVisibility(View.GONE);
+                btnUpdateLogDirReceiver.setVisibility(View.GONE);
+
+                btnSendStartTest.setVisibility(View.VISIBLE);
+                btnCancelStartTest.setVisibility(View.VISIBLE);
+
+                // keyboard pop up
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+                // enabled input
+                etLogDir.setEnabled(true);
+                // request focus
+                etLogDir.requestFocus();
+
+                // put last startTestMsg but without the last space and number sequence
+                etLogDir.setText(lastStartTestMsg.substring(0, lastStartTestMsg.lastIndexOf(" ")).trim() + ' ');
+
+                // to put focus on the right
+                etLogDir.setSelection(etLogDir.getText().toString().length());
+                etLogDir.setBackgroundColor(0xff500000);
+            }
+        });
+
+
+        btnSendStartTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                btnSendStartTest_OnClickListener();
+            }
+        });
+
+        btnCancelStartTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                btnSendStartTest.setVisibility(View.GONE);
+                btnCancelStartTest.setVisibility(View.GONE);
+                btnDeactivateLogDirSystem.setVisibility(View.VISIBLE);
+                btnChangeLogDir.setVisibility(View.VISIBLE);
+                btnEditStartTest.setVisibility(View.VISIBLE);
+                btnUpdateLogDirReceiver.setVisibility(View.VISIBLE);
+
+                etLogDir.setText(logDir);
+                etLogDir.setEnabled(false);
+                processNewLogDir(etLogDir.getText().toString(), null);
+                // avoid keyboard popping up
+                getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+                etLogDir.setBackgroundColor(0xff800000);
+            }
+        });
+
 
         tvTransmissionZone.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -383,12 +509,15 @@ public class ClientActivity extends Activity {
             }
         });
 
-        btnStartTransmitting.setOnClickListener(
+        btnSendData.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        // start transmitting
                         startTransmittingGuiActions(false);
                         doTransmit(null);   // send dummy data for tests
+
+                        numberOfTransmittingTestsToDo = numberOfCurrentTest = 1;
                     }
                 });
 
@@ -402,13 +531,6 @@ public class ClientActivity extends Activity {
                     }
                 }
         );
-
-        btnBindToNetwork.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                bindToNetwork();
-            }
-        });
 
         btnSendImage.setOnClickListener(
                 new View.OnClickListener() {
@@ -425,6 +547,29 @@ public class ClientActivity extends Activity {
                     }
                 }
         );
+
+        btnBindToNetwork.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String text = btnBindToNetwork.getText().toString();
+                if (text.equalsIgnoreCase("No bind")) {
+                    btnBindToNetwork.setText("Bind to WF");
+                    currentBindToNetwork = BIND_TO_NETWORK.WF;
+                    // get network wifi to be ready to be used with "bind to network"
+                    requestNetworkWF();
+
+                } else if (text.equalsIgnoreCase("Bind to WF")) {
+                    btnBindToNetwork.setText("Bind to WFD");
+                    currentBindToNetwork = BIND_TO_NETWORK.WFD;
+                    // get network wifiDirect to be ready to be used with "bind to network"
+                    requestNetworkWFD();
+
+                } else if (text.equalsIgnoreCase("Bind to WFD")) {
+                    btnBindToNetwork.setText("No bind");
+                    currentBindToNetwork = BIND_TO_NETWORK.NONE;
+                } else throw new IllegalStateException("btnBindToNetwork with invalid value: " + text);
+            }
+        });
 
         btnStartServer.setOnClickListener(
                 new View.OnClickListener() {
@@ -523,16 +668,6 @@ public class ClientActivity extends Activity {
         // avoid keyboard popping up
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
-
-        // this is needed by Multicast sockets
-        WifiManager wim = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        if (wim != null) {
-            WifiManager.MulticastLock mcLock = wim.createMulticastLock(TAG);
-            mcLock.acquire();
-        } else {
-            throw new RuntimeException("Failed to get context.WIFI_SERVICE, to create Multicast lock");
-        }
-
         // WFD info listener
         WifiP2pManager.GroupInfoListener wfdGroupInfoListener = new WifiP2pManager.GroupInfoListener() {
             @Override
@@ -580,12 +715,12 @@ public class ClientActivity extends Activity {
         networkInterfacesDetector.updateNetworkInterfaces();
 
         // execute init log dir system but after 2 seconds, it initially is not available
-        ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor();
-        worker.schedule(new Runnable() {
-            public void run() {
-                initLogDirSystem();
-            }
-        }, 2, TimeUnit.SECONDS);
+//        ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor();
+//        worker.schedule(new Runnable() {
+//            public void run() {
+//                initLogDirSystem();
+//            }
+//        }, 2, TimeUnit.SECONDS);
 
         // Process task string (from file passed as argument, used in ADB sessions) if exists
         String taskStr = intent.getStringExtra("taskStr");
@@ -596,24 +731,112 @@ public class ClientActivity extends Activity {
     /**
      *
      */
-    private void bindToNetwork() {
+    private void btnSendStartTest_OnClickListener() {
+        btnSendStartTest.setVisibility(View.GONE);
+        btnCancelStartTest.setVisibility(View.GONE);
 
-        Log.d(TAG, "Bind to Network, calling requestNetwork with TRANSPORT-WIFI");
+        Log.d(TAG, "Start test");
 
-        ConnectivityManager conManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        // process start test msg: start N61 N62 1
+        processNewLogDir(etLogDir.getText().toString().trim() + " " + deviceName + "-" + nextStartTestID++, null);
+
+        // write current log dir
+        etLogDir.setText(logDir);
+        etLogDir.setEnabled(false);
+
+        // avoid keyboard popping up
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        etLogDir.setBackgroundColor(0xff800000);
+    }
+
+    /**
+     *
+     */
+    private void activateLogDirSystem() {
+        initLogDirSystem();
+        btnActivateLogDirSystem.setVisibility(View.GONE);
+        btnChangeLogDir.setVisibility(View.VISIBLE);
+        btnUpdateLogDirReceiver.setVisibility(View.VISIBLE);
+        btnDeactivateLogDirSystem.setVisibility(View.VISIBLE);
+        btnEditStartTest.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     *
+     */
+    private void deactivateLogDirSystem() {
+        stopLogDirSystem();
+        btnActivateLogDirSystem.setVisibility(View.VISIBLE);
+        btnChangeLogDir.setVisibility(View.GONE);
+        btnUpdateLogDirReceiver.setVisibility(View.GONE);
+        btnDeactivateLogDirSystem.setVisibility(View.GONE);
+        btnEditStartTest.setVisibility(View.GONE);
+    }
+
+
+    /**
+     *
+     */
+    public void requestNetworkWF() {
+        requestNetworkWFAndExecuteOnAvailable(null);
+    }
+
+    /**
+     *
+     */
+    public void requestNetworkWFAndExecuteOnAvailable(final Runnable task) {
+
+        Log.d(TAG, "Bind to Network: WF; calling requestNetwork with TRANSPORT: WF");
 
         NetworkRequest.Builder builder = new NetworkRequest.Builder();
         builder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
         NetworkRequest networkRequest = builder.build();
 
         ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+
             public void onAvailable(Network network) {
-                Log.d(TAG, "Network callback, network TRANSPORT-WIFI available: " + network);
+                Log.d(TAG, "Network callback, network TRANSPORT: WF, available on " + network);
 
                 networkWifi = network;
+                if (task != null)
+                    task.run();
             }
+
             public void onLosing(Network network, int maxMsToLive) {
-                Log.d(TAG, "Network callback, network TRANSPORT-WIFI lost");
+                Log.d(TAG, "Network callback, network TRANSPORT: WF, lost on " + network);
+            }
+        };
+
+        conManager.requestNetwork(networkRequest, networkCallback);
+    }
+
+    /**
+     *
+     */
+    public void requestNetworkWFD() {
+
+        Log.d(TAG, "Bind to Network: WFD; calling requestNetwork with CAPABILITY: P2P");
+
+        Log.d(TAG, "BIND TO WFD Direct not working on Nexus6 #######################################");
+
+        NetworkRequest.Builder builder = new NetworkRequest.Builder();
+        builder.addCapability(NetworkCapabilities.NET_CAPABILITY_WIFI_P2P);
+        //builder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+        NetworkRequest networkRequest = builder.build();
+
+        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+            public void onAvailable(Network network) {
+                Log.d(TAG, "Network callback, network with capability P2P/WFD, available on " + network);
+
+                networkWifiDirect = network;
+            }
+
+            public void onLosing(Network network, int maxMsToLive) {
+                Log.d(TAG, "Network callback, network TRANSPORT: WFD, lost on " + network);
+            }
+
+            public void onUnavailable() {
+                Log.d(TAG, "Network callback, network with capability P2P/WFD not found");
             }
         };
 
@@ -642,6 +865,9 @@ public class ClientActivity extends Activity {
         tvReceptionAddress.setText("Receive Port Number: ");
         etMulticastRcvIpAddress.setVisibility(View.GONE);
         etReceivePortNumber.setText(String.valueOf(INITIAL_TCP_UDP_PORT));
+
+        Log.d(TAG, "Multicast lock released");
+        wifiMulticastLock.release();
     }
 
     /* *
@@ -679,8 +905,11 @@ public class ClientActivity extends Activity {
         tvReceptionAddress.setText("Multicast Address: ");
         etMulticastRcvIpAddress.setVisibility(View.VISIBLE);
         etReceivePortNumber.setText(String.valueOf(INITIAL_MULTICAST_UDP_PORT));
-    }
 
+        // only acquired when multicast enabled, because I suspect that multicast active is slowing down communications
+        Log.d(TAG, "Multicast lock acquired");
+        wifiMulticastLock.acquire();
+    }
 
     /**
      *
@@ -688,16 +917,55 @@ public class ClientActivity extends Activity {
     private void processNewLogDir(final String newLogDir, final NetworkInterface networkInterfaceReceivedData) {
         if (logDir.equalsIgnoreCase(newLogDir))
             return;
-        logDir = newLogDir;
 
-        Log.d(TAG, "Processing a new log dir: " + newLogDir);
+        if (!newLogDir.startsWith("start ")) {
+            // new log dir
+            logDir = newLogDir;
+            Log.d(TAG, "Processing a new log dir: " + newLogDir);
+            etLogDir.post(new Runnable() {
+                @Override
+                public void run() {
+                    etLogDir.setText(logDir);
+                }
+            });
 
-        etLogDir.post(new Runnable() {
-            @Override
-            public void run() {
-                etLogDir.setText(logDir);
+        } else {
+            // start test msg
+            Log.d(TAG, "Processing a new Start test msg: " + newLogDir);
+
+            if (lastStartTestMsg.equalsIgnoreCase(newLogDir))
+                return;
+            lastStartTestMsg = newLogDir;
+
+            // check if it is not for me
+            if (!newLogDir.contains(deviceName)) {
+                Log.d(TAG, newLogDir + " ignored");
+                return;
             }
-        });
+
+            // wait for 1 one second close logDir System
+            guiThreadLoopHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    Log.d(TAG, "Start test: Terminating logDirSystem");
+                    deactivateLogDirSystem();
+                }
+            }, 1000);
+
+            // in 5 seconds start transmitting
+            guiThreadLoopHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    AndroidUtils.toast(ClientActivity.this, "Start test: Start test");
+
+                    // start transmitting
+                    startTransmittingGuiActions(false);
+                    doTransmit(null);   // send dummy data for tests
+
+                    numberOfTransmittingTestsToDo = numberOfCurrentTest = 1;
+                }
+            }, 5000);
+        }
 
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -757,22 +1025,6 @@ public class ClientActivity extends Activity {
         }
     }
 
-    /**
-     *
-     */
-    private void stopLogDirReceivingMulticastThreads() {
-        Log.d(TAG, "Stop log dir receiver thread");
-
-        if (logDirMulticastDataWFD.multicastSocket != null) {
-            logDirMulticastDataWFD.multicastSocket.close();
-            logDirMulticastDataWFD.thread.interrupt();
-        }
-
-        if (logDirMulticastDataWF.multicastSocket != null) {
-            logDirMulticastDataWF.multicastSocket.close();
-            logDirMulticastDataWF.thread.interrupt();
-        }
-    }
 
     /**
      * just close multicast sockets
@@ -809,6 +1061,19 @@ public class ClientActivity extends Activity {
     /**
      *
      */
+    private void stopLogDirSystem() {
+        if (logDirMulticastDataWFD != null)
+            logDirMulticastDataWFD.stopReceiving();
+
+        if (logDirMulticastDataWF != null)
+            logDirMulticastDataWF.stopReceiving();
+
+        logDirMulticastDataWFD = logDirMulticastDataWF = null;
+    }
+
+    /**
+     *
+     */
     private void logDirStartReceivingMulticastInterface(final LogDirMulticastSocketContainer logDirMulticastContainer) {
         if (logDirMulticastContainer.getNetworkInterface() == null)
             return;
@@ -831,7 +1096,7 @@ public class ClientActivity extends Activity {
                             // get multicast socket in a local port - must be the same
                             MulticastSocket multicastReceiverSocket = new MulticastSocket(multicastLogDirPort);
 
-                            // keep multicast socket to enable closing it fro outside
+                            // keep multicast socket to enable closing it from outside
                             logDirMulticastContainer.multicastSocket = multicastReceiverSocket;
 
                             // create multicast socket endpoint
@@ -970,7 +1235,7 @@ public class ClientActivity extends Activity {
     }
 
     /**
-     *
+     * GUI action to transmit data over TCP, UDP or UDP multicast
      */
     private void doTransmit(Uri fileToSend) {
         String crIpAddress = editTextCrIpAddress.getText().toString() + "." + editTextCrIpAddressLastPart.getText().toString();
@@ -985,7 +1250,7 @@ public class ClientActivity extends Activity {
         long delayMs = Long.parseLong(editTextDelay.getText().toString());
         int bufferSizeBytes = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
 
-        transmitData(fileToSend, crIpAddress, crPortNumber, destIpAddress, destPortNumber, bufferSizeBytes, delayMs, totalKBytesToSend);
+        transmitData(fileToSend, crIpAddress, crPortNumber, destIpAddress, destPortNumber, bufferSizeBytes, delayMs, totalKBytesToSend, currentBindToNetwork);
     }
 
 
@@ -996,47 +1261,77 @@ public class ClientActivity extends Activity {
         Log.d(TAG, "TaskString: " + taskStr);
         final HashMap<String, String> map = MainActivity.getParamsMap(taskStr);
 
-        String commMode = map.get("mode");
+        // communication mode: mode
+        final String commMode = map.get("mode");
         if (commMode == null || !(commMode.equalsIgnoreCase("tcp") || commMode.equalsIgnoreCase("udp")
                 || commMode.equalsIgnoreCase("udpMulticast")))
             throw new IllegalStateException("Client activity, received invalid communication mode parameter: " + commMode);
 
-        String action = map.get("action");
+        // receive or transmit action: action
+        final String action = map.get("action");
         if (action == null || !(action.equalsIgnoreCase("receive") || action.equalsIgnoreCase("transmit")))
             throw new IllegalStateException("Client activity, received invalid action parameter: " + action);
 
-        // TCP
-        if (commMode.equalsIgnoreCase("tcp")) {
-            communicationMode = COMM_MODE.TCP;
-            if (action.equalsIgnoreCase("receive"))
-                processTCPReceiveAction(map);
-            else
-                processTCPTransmitAction(map);
-        }
-        // UDP
-        else if (commMode.equalsIgnoreCase("udp")) {
-            communicationMode = COMM_MODE.UDP;
-            if (action.equalsIgnoreCase("receive"))
-                processUDPReceiveAction(map);
-            else
-                processUDPTransmitAction(map);
-        }
-        // udpMultitask
-        else if (commMode.equalsIgnoreCase("udpMulticast")) {
-            communicationMode = COMM_MODE.UDP_MULTICAST;
-            if (action.equalsIgnoreCase("receive")) {
-                // run with some delay to give time to stabilize network interfaces
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        processUDPMulticastReceiveAction(map);
+        // log directory: logDirectory
+        logDir = map.get("logDirectory");
+        etLogDir.setText(logDir);
+
+        // get bindSocketToNetwork
+        final String bindSocketToNetwork = map.get("bindSocketToNetwork");
+
+        // run with some delay to give time to stabilize network interfaces, need mostly by UDP multicast
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+
+                // TCP
+                if (commMode.equalsIgnoreCase("tcp")) {
+                    communicationMode = COMM_MODE.TCP;
+                    if (action.equalsIgnoreCase("receive"))
+                        processTCPReceiveAction(map);
+
+                    else {
+                        // transmit
+                        if (bindSocketToNetwork != null && bindSocketToNetwork.equalsIgnoreCase("WF")) {
+                            requestNetworkWFAndExecuteOnAvailable(new Runnable() {
+                                @Override
+                                public void run() {
+                                    processTCPTransmitAction(map);
+                                }
+                            });
+                        } else processTCPTransmitAction(map);
                     }
-                }, 500);
+                }
+                // UDP
+                else if (commMode.equalsIgnoreCase("udp")) {
+                    communicationMode = COMM_MODE.UDP;
+                    if (action.equalsIgnoreCase("receive"))
+                        processUDPReceiveAction(map);
 
+                    else {
+                        // transmit
+                        if (bindSocketToNetwork != null && bindSocketToNetwork.equalsIgnoreCase("WF")) {
+                            requestNetworkWFAndExecuteOnAvailable(new Runnable() {
+                                @Override
+                                public void run() {
+                                    processUDPTransmitAction(map);
+                                }
+                            });
+                        } else processUDPTransmitAction(map);
+                    }
+                }
+                // udpMultitask
+                else if (commMode.equalsIgnoreCase("udpMulticast")) {
+                    communicationMode = COMM_MODE.UDP_MULTICAST;
+                    if (action.equalsIgnoreCase("receive")) {
+                        processUDPMulticastReceiveAction(map);
+                    } else
+                        processUDPMulticastTransmitAction(map);
+                }
 
-            } else
-                processUDPMulticastTransmitAction(map);
-        }
+            }
+        }, 500);
+
     }
 
 
@@ -1064,9 +1359,6 @@ public class ClientActivity extends Activity {
 
         if (replyMode == ReplyMode.ECHO) rbReplyInfoEcho.setChecked(true);
         if (replyMode == ReplyMode.OK) rbReplyInfoOKs.setChecked(true);
-
-        // log directory: logDirectory
-        logDir = map.get("logDirectory");
 
         Log.d(TAG, "TCP receive, with: rcvPortNumber = " + rcvPortNumber + ", bufferKB = " + bufferSizeKB +
                 ", replyMode = " + replyMode);
@@ -1096,9 +1388,6 @@ public class ClientActivity extends Activity {
         // buffer size: BufferKB
         String bufferSizeKBStr = map.get("bufferKB");
         int bufferSizeKB = bufferSizeKBStr == null ? 1 : Integer.parseInt(bufferSizeKBStr);
-
-        // log directory: logDirectory
-        logDir = map.get("logDirectory");
 
         Log.d(TAG, "UDP receive, with: rcvPortNumber = " + rcvPortNumber + ", bufferKB = " + bufferSizeKB);
 
@@ -1157,9 +1446,6 @@ public class ClientActivity extends Activity {
         String bufferSizeKBStr = map.get("bufferKB");
         int bufferSizeKB = bufferSizeKBStr == null ? 1 : Integer.parseInt(bufferSizeKBStr);
 
-        // log directory: logDirectory
-        logDir = map.get("logDirectory");
-
         Log.d(TAG, "UDP multicast receive: mc address = " + rcvMulticastAddressStr +
                 ", mc portNumber = " + rcvMulticastPortNumber +
                 ", mc netInterface = " + multicastNetworkInterface + ", bufferKB = " + bufferSizeKB);
@@ -1213,6 +1499,19 @@ public class ClientActivity extends Activity {
             throw new IllegalStateException("Client activity, transmit with no dest port number");
         final int destPortNumber = Integer.parseInt(destPortNumberStr);
 
+        //  bindSocketToNetwork
+        BIND_TO_NETWORK bindToNetwork = BIND_TO_NETWORK.NONE;
+        String bindSocketToNetworkStr = map.get("bindSocketToNetwork");
+        if (bindSocketToNetworkStr != null) {
+            if (bindSocketToNetworkStr.equalsIgnoreCase("WF"))
+                bindToNetwork = BIND_TO_NETWORK.WF;
+            else if (bindSocketToNetworkStr.equalsIgnoreCase("WFD"))
+                bindToNetwork = BIND_TO_NETWORK.WFD;
+            else throw new IllegalStateException("Client activity, transmit bind to network with invalid value: " +
+                        bindSocketToNetworkStr);
+        } else bindToNetwork = BIND_TO_NETWORK.NONE;
+        final BIND_TO_NETWORK finalBindToNetwork = bindToNetwork;
+
         // buffer size: BufferKB
         String bufferSizeKBStr = map.get("bufferKB");
         final int bufferSizeKB = bufferSizeKBStr == null ? 1 : Integer.parseInt(bufferSizeKBStr);
@@ -1240,12 +1539,10 @@ public class ClientActivity extends Activity {
         String screenOnTestsStr = map.get("screenOnTests");
         boolean screenONOnTests = delayBeforeEachTestMSStr == null || Boolean.parseBoolean(screenOnTestsStr);
 
-        // log directory: logDirectory
-        logDir = map.get("logDirectory");
-
         Log.d(TAG, "TCP transmit, with: crIpAddress = " + crIpAddress + ", crPortNumber = " + crPortNumber +
-                ", destIpAddress = " + destIpAddress + ", destPortNumber = " + destPortNumber + ", bufferSizeKB = " +
-                bufferSizeKB + ", delayMs = " + delayMs + ", totalBytesToSend = " + totalKBToSend +
+                ", destIpAddress = " + destIpAddress + ", destPortNumber = " + destPortNumber +
+                ", bind to network = " + bindToNetwork + ", bufferSizeKB = " + bufferSizeKB +
+                ", delayMs = " + delayMs + ", totalBytesToSend = " + totalKBToSend +
                 ", with numberOfTests = " + numberOfTransmittingTestsToDo +
                 ", delay BeforeEachTestMs = " + delayBeforeEachTestMSStr + ", screenOnTests = " + screenOnTestsStr);
 
@@ -1254,7 +1551,7 @@ public class ClientActivity extends Activity {
         transmitTask = new Runnable() {
             public void run() {
                 // update gui
-                btnStartTransmitting.post(new Runnable() {
+                btnSendData.post(new Runnable() {
                     public void run() {
                         startTransmittingGuiActions(false);
                         //alertDialogScreenOff.cancel();
@@ -1263,19 +1560,16 @@ public class ClientActivity extends Activity {
 
                 doNotificationStart();
 
-                Log.d(TAG, "Will run test nº: " + numberOfTransmittingTestsToDo);
+                Log.d(TAG, "Will run test nº: " + numberOfCurrentTest + " of " + numberOfTransmittingTestsToDo);
 
                 // start transmitting
                 transmitData(null, crIpAddress, crPortNumber, destIpAddress, destPortNumber, bufferSizeKB * 1024, delayMs,
-                        totalKBToSend); // send dummy data for tests
+                        totalKBToSend, finalBindToNetwork); // send dummy data for tests
             }
         };
 
         // create transmit handler and schedule transmit task, count with one less transmit task
         transmitHandler = new Handler();
-
-        // consider one test activated
-        --numberOfTransmittingTestsToDo;
 
 //        if (!screenONOnTests && ((PowerManager) getSystemService(Context.POWER_SERVICE)).isInteractive()) {
 //            // show alert dialog to wait for screen off
@@ -1300,7 +1594,12 @@ public class ClientActivity extends Activity {
      */
     private void processUDPTransmitAction(HashMap<String, String> map) {
 
-        setUdpCommunicationMode();
+        btnSendData.post(new Runnable() {
+            public void run() {
+                setUdpCommunicationMode();
+            }
+        });
+
 
         // CR IP address: crAddress = 192.168.49.1
         final String crIpAddress = map.get("crAddress");
@@ -1323,6 +1622,19 @@ public class ClientActivity extends Activity {
         if (destPortNumberStr == null)
             throw new IllegalStateException("Client activity, transmit with no dest port number");
         final int destPortNumber = Integer.parseInt(destPortNumberStr);
+
+        //  bindSocketToNetwork
+        BIND_TO_NETWORK bindToNetwork = BIND_TO_NETWORK.NONE;
+        String bindSocketToNetworkStr = map.get("bindSocketToNetwork");
+        if (bindSocketToNetworkStr != null) {
+            if (bindSocketToNetworkStr.equalsIgnoreCase("WF"))
+                bindToNetwork = BIND_TO_NETWORK.WF;
+            else if (bindSocketToNetworkStr.equalsIgnoreCase("WFD"))
+                bindToNetwork = BIND_TO_NETWORK.WFD;
+            else throw new IllegalStateException("Client activity, transmit bind to network with invalid value: " +
+                        bindSocketToNetworkStr);
+        } else bindToNetwork = BIND_TO_NETWORK.NONE;
+        final BIND_TO_NETWORK finalBindToNetwork = bindToNetwork;
 
         // buffer size: BufferKB
         String bufferSizeKBStr = map.get("bufferKB");
@@ -1351,12 +1663,10 @@ public class ClientActivity extends Activity {
         String screenOnTestsStr = map.get("screenOnTests");
         boolean screenONOnTests = delayBeforeEachTestMSStr == null || Boolean.parseBoolean(screenOnTestsStr);
 
-        // log directory: logDirectory
-        logDir = map.get("logDirectory");
-
         Log.d(TAG, "UDP transmit, with: crIpAddress = " + crIpAddress + ", crPortNumber = " + crPortNumber +
-                ", destIpAddress = " + destIpAddress + ", destPortNumber = " + destPortNumber + ", bufferSizeKB = " +
-                bufferSizeKB + ", delayMs = " + delayMs + ", totalBytesToSend = " + totalKBToSend +
+                ", destIpAddress = " + destIpAddress + ", destPortNumber = " + destPortNumber +
+                ", bind to network = " + bindToNetwork + ", bufferSizeKB = " + bufferSizeKB +
+                ", delayMs = " + delayMs + ", totalBytesToSend = " + totalKBToSend +
                 ", with numberOfTests = " + numberOfTransmittingTestsToDo +
                 ", delay BeforeEachTestMs = " + delayBeforeEachTestMSStr + ", screenOnTests = " + screenOnTestsStr);
 
@@ -1365,7 +1675,7 @@ public class ClientActivity extends Activity {
         transmitTask = new Runnable() {
             public void run() {
                 // update gui
-                btnStartTransmitting.post(new Runnable() {
+                btnSendData.post(new Runnable() {
                     public void run() {
                         startTransmittingGuiActions(false);
                         //alertDialogScreenOff.cancel();
@@ -1374,19 +1684,16 @@ public class ClientActivity extends Activity {
 
                 doNotificationStart();
 
-                Log.d(TAG, "Will run test nº: " + numberOfTransmittingTestsToDo);
+                Log.d(TAG, "Will run test nº: " + numberOfCurrentTest + " of " + numberOfTransmittingTestsToDo);
 
                 // start transmitting
                 transmitData(null, crIpAddress, crPortNumber, destIpAddress, destPortNumber, bufferSizeKB * 1024, delayMs,
-                        totalKBToSend); // send dummy data for tests
+                        totalKBToSend, finalBindToNetwork); // send dummy data for tests
             }
         };
 
         // create transmit handler and schedule transmit task, count with one less transmit task
         transmitHandler = new Handler();
-
-        // consider one test activated
-        --numberOfTransmittingTestsToDo;
 
 
         // if screen should be off and it is on wait until user turns it off
@@ -1479,9 +1786,6 @@ public class ClientActivity extends Activity {
         String screenOnTestsStr = map.get("screenOnTests");
         boolean screenONOnTests = delayBeforeEachTestMSStr == null || Boolean.parseBoolean(screenOnTestsStr);
 
-        // log directory: logDirectory
-        logDir = map.get("logDirectory");
-
         Log.d(TAG, "UDP Multicast transmit: mc networkInterface = " + multicastNetworkInterface +
                 ", mc Address = " + multicastAddressStr +
                 ", mc portNumber = " + multicastPortNumber +
@@ -1494,7 +1798,7 @@ public class ClientActivity extends Activity {
         transmitTask = new Runnable() {
             public void run() {
                 // update gui
-                btnStartTransmitting.post(new Runnable() {
+                btnSendData.post(new Runnable() {
                     public void run() {
                         startTransmittingGuiActions(false);
                         //alertDialogScreenOff.cancel();
@@ -1503,19 +1807,16 @@ public class ClientActivity extends Activity {
 
                 doNotificationStart();
 
-                Log.d(TAG, "Will run test nº: " + numberOfTransmittingTestsToDo);
+                Log.d(TAG, "Will run test nº: " + numberOfCurrentTest + " of " + numberOfTransmittingTestsToDo);
 
                 // start transmitting
                 transmitData(null, multicastAddressStr, multicastPortNumber, destIpAddress, destPortNumber, bufferSizeKB * 1024, delayMs,
-                        totalKBToSend); // send dummy data for tests
+                        totalKBToSend, BIND_TO_NETWORK.NONE); // send dummy data for tests
             }
         };
 
         // create transmit handler and schedule transmit task, count with one less transmit task
         transmitHandler = new Handler();
-
-        // consider one test activated
-        --numberOfTransmittingTestsToDo;
 
         // if screen should be off and it is on wait until user turns it off
 //        if (!screenONOnTests && ((PowerManager) getSystemService(Context.POWER_SERVICE)).isInteractive()) {
@@ -1565,6 +1866,13 @@ public class ClientActivity extends Activity {
     /*
      *
      */
+    public void doNotification(String id, String text) {
+        notify(this, 0, id, text, null, Color.WHITE, 1, 0);
+    }
+
+    /*
+     *
+     */
     public void doNotificationWait() {
         // led flashing
         notify(this, 0, "Test", "Wait...", null, Color.BLUE, 100, 1000);
@@ -1575,7 +1883,8 @@ public class ClientActivity extends Activity {
      */
     public void doNotificationStart() {
         // led flashing
-        notify(this, 0, "Test", "Running...", notificationSoundUri, Color.RED, 100, 1000);
+        notify(this, 0, "Test", "Running test " + numberOfCurrentTest + " of " + numberOfTransmittingTestsToDo,
+                notificationSoundUri, Color.RED, 100, 1000);
     }
 
     /*
@@ -1637,13 +1946,13 @@ public class ClientActivity extends Activity {
      */
     public void startTransmittingGuiActions(boolean sendingFile) {
         if (!sendingFile) {
-            btnStartTransmitting.setVisibility(View.GONE);
+            btnSendData.setVisibility(View.GONE);
             btnStopTransmitting.setVisibility(View.VISIBLE);
             btnSendImage.setEnabled(false);
         } else {
             btnSendImage.setVisibility(View.GONE);
             btnStopSendingImage.setVisibility(View.VISIBLE);
-            btnStartTransmitting.setEnabled(false);
+            btnSendData.setEnabled(false);
         }
         setEnabledTransmissionInputViews(false);
     }
@@ -1653,22 +1962,22 @@ public class ClientActivity extends Activity {
      */
     public void endTransmittingGuiActions(Uri sourceUri) {
         if (sourceUri == null) {
-            btnStartTransmitting.setVisibility(View.VISIBLE);
+            btnSendData.setVisibility(View.VISIBLE);
             btnStopTransmitting.setVisibility(View.GONE);
             if (communicationMode == COMM_MODE.TCP)
                 btnSendImage.setEnabled(true);
         } else {
             btnStopSendingImage.setVisibility(View.GONE);
             btnSendImage.setVisibility(View.VISIBLE);
-            btnStartTransmitting.setEnabled(true);
+            btnSendData.setEnabled(true);
         }
         setEnabledTransmissionInputViews(true);
 
         // there is more transmit tests to be done?
-        if (--numberOfTransmittingTestsToDo >= 0) {
+        if (++numberOfCurrentTest <= numberOfTransmittingTestsToDo) {
             doNotificationWait();
 
-            // start timer, after some time
+            // start new execution, after some time
             transmitHandler.postDelayed(transmitTask, delayBeforeEachTransmitTestMS);
         } else {
             //if (isWakeLockRunning) {
@@ -1768,23 +2077,29 @@ public class ClientActivity extends Activity {
      * transmitData
      */
     private void transmitData(Uri fileToSend, String crIpAddress, int crPortNumber, String destIpAddress,
-                              int destPortNumber, int bufferSizeKB, long delayMs, long totalBytesToSend) {
+                              int destPortNumber, int bufferSizeKB, long delayMs, long totalBytesToSend,
+                              BIND_TO_NETWORK bindToNetwork) {
 
         try {
             switch (communicationMode) {
                 case TCP:
                     clientTransmitter = new ClientSendDataThreadTCP(destIpAddress, destPortNumber
                             , crIpAddress, crPortNumber, delayMs, totalBytesToSend
-                            , tvTxThrdSentData, tvTxThrdRcvData, this, bufferSizeKB, fileToSend);
+                            , tvTxThrdSentData, tvTxThrdRcvData, this, bufferSizeKB, fileToSend, bindToNetwork);
                     break;
 
                 case UDP:
                     // build the UDP transmitter socket
-                    UDPSocket sock = UDPSocket.getUDPTransmitterSocket(crIpAddress, crPortNumber);
+                    UDPSocket sock = UDPSocket.getUDPTransmitterSocket(crIpAddress, crPortNumber, bindToNetwork);
+                    Network network = null;
+
+                    if (bindToNetwork.equals(BIND_TO_NETWORK.WF)) {
+                        network = getNetworkWF();
+                    }
 
                     // create worker thread transmitting by UDP socket
                     clientTransmitter = new ClientSendDataThreadUDP(destIpAddress, destPortNumber
-                            , sock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB);
+                            , sock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB, network);
                     break;
 
                 case UDP_MULTICAST:
@@ -1798,7 +2113,7 @@ public class ClientActivity extends Activity {
 
                     // create worker thread transmitting in UDP multicast socket
                     clientTransmitter = new ClientSendDataThreadUDP(destIpAddress, destPortNumber
-                            , msock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB);
+                            , msock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB, null);
 
             }
 
@@ -1838,7 +2153,15 @@ public class ClientActivity extends Activity {
         if (clientReceiver != null)
             clientReceiver.stopThread();
 
-        stopLogDirReceivingMulticastThreads();
+        stopLogDirSystem();
+
+        wakeLock.release();
+        wifiLock.release();
+
+        if (wifiMulticastLock.isHeld()) {
+            Log.d(TAG, "Multicast lock released");
+            wifiMulticastLock.release();
+        }
 
         super.onDestroy();
     }
@@ -2004,7 +2327,10 @@ class UDPSocket {
     /*
          * get UDP Transmitter Socket
          */
-    public static UDPSocket getUDPTransmitterSocket(String crIpAddress, int crPort) throws UnknownHostException, SocketException {
+    public static UDPSocket getUDPTransmitterSocket(String crIpAddress, int crPort,
+                                                    ClientActivity.BIND_TO_NETWORK bindToNetwork)
+            throws UnknownHostException, SocketException {
+
         DatagramSocket socket = new DatagramSocket();
         return new UDPSocket(crIpAddress, crPort, socket);
     }
@@ -2012,6 +2338,7 @@ class UDPSocket {
     /*
      * get UDP Multicast Transmitter Socket
      */
+
     public static UDPSocket getUDPMulticastTransmitterSocket(String crMulticastIpAddress, int crMulticastPort,
                                                              NetworkInterface netInterface) throws IOException {
         // get multicast socket, in a dynamic port

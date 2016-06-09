@@ -1,5 +1,6 @@
 package pt.unl.fct.hyrax.wfmobilenetwork.wifidirect;
 
+import android.net.Network;
 import android.util.Log;
 import android.widget.TextView;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.AndroidUtils;
@@ -16,9 +17,10 @@ import java.nio.ByteBuffer;
  */
 public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     public static final String LOG_TAG = ClientActivity.TAG + " UDP";
+    private final Network network;
 
     private int bufferSizeBytes;
-    UDPSocket sock;
+    UDPSocket socketUDP;
     String destIpAddress;
     int destPortNumber;
     String crIpAddress;
@@ -35,11 +37,12 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     /**
      *
      */
-    public ClientSendDataThreadUDP(String destIpAddress, int destPortNumber, UDPSocket sock, long delayInterDatagramsMs, long dataLimitKB,
-                                   TextView tvSentDataKB, ClientActivity clientActivity, int bufferSizeBytes) {
+    public ClientSendDataThreadUDP(String destIpAddress, int destPortNumber, UDPSocket sock, long delayInterDatagramsMs,
+                                   long dataLimitKB, TextView tvSentDataKB, ClientActivity clientActivity,
+                                   int bufferSizeBytes, Network network) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
-        this.sock = sock;
+        this.socketUDP = sock;
         this.crIpAddress = sock.getCrIpAddress();
         this.crPortNumber = sock.getCrPort();
         this.delayInterDatagramsMs = delayInterDatagramsMs;
@@ -47,6 +50,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
         this.tvSentDataKB = tvSentDataKB;
         this.clientActivity = clientActivity;
         this.bufferSizeBytes = bufferSizeBytes;
+        this.network = network;
     }
 
 
@@ -73,11 +77,15 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             buffer[i] = (byte) i;
         }
 
-        DatagramSocket cliSocket = sock.getSocket();
+        DatagramSocket cliSocket = socketUDP.getSocket();
         ByteBuffer buf = ByteBuffer.allocate(4);
 
         try {
             InetAddress iadCrIpAddress = InetAddress.getByName(crIpAddress);
+
+            if(network != null) {
+                network.bindSocket(cliSocket);
+            }
 
             String addressData = this.destIpAddress + ";" + this.destPortNumber;
 
@@ -209,6 +217,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             Log.d(LOG_TAG, "Bytes sent: " + String.format("%.1f", bytesSentPercentage * 100) + "%");
             nextNotificationValue += 0.1f;
         }
+
     }
 
 

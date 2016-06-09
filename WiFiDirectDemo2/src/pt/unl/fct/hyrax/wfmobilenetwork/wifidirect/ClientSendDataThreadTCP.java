@@ -42,13 +42,14 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     Thread rcvThread;
     Socket cliSocket = null;
     private double nextNotificationValue = 0.1f;
+    private ClientActivity.BIND_TO_NETWORK bindToNetwork;
 
     /*
      *
      */
     public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
             , long speed, long dataLimitKB, TextView tvSentData, TextView tvRcvData, ClientActivity clientActivity
-            , int bufferSize, Uri sourceUri) {
+            , int bufferSize, Uri sourceUri, ClientActivity.BIND_TO_NETWORK bindToNetwork) {
         this.destIpAddress = destIpAddress;
         this.destPortNumber = destPortNumber;
         this.crIpAddress = crIpAddress;
@@ -60,6 +61,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         this.clientActivity = clientActivity;
         this.bufferSize = bufferSize;
         this.sourceUri = sourceUri;
+        this.bindToNetwork = bindToNetwork;
     }
 
     static NetworkInterface wifiInterface = null;
@@ -136,13 +138,25 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         LoggerSession logSession = null;
 
         try {
-            // Force to used networkWifi, user must press button B in client activity
-//            Network networkWifi = clientActivity.getNetworkWifi();
-//            SocketFactory sf = networkWifi.getSocketFactory();
-//            cliSocket = sf.createSocket(getInetAddress(crIpAddress), crPortNumber);
+            if (bindToNetwork.equals(ClientActivity.BIND_TO_NETWORK.WF)) {
+                // bind to WF network
+                Log.d(LOG_TAG, "Bind socket to network: WF");
+                Network networkWifi = clientActivity.getNetworkWF();
+                SocketFactory sf = networkWifi.getSocketFactory();
+                cliSocket = sf.createSocket(getInetAddress(crIpAddress), crPortNumber);
 
-            // InetAddress localIpAddress = InetAddress.getByName("192.168.49.241");
-            cliSocket = new Socket(getInetAddress(crIpAddress), crPortNumber);
+            } else if (bindToNetwork.equals(ClientActivity.BIND_TO_NETWORK.WFD)) {
+                // bind to WFD network - get P2P network not working
+                Log.d(LOG_TAG, "Bind socket to network: WFD");
+                Network networkWifi = clientActivity.getNetworkWFD();
+                SocketFactory sf = networkWifi.getSocketFactory();
+                cliSocket = sf.createSocket(getInetAddress(crIpAddress), crPortNumber);
+
+            } else {
+                // InetAddress localIpAddress = InetAddress.getByName("192.168.49.241");
+                cliSocket = new Socket(getInetAddress(crIpAddress), crPortNumber);
+            }
+
             dos = new DataOutputStream(cliSocket.getOutputStream());
             DataInputStream dis = new DataInputStream(cliSocket.getInputStream());
 
@@ -324,7 +338,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             updateRcvData();
         }
 
-        float bytesSentPercentage = sentData / (float)nBytesToSend;
+        float bytesSentPercentage = sentData / (float) nBytesToSend;
         if (bytesSentPercentage > nextNotificationValue) {
             Log.d(LOG_TAG, "Bytes sent: " + String.format("%.1f", bytesSentPercentage * 100) + "%");
             nextNotificationValue += 0.1f;
