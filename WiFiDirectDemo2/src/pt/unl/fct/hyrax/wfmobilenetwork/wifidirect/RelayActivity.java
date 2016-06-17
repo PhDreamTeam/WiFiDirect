@@ -138,7 +138,8 @@ public class RelayActivity extends Activity {
         btnTcp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                relayType = RELAY_TYPE.TCP;
+                relayType = RELAY_TYPE.TCP_ONE4ALL;
+
                 btnTcp.setVisibility(View.GONE);
                 btnTCPOne4All.setVisibility(View.VISIBLE);
             }
@@ -147,7 +148,7 @@ public class RelayActivity extends Activity {
         btnTCPOne4All.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                relayType = RELAY_TYPE.TCP_ONE4ALL;
+                relayType = RELAY_TYPE.UDP;
                 btnUdp.setVisibility(View.VISIBLE);
                 btnTCPOne4All.setVisibility(View.GONE);
             }
@@ -156,7 +157,7 @@ public class RelayActivity extends Activity {
         btnUdp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                relayType = RELAY_TYPE.UDP;
+                relayType = RELAY_TYPE.TCP;
                 btnTcp.setVisibility(View.VISIBLE);
                 btnUdp.setVisibility(View.GONE);
             }
@@ -296,21 +297,20 @@ public class RelayActivity extends Activity {
         int bufferSize = 1024 * Integer.parseInt(
                 ((EditText) findViewById(R.id.editTextCRMaxBufferSize)).getText().toString());
 
-        CharSequence text = "Start Relaying at localPort: " + CRPort + "!!!!!";
-        Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
-        toast.show();
+        Log.d(TAG, "Start Relaying at localPort: " + CRPort + ", relay type: " + relayType);
+
 
         switch (relayType) {
             case TCP:
                 crForwarder = new CrForwardServerTCP(Integer.parseInt(CRPort)
                         , ((TextView) findViewById(R.id.textViewTransferedDataOrigDest))
                         , ((TextView) findViewById(R.id.textViewTransferedDataDestOrig))
-                        , bufferSize, relayRulesMap);
+                        , bufferSize, this);
                 break;
             case UDP:
                 crForwarder = new CrForwardServerUDP(Integer.parseInt(CRPort)
                         , ((TextView) findViewById(R.id.textViewTransferedDataOrigDest))
-                        , bufferSize);
+                        , bufferSize, this);
                 break;
             case TCP_ONE4ALL:
 
@@ -325,9 +325,27 @@ public class RelayActivity extends Activity {
      */
     private void stopRelaying() {
         // stop relaying
+        Log.d(TAG, "Relay will stop...");
         crForwarder.stopThread();
-        btnStopRelaying.setVisibility(View.GONE);
-        btnStartRelaying.setVisibility(View.VISIBLE);
+        endRelayingGuiActions();
+    }
+
+    public void endRelayingGuiActions() {
+        btnStopRelaying.post(new Runnable() {
+            @Override
+            public void run() {
+                btnStopRelaying.setVisibility(View.GONE);
+                btnStartRelaying.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    /**
+     *
+     */
+    public String getForwardDestiny(String destination) {
+        // get destiny in rules
+        return relayRulesMap.get(destination);
     }
 
     /*

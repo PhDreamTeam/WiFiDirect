@@ -140,15 +140,16 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         try {
             if (bindToNetwork.equals(ClientActivity.BIND_TO_NETWORK.WF)) {
                 // bind to WF network
-                Log.d(LOG_TAG, "Bind socket to network: WF");
                 Network networkWifi = clientActivity.getNetworkWF();
+                Log.d(LOG_TAG, "Bind socket to network: WF " + networkWifi);
                 SocketFactory sf = networkWifi.getSocketFactory();
                 cliSocket = sf.createSocket(getInetAddress(crIpAddress), crPortNumber);
 
             } else if (bindToNetwork.equals(ClientActivity.BIND_TO_NETWORK.WFD)) {
                 // bind to WFD network - get P2P network not working
-                Log.d(LOG_TAG, "Bind socket to network: WFD");
+
                 Network networkWifi = clientActivity.getNetworkWFD();
+                Log.d(LOG_TAG, "Bind socket to network: WFD " + networkWifi);
                 SocketFactory sf = networkWifi.getSocketFactory();
                 cliSocket = sf.createSocket(getInetAddress(crIpAddress), crPortNumber);
 
@@ -247,6 +248,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                     (e.getMessage().equals("Socket closed") ? "by user action" : e.getMessage());
             AndroidUtils.toast(tvSentData, msg);
             Log.e(LOG_TAG, msg);
+            e.printStackTrace();
             // e.printStackTrace();
             if (logSession != null) {
                 logSession.logMsg(msg);

@@ -61,7 +61,7 @@ public class ClientActivity extends Activity {
     public static String TAG = "ClientActivity";
 
     public static String INITIAL_TCP_UDP_IPADDRESS = "192.168.49.1";
-    public static int INITIAL_TCP_UDP_PORT = 3000;
+    public static int INITIAL_TCP_UDP_PORT = 30000;
 
     // MulticastSocket are limited in the range of 224.0.0.1 to 239.255.255.255.
     // Multicast ports between: 1025 and 49151
@@ -179,12 +179,9 @@ public class ClientActivity extends Activity {
     private Handler guiThreadLoopHandler;
     private String deviceName;
 
-
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
 
     enum BIND_TO_NETWORK {NONE, WF, WFD}
-
-    ;
 
     /**
      *
@@ -817,7 +814,8 @@ public class ClientActivity extends Activity {
 
         Log.d(TAG, "Bind to Network: WFD; calling requestNetwork with CAPABILITY: P2P");
 
-        Log.d(TAG, "BIND TO WFD Direct not working on Nexus6 #######################################");
+        // TODO fix this
+        Log.d(TAG, "BIND to WF Direct not working on Nexus 6, 9 and OPO #######################################");
 
         NetworkRequest.Builder builder = new NetworkRequest.Builder();
         builder.addCapability(NetworkCapabilities.NET_CAPABILITY_WIFI_P2P);
@@ -833,10 +831,6 @@ public class ClientActivity extends Activity {
 
             public void onLosing(Network network, int maxMsToLive) {
                 Log.d(TAG, "Network callback, network TRANSPORT: WFD, lost on " + network);
-            }
-
-            public void onUnavailable() {
-                Log.d(TAG, "Network callback, network with capability P2P/WFD not found");
             }
         };
 
@@ -1278,6 +1272,8 @@ public class ClientActivity extends Activity {
 
         // get bindSocketToNetwork
         final String bindSocketToNetwork = map.get("bindSocketToNetwork");
+        if(bindSocketToNetwork != null)
+            btnBindToNetwork.setText("Bind to " + bindSocketToNetwork.toUpperCase());
 
         // run with some delay to give time to stabilize network interfaces, need mostly by UDP multicast
         new Handler().postDelayed(new Runnable() {
@@ -2097,6 +2093,10 @@ public class ClientActivity extends Activity {
                         network = getNetworkWF();
                     }
 
+                    if (bindToNetwork.equals(BIND_TO_NETWORK.WFD)) {
+                        network = getNetworkWFD();
+                    }
+
                     // create worker thread transmitting by UDP socket
                     clientTransmitter = new ClientSendDataThreadUDP(destIpAddress, destPortNumber
                             , sock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB, network);
@@ -2108,12 +2108,12 @@ public class ClientActivity extends Activity {
                             rbMulticastNetIntWF.isChecked() ? wfNetworkInterface : null;
 
                     // build he UDP multicast transmitter socket
-                    UDPSocket msock = UDPSocket.getUDPMulticastTransmitterSocket(crIpAddress, crPortNumber,
+                    UDPSocket multicastSocket = UDPSocket.getUDPMulticastTransmitterSocket(crIpAddress, crPortNumber,
                             netInterface);
 
                     // create worker thread transmitting in UDP multicast socket
                     clientTransmitter = new ClientSendDataThreadUDP(destIpAddress, destPortNumber
-                            , msock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB, null);
+                            , multicastSocket, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB, null);
 
             }
 

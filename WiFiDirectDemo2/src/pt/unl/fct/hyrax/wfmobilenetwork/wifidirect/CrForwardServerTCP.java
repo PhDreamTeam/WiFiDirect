@@ -18,32 +18,36 @@ import java.util.HashMap;
  * .
  */
 public class CrForwardServerTCP extends Thread implements IStoppable {
+    public final String TAG = "RelayServerTCP";
+    private final RelayActivity relayActivity;
     private int bufferSize;
     int portNumber;
     ServerSocket serverSocket;
     boolean run = true;
     TextView textViewTransferedDataOrigDest, textViewTransferedDataDestOrig;
     ArrayList<IStoppable> workingThreads = new ArrayList<>();
-    private HashMap<String, String> relayRulesMap;
 
     public CrForwardServerTCP(int portNumber, TextView textViewTransferedDataOrigDest
-            , TextView textViewTransferedDataDestOrig, int bufferSize, HashMap<String, String> relayRulesMap) {
+            , TextView textViewTransferedDataDestOrig, int bufferSize,
+                              RelayActivity relayActivity) {
         this.portNumber = portNumber;
         this.textViewTransferedDataOrigDest = textViewTransferedDataOrigDest;
         this.textViewTransferedDataDestOrig = textViewTransferedDataDestOrig;
         this.bufferSize = bufferSize;
-        this.relayRulesMap = relayRulesMap;
+
+        this.relayActivity = relayActivity;
     }
 
 
     @Override
     public void run() {
         // forward Server
+        Socket cliSock = null;
         try {
             serverSocket = new ServerSocket(portNumber);
 
             while (run) {
-                Socket cliSock = serverSocket.accept();
+                cliSock = serverSocket.accept();
                 IStoppable thd = new CrForwardThreadTCP(cliSock, bufferSize);
                 workingThreads.add(thd);
                 thd.start();
@@ -51,6 +55,14 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
 
         } catch (Exception e) {
             e.printStackTrace();
+            stopThread();
+            relayActivity.endRelayingGuiActions();
+            if(cliSock != null)
+                try {
+                    cliSock.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
         }
     }
 
@@ -106,7 +118,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 destIpAddress = aia[0];
                 destPortNumber = Integer.parseInt(aia[1]);
 
-                String relayAddress = relayRulesMap.get(destIpAddress);
+                String relayAddress = relayActivity.getForwardDestiny(destIpAddress);
                 if (relayAddress != null) {
                     destIpAddress = relayAddress;
                     destPortNumber = 30000; //default CR PORT TODO CHANGE THIS TO A DYNAMIC PORT
@@ -123,13 +135,13 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 threadForwardDataOrigDest = forwardData(origDIS, destDOS, textViewTransferedDataOrigDest);
                 threadForwardDataDestOrig = forwardData(destDIS, origDOS, textViewTransferedDataDestOrig);
 
-                Log.d(WiFiDirectActivity.TAG, "Using BufferSize: " + buffer.length);
+                Log.d(TAG, "Using BufferSize: " + buffer.length);
 
                 threadForwardDataOrigDest.join();
                 threadForwardDataDestOrig.join();
 
             } catch (Exception e) {
-                Log.d(WiFiDirectActivity.TAG, "Error opening relay channel to: " + destIpAddress + ":" + destPortNumber);
+                Log.d(TAG, "Error opening relay channel to: " + destIpAddress + ":" + destPortNumber);
 
                 e.printStackTrace();
             } finally {
@@ -206,7 +218,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 // transfer speed B/s
                 double speed = (deltaForwardData / 1024) / elapsedDeltaRcvTimeSeconds;
                 //final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
-                final String msg = String.format("%d KB %4.2f KBps", forwardedData / 1024, speed);
+                final String msg = String.format("%d KB,  %4.2f KBps", forwardedData / 1024, speed);
                 lastUpdate = currentNanoTime;
                 textView.post(new Runnable() {
                     @Override
@@ -214,6 +226,8 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                         textView.setText(msg);
                     }
                 });
+
+                Log.d(TAG, msg);
                 return lastUpdate;
             }
             return 0;

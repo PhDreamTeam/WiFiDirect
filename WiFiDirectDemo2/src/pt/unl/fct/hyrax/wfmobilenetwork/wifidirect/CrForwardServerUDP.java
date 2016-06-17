@@ -1,17 +1,23 @@
 package pt.unl.fct.hyrax.wfmobilenetwork.wifidirect;
 
+import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 
 /**
- * Created by DR AT on 28/05/2015.
+ * Created by DR AT on 28/05/2015
+ * .
  */
 public class CrForwardServerUDP extends Thread implements IStoppable {
+    public final String TAG = "RelayServerUDP";
+    private final RelayActivity relayActivity;
     private int bufferSize;
     int portNumber;
     DatagramSocket forwardRxSocket, forwardTxSocket;
@@ -22,10 +28,12 @@ public class CrForwardServerUDP extends Thread implements IStoppable {
     long lastUpdate = 0;
     long initialNanoTime;
 
-    public CrForwardServerUDP(int portNumber, TextView editTextTransferedData, int bufferSize) {
+    public CrForwardServerUDP(int portNumber, TextView editTextTransferedData, int bufferSize,
+                              RelayActivity relayActivity) {
         this.portNumber = portNumber;
         this.editTextTransferedData = editTextTransferedData;
         this.bufferSize = bufferSize;
+        this.relayActivity = relayActivity;
     }
 
 
@@ -40,6 +48,7 @@ public class CrForwardServerUDP extends Thread implements IStoppable {
             }
         });
 
+        ByteBuffer buf = ByteBuffer.allocate(4);
 
         // forward Server
         try {
@@ -50,31 +59,91 @@ public class CrForwardServerUDP extends Thread implements IStoppable {
 
             while (run) {
                 forwardRxSocket.receive(packet);
-//                Log.d(WiFiDirectActivity.TAG, "Received a UDP datagram");
+
                 byte bufferRcv[] = packet.getData();
-                ByteBuffer bufferInt = ByteBuffer.wrap(bufferRcv, 0, 4);
-                int addressLen = bufferInt.getInt();
-                String addressInfo = new String(bufferRcv, 4, addressLen);
-                String aa[] = addressInfo.split(";");
-//                Log.d(WiFiDirectActivity.TAG, "Received packet with destination address: " + addressInfo);
 
-                forwardedData += bufferRcv.length;
-                deltaForwardData += bufferRcv.length;
-                DatagramPacket sendPacket = new DatagramPacket(bufferRcv, bufferRcv.length,
-                        InetAddress.getByName(aa[0]), Integer.parseInt(aa[1]));
-                forwardTxSocket.send(sendPacket);
-                updateVisualDeltaInformation(); // this may slow down reception. may want to get data only when necessary
+                int dimContentString = ByteBuffer.wrap(bufferRcv, 0, 4).getInt();
+                if(dimContentString == -1) {
+                    // this is a termination packet
+                    break;
+                }
+                int bufferNumber = ByteBuffer.wrap(bufferRcv, 4, 4).getInt();
+                String addressInfo = new String(bufferRcv, 8, dimContentString);
+                String dataStr[] = addressInfo.split(";");
+
+                String destinationDevice = dataStr[0];
+                String destinationPort = dataStr[1];
+
+                int nBuffersToBeReceived = ByteBuffer.wrap(bufferRcv, 8 + dimContentString, 4).getInt();
+
+                //Log.d(TAG, "Received a datagram from " + packet.getSocketAddress() + " to " + addressInfo +
+                //  ", buffer number " + bufferNumber + " of " + nBuffersToBeReceived);
+
+
+                String destinationAddress = relayActivity.getForwardDestiny(dataStr[0]);
+                if(destinationAddress != null) {
+                    // TODO place a dynamic port number, from GUI
+
+                    String destination2 = relayActivity.getForwardDestiny(destinationAddress);
+                    if(destination2 != null){
+                        // the destination is just a routing scheme
+                        destinationDevice = destinationAddress;
+                        // this is the next hop
+                        destinationAddress = destination2;
+                    }
+
+                    //Log.d(TAG, "Will send previous datagram to " + destinationAddress + ":" + portNumber);
+
+                    forwardedData += bufferRcv.length;
+                    deltaForwardData += bufferRcv.length;
+
+                    // build packet
+
+                    String addressData = destinationDevice + ";" + destinationPort;
+
+                    // put the destination address dim
+                    buf.rewind();
+                    buf.putInt(addressData.length());
+                    System.arraycopy(buf.array(), 0, bufferRcv, 0, 4);
+
+                    // put buffer number
+                    buf.rewind();
+                    buf.putInt(bufferNumber);
+                    System.arraycopy(buf.array(), 0, bufferRcv, 4, 4);
+
+                    // send destination information for the forward node, at index 8
+                    System.arraycopy(addressData.getBytes(), 0, bufferRcv, 8, addressData.getBytes().length);
+
+                    // after the destination information follows the number of buffers
+                    buf.rewind();
+                    buf.putInt(nBuffersToBeReceived);
+                    System.arraycopy(buf.array(), 0, bufferRcv, 8 + addressData.getBytes().length, 4);
+
+                    DatagramPacket sendPacket = new DatagramPacket(bufferRcv, bufferRcv.length,
+                            InetAddress.getByName(destinationAddress), portNumber);
+
+                    // send packet
+                    forwardTxSocket.send(sendPacket);
+                    updateVisualDeltaInformation(); // this may slow down reception. may want to get data only when necessary
+                }
+                else  Log.d(TAG, "Destination not in relay rules: " + dataStr[0] + ", packet will be discarded");
             }
-
+            Log.d(TAG, "UDP socket closed by user");
+        }catch (SocketException e){
+           if(e.getMessage().equals("Socket closed")){
+               Log.d(TAG, "UDP socket closed by user...");
+           } else  e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        relayActivity.endRelayingGuiActions();
     }
 
     @Override
     public void stopThread() {
         run = false;
-        this.interrupt();
+        //this.interrupt();
+        forwardRxSocket.close();
     }
 
 
@@ -82,13 +151,14 @@ public class CrForwardServerUDP extends Thread implements IStoppable {
         // elapsed time
         long currentNanoTime = System.nanoTime();
 
-        if (currentNanoTime > lastUpdate + 1000000000) {
+        if (currentNanoTime > lastUpdate + 1_000_000_000) {
 
             long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
             double elapsedDeltaRcvTimeSeconds = (double) elapsedDeltaRcvTimeNano / 1000000000.0;
             // transfer speed B/s
             double speed = (deltaForwardData / 1024) / elapsedDeltaRcvTimeSeconds;
-            final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
+            final String msg = String.format("%d KB,  %4.2f KBps", forwardedData / 1024, speed);
+
             lastUpdate = currentNanoTime;
             editTextTransferedData.post(new Runnable() {
                 @Override
@@ -97,6 +167,8 @@ public class CrForwardServerUDP extends Thread implements IStoppable {
                 }
             });
             deltaForwardData = 0;
+
+            Log.d(TAG, msg);
         }
 
     }

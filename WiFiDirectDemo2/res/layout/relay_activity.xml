@@ -24,7 +24,8 @@
                           android:layout_gravity="center_vertical"/>
             </LinearLayout>
             <Button android:layout_width="match_parent" android:layout_height="wrap_content" android:text="TCP"
-                    android:id="@+id/btnRATCP" android:layout_gravity="center_horizontal"/>
+                    android:id="@+id/btnRATCP" android:layout_gravity="center_horizontal"
+                    android:backgroundTint="#2292ff"/>
             <Button android:layout_width="match_parent" android:layout_height="wrap_content" android:text="UDP"
                     android:id="@+id/btnRAUDP" android:layout_gravity="center_horizontal"
                     android:backgroundTint="#f41fa021" android:visibility="gone"/>
@@ -121,7 +122,7 @@
                     <EditText
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:id="@+id/editTextCRNewRuleUse" android:text="192.168.49." android:layout_weight="1"
+                            android:id="@+id/editTextCRNewRuleUse" android:text="192.168.49.1" android:layout_weight="1"
                             android:textAppearance="?android:attr/textAppearanceSmall"/>
                     <Button
                             style="?android:attr/buttonStyleSmall"

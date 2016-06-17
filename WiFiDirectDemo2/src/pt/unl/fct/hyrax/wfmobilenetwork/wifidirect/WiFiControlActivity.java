@@ -61,6 +61,7 @@ public class WiFiControlActivity extends Activity {
     private Button btnWifiGetStatus;
     private Button btnWifiConnectDirectly;
     private TextView tvWFMainState;
+    private HashMap<String, String> gosPassword = new HashMap<>();
 
     static {
         for (Method method : WifiManager.class.getDeclaredMethods()) {
@@ -73,6 +74,13 @@ public class WiFiControlActivity extends Activity {
                     break;
             }
         }
+    }
+
+    {
+        gosPassword.put("DIRECT-h9-N62", "zBmXQduT");
+        gosPassword.put("DIRECT-By-N61", "eal1k164");
+        gosPassword.put("DIRECT-Nm-N63", "prpfOZYD");
+        gosPassword.put("DIRECT-lq-Nexus_AT", "YMtLSjWG");
     }
 
     private ScrollView scrollViewConsole;
@@ -140,6 +148,9 @@ public class WiFiControlActivity extends Activity {
             public boolean onGroupClick(ExpandableListView expandableListView, View view, int position, long l) {
                 String selectedNetwork = (String) expListViewScannedNetworks.getItemAtPosition(position);
                 tvSelectedNetwork.setText(selectedNetwork);
+                String pw = gosPassword.get(selectedNetwork);
+                if(pw != null)
+                    etSelectedNetworkPassword.setText(pw);
                 return false;
             }
         });
@@ -435,6 +446,9 @@ public class WiFiControlActivity extends Activity {
      */
     void connectToWifi(String ssid, String key) {
         WifiConfiguration wifiConfig = buildWifiConfiguration(ssid, key);
+        key = key.trim();
+
+        Log.d(TAG, "Connect o WF: ssid: " + ssid + ", key: " + key);
 
 //        wfc.preSharedKey = "\"".concat(password).concat("\"");
 

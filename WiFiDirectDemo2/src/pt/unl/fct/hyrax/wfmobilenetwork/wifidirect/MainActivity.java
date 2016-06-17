@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.FeatureInfo;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
@@ -25,8 +26,14 @@ import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.LoggerSession;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Scanner;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * Created by AT DR on 08-05-2015
@@ -99,6 +106,8 @@ public class MainActivity extends Activity {
         //checking if WiFIDirect is supported
         p2pSupported = isWifiDirectSupported(context);
 
+        // To soon to use Lod, I repeat the line at the end of this method
+        Log.d(TAG, "Build date: " + getBuildDate(this));
 
         tvDeviceName = (TextView) findViewById(R.id.tvMainADeviceName);
         tvPriorityInterface = (TextView) findViewById(R.id.tvMainAPriorityInterface);
@@ -183,6 +192,8 @@ public class MainActivity extends Activity {
         Log.d(TAG, "Task File: " + taskFile);
         if (taskFile != null)
             parseAndExecuteTaskFile(taskFile);
+
+        Log.d(TAG, "Build date: " + getBuildDate(this));
     }
 
     /**
@@ -195,6 +206,27 @@ public class MainActivity extends Activity {
             Log.e("Logger", "Directory not created");
         }
         return file;
+    }
+
+    /**
+     *
+     */
+    public static String getBuildDate(Context context) {
+
+        try {
+            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(context.getPackageName(), 0);
+            ZipFile zf = new ZipFile(ai.sourceDir);
+            ZipEntry ze = zf.getEntry("classes.dex");
+            long time = ze.getTime();
+            zf.close();
+
+           return new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault()).format(time);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     /**
@@ -489,10 +521,10 @@ public class MainActivity extends Activity {
         }
 
         // show priority interface configuration
-        if(configurations.isPriorityInterfaceWFD()) {
+        if (configurations.isPriorityInterfaceWFD()) {
             tvPriorityInterface.setText("WFD");
             rbWFD.setChecked(true);
-        } else if(configurations.isPriorityInterfaceWF()) {
+        } else if (configurations.isPriorityInterfaceWF()) {
             tvPriorityInterface.setText("WF");
             rbWF.setChecked(true);
         } else {
