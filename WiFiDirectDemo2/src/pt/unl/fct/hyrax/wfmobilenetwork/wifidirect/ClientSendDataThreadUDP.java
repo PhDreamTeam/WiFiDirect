@@ -30,9 +30,11 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
     long nBytesSent = 0;
     TextView tvSentDataKB;
     boolean run = true;
-    double lastUpdate;
+    long lastUpdate;
     ClientActivity clientActivity;
     private float nextNotificationValue = 0.1f;
+    private long txDataCounterLastValue;
+    private double maxDataSendSpeedMbps;
 
     /**
      *
@@ -175,6 +177,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             double sentDataMb = (nBytesSent * 8.0) / (1024.0 * 1024.0);
             double globalSentSpeedMbps = sentDataMb / deltaTimeSegs;
             logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", globalSentSpeedMbps));
+            logSession.logMsg("Data sent Max speed (Mbps): " + String.format("%5.3f", maxDataSendSpeedMbps));
             Log.d(LOG_TAG, "End of transmission, data sent: " + nBytesSent);
 
             cliSocket.close();
@@ -203,6 +206,15 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
         long currentNanoTime = System.nanoTime();
 
         if (forceUpdate || currentNanoTime > lastUpdate + 1000000000) {
+            long elapsedDeltaTxTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
+            double elapsedDeltaTxTimeSeconds = elapsedDeltaTxTimeNano / 1_000_000_000.0;
+            long deltaTxBytes = sentData - txDataCounterLastValue;
+            final double speedMbps = ((deltaTxBytes * 8) / (1024.0 * 1024)) / elapsedDeltaTxTimeSeconds;
+
+            // exclude last reading
+            if (!forceUpdate && speedMbps > maxDataSendSpeedMbps)
+                maxDataSendSpeedMbps = speedMbps;
+
             lastUpdate = currentNanoTime;
             tvSentDataKB.post(new Runnable() {
                 @Override
@@ -210,8 +222,11 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
                     tvSentDataKB.setText("" + (sentData / 1024));
                 }
             });
+
+            txDataCounterLastValue = sentData;
         }
 
+        // ADB console notification
         float bytesSentPercentage = sentData / (float) nBytesToSend;
         if (bytesSentPercentage > nextNotificationValue) {
             Log.d(LOG_TAG, "Bytes sent: " + String.format("%.1f", bytesSentPercentage * 100) + "%");

@@ -264,7 +264,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                         sentDataCounterTotal += readDataLen;
                     }
 
-                    updateVisualDeltaInformation(false/*true*/); // DEBUG DR
+                    updateVisualDeltaInformation(false);
                     // this may slow down reception. may want to get data only when necessary
                 }
 

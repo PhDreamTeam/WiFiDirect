@@ -359,6 +359,7 @@ public class WiFiDirectControlActivity extends Activity {
                 final WifiP2PDeviceWrapper item = (WifiP2PDeviceWrapper) parent.getItemAtPosition(position);
                 AndroidUtils.showDialog(WiFiDirectControlActivity.this, "P2P Peer details", "" + item.getDevice(),
                         null);
+
             }
         });
 
@@ -366,15 +367,24 @@ public class WiFiDirectControlActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 final RemoteDeviceServiceInfo item = (RemoteDeviceServiceInfo) parent.getItemAtPosition(position);
-                AndroidUtils.showDialog(WiFiDirectControlActivity.this, "P2P Peer with Services details",
-                        "" + item.getServiceRecord() + "\n" +
-                                item.getWifiP2PDevice(), null);
-
                 selectedPeerName = item.getWifiP2PDevice().deviceName;
                 selectedPeerAddress = item.getWifiP2PDevice().deviceAddress;
                 tvSelectedPeer.setText(selectedPeerName);
             }
         });
+
+        listViewPeersWithServices.setOnItemLongClickListener(
+                new AdapterView.OnItemLongClickListener() {
+                    @Override
+                    public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                        final RemoteDeviceServiceInfo item = (RemoteDeviceServiceInfo) parent.getItemAtPosition(position);
+                        AndroidUtils.showDialog(WiFiDirectControlActivity.this, "P2P Peer with Services details",
+                                "" + item.getServiceRecord() + "\n" +
+                                        item.getWifiP2PDevice(), null);
+                        return false;
+                    }
+                }
+        );
     }
 
     /*

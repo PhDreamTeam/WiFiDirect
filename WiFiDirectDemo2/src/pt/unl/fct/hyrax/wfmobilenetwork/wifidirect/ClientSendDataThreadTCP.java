@@ -32,7 +32,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     long speed = 0; // number of millis to sleep between each 4096 of sent Bytes
     long nBytesToSend = 0;
     long rcvData = 0;
-    double lastUpdate;
+    long lastUpdate;
     Uri sourceUri;
 
     TextView tvSentData;
@@ -43,6 +43,8 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     Socket cliSocket = null;
     private double nextNotificationValue = 0.1f;
     private ClientActivity.BIND_TO_NETWORK bindToNetwork;
+    private long txDataCounterLastValue;
+    private double maxDataSendSpeedMbps;
 
     /*
      *
@@ -241,6 +243,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             double deltaTimeSegs = (finalTxTimeMs - initialTxTimeMs) / 1000.0;
             double dataSentSpeedMbps = sentDataMb / deltaTimeSegs;
             logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", dataSentSpeedMbps));
+            logSession.logMsg("Data sent Max speed (Mbps): " + String.format("%5.3f", maxDataSendSpeedMbps));
             logSession.close(tvSentData.getContext());
 
         } catch (Exception e) {
@@ -325,11 +328,21 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
 
     /*
      *
+     *
      */
     private void updateSentData(final long sentData, boolean forceUpdate) {
         long currentNanoTime = System.nanoTime();
 
         if ((currentNanoTime > lastUpdate + 1_000_000_000) || forceUpdate) {
+            long elapsedDeltaTxTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
+            double elapsedDeltaTxTimeSeconds = elapsedDeltaTxTimeNano / 1_000_000_000.0;
+            long deltaTxBytes = sentData - txDataCounterLastValue;
+            final double speedMbps = ((deltaTxBytes * 8) / (1024.0 * 1024)) / elapsedDeltaTxTimeSeconds;
+
+            // exclude last reading
+            if (!forceUpdate && speedMbps > maxDataSendSpeedMbps)
+                maxDataSendSpeedMbps = speedMbps;
+            
             lastUpdate = currentNanoTime;
             tvSentData.post(new Runnable() {
                 @Override
@@ -338,8 +351,11 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 }
             });
             updateRcvData();
+
+            txDataCounterLastValue = sentData;
         }
 
+        // ADB console notification
         float bytesSentPercentage = sentData / (float) nBytesToSend;
         if (bytesSentPercentage > nextNotificationValue) {
             Log.d(LOG_TAG, "Bytes sent: " + String.format("%.1f", bytesSentPercentage * 100) + "%");
