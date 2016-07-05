@@ -4,10 +4,12 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.nfc.Tag;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.Locale;
 
 /**
@@ -22,6 +24,9 @@ public class BatteryHelper {
     private long startTimeMs;
     private long endTimeMs;
     private Thread workThread;
+
+    private ArrayList<Integer> batteryCurrentValues = new ArrayList<>();
+    private ArrayList<Integer> batteryVoltageValues = new ArrayList<>();
 
 
     /*
@@ -122,7 +127,8 @@ public class BatteryHelper {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        Log.d("Battery helper: ", "Thread battery reader stopped by interrupt.");
+                        //e.printStackTrace();
                     }
                 }
 
@@ -136,17 +142,11 @@ public class BatteryHelper {
     }
 
     /*
-     * Blocking method
+     * UnBlocking method
      */
     public void stopReadingBattery() {
         running = false;
-
-        // wait end of thread
-        try {
-            workThread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        workThread.interrupt();
     }
 
 
@@ -193,8 +193,25 @@ public class BatteryHelper {
      */
     private void logBattery(int capacity, int chargeCounter, int currentAverage, int currentNow, int energyCounter,
                             int voltageNow) {
-        Log.i("Battery helper: ",
+        Log.v("Battery helper: ",
                 "capacity = " + capacity + ", current now = " + currentNow + ", voltage now = " + voltageNow);
-        accumulatedCurrentPlusVoltage += currentNow * voltageNow;
+        accumulatedCurrentPlusVoltage += ((long)currentNow) * voltageNow;
+
+        batteryCurrentValues.add(currentNow);
+        batteryVoltageValues.add(voltageNow);
+    }
+
+    /**
+     *
+     */
+    public ArrayList<Integer> getBatteryCurrentValues() {
+        return batteryCurrentValues;
+    }
+
+    /**
+     *
+     */
+    public ArrayList<Integer> getBatteryVoltageValues() {
+        return batteryVoltageValues;
     }
 }

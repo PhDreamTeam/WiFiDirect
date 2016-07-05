@@ -233,6 +233,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 logSession.logMsg("Destination: " + aia[0] + ":" + aia[1] + "\r\n");
                 logSession.logTime("Initial time");
+                logSession.startLoggingBatteryValues(clientActivity);
 
                 initialNanoTime = lastUpdate = System.nanoTime();
 
@@ -272,6 +273,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 // log initial time
                 logSession.logTime("Final time");
+                logSession.stopLoggingBatteryValues();
 
                 // final actions
                 updateVisualDeltaInformation(true);
@@ -292,6 +294,11 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 logSession.logMsg("Global average speed (Mbps): " + String.format("%5.3f", globalRcvSpeedMbps));
                 logSession.logMsg("Max rcv speed (Mbps): " + String.format("%5.3f", maxSpeedMbps));
                 logSession.logMsg("Bytes sent: " + sentDataCounterTotal + "\r\n");
+
+
+                logSession.logBatteryConsumedJoules();
+                logSession.logMsg("");
+
                 logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
                 for (DataTransferInfo data : transferInfoArrayList)
                     logSession.logMsg("  " + data);

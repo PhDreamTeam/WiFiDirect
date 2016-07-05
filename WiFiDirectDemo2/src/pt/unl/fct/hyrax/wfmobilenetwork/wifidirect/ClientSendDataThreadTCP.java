@@ -173,7 +173,9 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                     clientActivity.getLogDir());
             logSession.logMsg("Send data to CR: " + crIpAddress + ":" + crPortNumber);
             logSession.logMsg("Send data to dest: " + destIpAddress + ":" + destPortNumber + "\r\n");
+
             long initialTxTimeMs = logSession.logTime("Initial time");
+            logSession.startLoggingBatteryValues(clientActivity);
 
             if (sourceUri != null) {
                 cr = tvSentData.getContext().getContentResolver();
@@ -231,19 +233,25 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
 
             // log end writing time
             long finalTxTimeMs = logSession.logTime("Final sent time");
+            logSession.stopLoggingBatteryValues();
 
             // wait for received thread to terminate and log time
             rcvThread.join();
             logSession.logTime("Final receive time");
+            double deltaTimeSegs = (finalTxTimeMs - initialTxTimeMs) / 1000.0;
+            logSession.logMsg("Time elapsed (s): " + String.format("%5.3f", deltaTimeSegs) + "\r\n");
 
             // log final sent and receive bytes
             logSession.logMsg("Data sent (B): " + sentData + ", (MB): " + sentData / (1024.0 * 1024));
-            logSession.logMsg("Data received (B): " + rcvData + ", (MB): " + rcvData / (1024.0 * 1024));
             double sentDataMb = ((double) (sentData * 8)) / (1024 * 1024);
-            double deltaTimeSegs = (finalTxTimeMs - initialTxTimeMs) / 1000.0;
             double dataSentSpeedMbps = sentDataMb / deltaTimeSegs;
             logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", dataSentSpeedMbps));
             logSession.logMsg("Data sent Max speed (Mbps): " + String.format("%5.3f", maxDataSendSpeedMbps));
+
+            logSession.logMsg("Data received (B): " + rcvData + ", (MB): " + rcvData / (1024.0 * 1024) + "\r\n");
+
+            logSession.logBatteryConsumedJoules();
+
             logSession.close(tvSentData.getContext());
 
         } catch (Exception e) {
@@ -342,7 +350,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             // exclude last reading
             if (!forceUpdate && speedMbps > maxDataSendSpeedMbps)
                 maxDataSendSpeedMbps = speedMbps;
-            
+
             lastUpdate = currentNanoTime;
             tvSentData.post(new Runnable() {
                 @Override

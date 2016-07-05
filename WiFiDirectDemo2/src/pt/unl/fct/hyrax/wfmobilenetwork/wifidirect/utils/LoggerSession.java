@@ -12,6 +12,7 @@ public class LoggerSession {
     private Logger mainLog;
     private String sessionName;
     private StringBuilder log = new StringBuilder(20 * 1024);
+    private BatteryHelper batteryHelper;
 
     /**
      *
@@ -38,6 +39,37 @@ public class LoggerSession {
     public void logMsg(String msg) {
         log.append(msg).append("\r\n");
     }
+
+    /**
+     *
+     */
+    public void startLoggingBatteryValues(Context ctx) {
+        batteryHelper = new BatteryHelper();
+        batteryHelper.startReadingBattery(ctx);
+    }
+
+    /**
+     *
+     */
+    public void stopLoggingBatteryValues() {
+        batteryHelper.stopReadingBattery();
+    }
+
+    /**
+     *
+     */
+    public void logBatteryConsumedJoules() {
+        logMsg("Battery info: elapsed time (S): " + String.format("%4.3f", batteryHelper.getRunningTimeMs() / 1000.0) +
+                ", consumed joules (J): " + String.format("%3.3f", batteryHelper.getConsumedPowerJoules()));
+
+        logMsg("Battery current values =  " + batteryHelper.getBatteryCurrentValues().toString());
+
+        logMsg("Battery voltage values =  " + batteryHelper.getBatteryVoltageValues().toString());
+    }
+
+
+
+
 
     /**
      *

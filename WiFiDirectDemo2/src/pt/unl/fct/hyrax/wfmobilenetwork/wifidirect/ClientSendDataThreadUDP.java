@@ -110,6 +110,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
 
             logSession.logTime("Initial time");
             long initialTxTimeNs = System.nanoTime();
+            logSession.startLoggingBatteryValues(clientActivity);
 
             while (run) {
                 // second 4 bytes contains the number fo the datagram, reverse order, last will be zero
@@ -167,18 +168,21 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             // log end writing time
             logSession.logTime("Final sent time");
             long finalTxTimeNs = System.nanoTime();
+            logSession.stopLoggingBatteryValues();
 
             // update gui with last results and state button
             updateSentData(nBytesSent, true);
 
             // log final sent and receive bytes
-            logSession.logMsg("Data sent (B): " + nBytesSent + ", (MB): " + nBytesSent / (1024.0 * 1024));
+            logSession.logMsg("\r\nData sent (B): " + nBytesSent + ", (MB): " + nBytesSent / (1024.0 * 1024));
             double deltaTimeSegs = (finalTxTimeNs - initialTxTimeNs) / 1_000_000_000.0;
             double sentDataMb = (nBytesSent * 8.0) / (1024.0 * 1024.0);
             double globalSentSpeedMbps = sentDataMb / deltaTimeSegs;
             logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", globalSentSpeedMbps));
-            logSession.logMsg("Data sent Max speed (Mbps): " + String.format("%5.3f", maxDataSendSpeedMbps));
+            logSession.logMsg("Data sent Max speed (Mbps): " + String.format("%5.3f", maxDataSendSpeedMbps) + "\r\n");
             Log.d(LOG_TAG, "End of transmission, data sent: " + nBytesSent);
+
+            logSession.logBatteryConsumedJoules();
 
             cliSocket.close();
             tvSentDataKB.post(new Runnable() {

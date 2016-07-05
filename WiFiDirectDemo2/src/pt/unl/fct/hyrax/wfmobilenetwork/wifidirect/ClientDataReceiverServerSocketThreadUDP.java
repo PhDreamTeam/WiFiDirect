@@ -189,14 +189,15 @@ class UDPSession {
         maxSpeedMbps = 0;
 
         // start log session
-        logSession = MainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName() +
-                " Receiving UDP data ", clientActivity.getLogDir());
+        logSession = MainActivity.logger.getNewLoggerSession("ClientDataReceiverServerSocketThreadUDP " +
+                this.getClass().getSimpleName() + " Receiving UDP data ", clientActivity.getLogDir());
         logSession.logMsg("Sender address: " + senderIpAddress + ":" + senderPortNumber);
         Log.d(ClientDataReceiverServerSocketThreadUDP.LOG_TAG,
                 "Started a reception from: " + senderIpAddress + ":" + senderPortNumber);
 
         // log initial time
         logSession.logTime("Initial time");
+        logSession.startLoggingBatteryValues(clientActivity);
     }
 
     /**
@@ -216,7 +217,7 @@ class UDPSession {
             if (++nBuffersReceived == 1) {
                 String addressInfo = new String(bufferRcv, 8, dimContentString);
                 String dataStr[] = addressInfo.split(";");
-                logSession.logMsg("Destination: " + dataStr[0] + ":" + dataStr[1] + "\r\n");
+                logSession.logMsg("Destination: " + dataStr[0] + ":" + dataStr[1]);
 
                 nBuffersToBeReceived = ByteBuffer.wrap(bufferRcv, 8 + dimContentString, 4).getInt();
                 Log.d(ClientDataReceiverServerSocketThreadUDP.LOG_TAG,
@@ -252,7 +253,7 @@ class UDPSession {
 
         long finalTimeNs = lastUpdate;
         logSession.logTime("Final time");
-        logSession.logMsg("");
+        logSession.stopLoggingBatteryValues();
 
         Log.d(ClientDataReceiverServerSocketThreadUDP.LOG_TAG, "Ended reception from: " +
                 senderIpAddress + ":" + senderPortNumber);
@@ -265,7 +266,7 @@ class UDPSession {
         receptionGuiInfoGui.setCurAvgRcvSpeed(globalRcvSpeedMbps);
 
         // log data
-        logSession.logMsg("Received bytes: " + nBytesReceived);
+        logSession.logMsg("\r\nReceived bytes: " + nBytesReceived);
         logSession.logMsg("Received: " + nBuffersReceived + " buffers of " + (bufferSizeBytes / 1024) + "KBs");
         logSession.logMsg("Receive global speed (Mbps): " + String.format("%5.3f", globalRcvSpeedMbps));
         logSession.logMsg("Receive max speed (Mbps): " + String.format("%5.3f", maxSpeedMbps));
@@ -278,7 +279,10 @@ class UDPSession {
             totalRegisteredSpeedMbps += data.speedMbps;
         }
         logSession.logMsg("Receive avg speed (excluding limits, Mbps): " +
-                String.format("%5.3f", totalRegisteredSpeedMbps / (numSpeedRegisters - 2)) + "\n");
+                String.format("%5.3f", totalRegisteredSpeedMbps / (numSpeedRegisters - 2)) + "\r\n");
+
+        logSession.logBatteryConsumedJoules();
+        logSession.logMsg("");
 
         logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
         for (DataTransferInfo data : transferInfoArrayList)

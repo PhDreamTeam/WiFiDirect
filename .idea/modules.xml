@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/FileInspector/FileInspector.iml" filepath="$PROJECT_DIR$/FileInspector/FileInspector.iml" />
+      <module fileurl="file://$PROJECT_DIR$/LogsSummarizer/LogsSummarizer.iml" filepath="$PROJECT_DIR$/LogsSummarizer/LogsSummarizer.iml" />
       <module fileurl="file://$PROJECT_DIR$/MobileNetworkBuilder/MobileNetworkBuilder.iml" filepath="$PROJECT_DIR$/MobileNetworkBuilder/MobileNetworkBuilder.iml" />
       <module fileurl="file://$PROJECT_DIR$/NavigationDrawer/NavigationDrawer.iml" filepath="$PROJECT_DIR$/NavigationDrawer/NavigationDrawer.iml" />
       <module fileurl="file://$PROJECT_DIR$/WiFiDirectDemo2/WiFiDirectDemo2.iml" filepath="$PROJECT_DIR$/WiFiDirectDemo2/WiFiDirectDemo2.iml" />
