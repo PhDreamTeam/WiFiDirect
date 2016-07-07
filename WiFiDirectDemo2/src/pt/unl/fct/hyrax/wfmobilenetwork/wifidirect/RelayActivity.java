@@ -2,11 +2,12 @@ package pt.unl.fct.hyrax.wfmobilenetwork.wifidirect;
 
 import android.app.Activity;
 import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.content.Intent;
+import android.net.*;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -68,6 +69,11 @@ public class RelayActivity extends Activity {
     private TextView tvControlConnectionsFrom;
     private ControlReceiverThread cReveiverThread;
     private Configurations configurations;
+    private Network networkWifi;
+    private ConnectivityManager conManager;
+
+    private ClientActivity.BIND_TO_NETWORK currentBindToNetwork = ClientActivity.BIND_TO_NETWORK.NONE;
+    private String logDir;
 
 
     enum RELAY_TYPE {TCP, UDP, TCP_ONE4ALL, TCP_ONE4ONE}
@@ -81,7 +87,9 @@ public class RelayActivity extends Activity {
 
         setContentView(R.layout.relay_activity);
 
-        // read configurations from file
+        conManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        // read configStringurations from file
         configurations = Configurations.readFromConfigurationsFile();
 
         // get gui elements
@@ -265,6 +273,100 @@ public class RelayActivity extends Activity {
 
         // avoid keyboard popping up
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
+        // get network WF
+        requestNetworkWF();
+
+        Intent intent = getIntent();
+        // Process task string (from file passed as argument, used in ADB sessions) if exists
+        String taskStr = intent.getStringExtra("taskStr");
+        if (taskStr != null)
+            processTaskStr(taskStr);
+    }
+
+    /**
+     *
+     */
+    private void processTaskStr(String taskStr) {
+        Log.d(TAG, "TaskString: " + taskStr);
+        final HashMap<String, String> map = MainActivity.getParamsMap(taskStr);
+
+        // communication mode: mode
+        final String commMode = map.get("mode");
+        if (commMode == null || !(commMode.equalsIgnoreCase("tcp") || commMode.equalsIgnoreCase("udp")))
+            throw new IllegalStateException("Relay activity, received invalid communication mode parameter: " + commMode);
+
+
+        // log directory: logDirectory
+        logDir = map.get("logDirectory");
+        //etLogDir.setText(logDir);
+
+        final String bindSocketRelayToNetwork = map.get("bindSocketRelayToNetwork");
+        if (bindSocketRelayToNetwork != null) {
+            // btnBindToNetwork.setText("Bind to " + bindSocketToNetwork.toUpperCase());
+            Log.d(TAG, "bindSocketRelayToNetwork to: " + bindSocketRelayToNetwork);
+            currentBindToNetwork = bindSocketRelayToNetwork.equalsIgnoreCase("WF") ? ClientActivity.BIND_TO_NETWORK.WF :
+                    ClientActivity.BIND_TO_NETWORK.WF;
+        }
+
+        // get relayRules: relayRule = Rt;192.168.49.241;wf
+        for (int i = 1; true; ++i) {
+            String relayRule = map.get("relayRule-" + i);
+            if (relayRule == null)
+                break;
+            String[] theRule = relayRule.split(":");
+            addNewCRRule(theRule[0], theRule[1]);
+        }
+
+        // run with some delay to give time to stabilize network request if bid to is necessary
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                startRelaying();
+            }
+        }, 500);
+
+    }
+
+    /**
+     *
+     */
+    public Network getNetworkWF() {
+        return networkWifi;
+    }
+
+    /**
+     *
+     */
+    public ClientActivity.BIND_TO_NETWORK getCurrentBindToNetwork() {
+        return currentBindToNetwork;
+    }
+
+    /**
+     *
+     */
+    public void requestNetworkWF() {
+
+        Log.d(TAG, "Bind to Network: WF; calling requestNetwork with TRANSPORT: WF");
+
+        NetworkRequest.Builder builder = new NetworkRequest.Builder();
+        builder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+        NetworkRequest networkRequest = builder.build();
+
+        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+
+            public void onAvailable(Network network) {
+                Log.d(TAG, "Network callback, network TRANSPORT: WF, available on " + network);
+
+                networkWifi = network;
+            }
+
+            public void onLosing(Network network, int maxMsToLive) {
+                Log.d(TAG, "Network callback, network TRANSPORT: WF, lost on " + network);
+            }
+        };
+
+        conManager.requestNetwork(networkRequest, networkCallback);
     }
 
     /**
@@ -403,6 +505,8 @@ public class RelayActivity extends Activity {
             Log.d(TAG, "Attempt to duplicate toAddress (" + toAddress + ") rule, it was ignored.");
             return;
         }
+
+        Log.d(TAG, "Add Relay Rule: to " + toAddress + ", use: " + useCRAddress);
 
         TableRow tr = new TableRow(this);
 

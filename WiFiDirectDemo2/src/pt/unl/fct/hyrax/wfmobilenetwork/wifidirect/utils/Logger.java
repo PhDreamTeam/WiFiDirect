@@ -32,7 +32,6 @@ public class Logger {
     private String deviceName;
 
 
-
     /**
      *
      */
@@ -68,7 +67,7 @@ public class Logger {
      *
      */
     public LoggerSession getNewLoggerSession(String loggerSessionName, String logSubDir) {
-        if(!(logSubDir.trim().equals("") || logSubDir.trim().equals("."))) {
+        if (!(logSubDir.trim().equals("") || logSubDir.trim().equals("."))) {
             // ensure log dir path exists
             LOG_DIR_PATH = LOG_DIR_BASE_PATH + "/" + logSubDir;
             AndroidUtils.buildPath(LOG_DIR_PATH);
@@ -77,26 +76,22 @@ public class Logger {
     }
 
 
-
-
     /**
      *
      */
     public void terminateSession(LoggerSession loggerSession, Context ctx) {
+
+        saveDataToFile(loggerSession, ctx);
+
         if (--activeLogSessions == 0) {
             // write all logger sessions to file
-            saveDataToFile(ctx);
             logSessions.clear();
         }
     }
 
 
-
-
-
     /**
-     *
-     * @param ctx
+     * Save all logSessions
      */
     public void saveDataToFile(Context ctx) {
         // get initial time in a nice string
@@ -112,9 +107,39 @@ public class Logger {
             pw = new PrintWriter(f);
             pw.print(mainLogName + " started at " + timestamp + "\r\n\r\n");
             for (LoggerSession logSession : logSessions) {
-                pw.print("- - - - - - - - - - - -"  + "\r\n");
+                pw.print("- - - - - - - - - - - -" + "\r\n");
                 pw.print(logSession.getLogData() + "\r\n");
             }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            if (pw != null)
+                pw.close();
+        }
+
+        // do a media scan on this file, to enable PC file recognition
+        AndroidUtils.executeMediaScanFile(f, ctx);
+    }
+
+    /**
+     * Save only the logSession received
+     */
+    public void saveDataToFile(LoggerSession logSession, Context ctx) {
+        // get initial time in a nice string
+        String timestamp = dateFormatNormal.format(logSession.getInitialLogTime());
+
+        // build file to log data
+        final File f = new File(LOG_DIR_PATH + "/log_" + deviceName + "-" + timestamp + "_log.txt");
+
+        PrintWriter pw = null;
+
+        try {
+            // println does not put \r
+            pw = new PrintWriter(f);
+            pw.print(mainLogName + " started at " + timestamp + "\r\n\r\n");
+            pw.print("- - - - - - - - - - - -" + "\r\n");
+            pw.print(logSession.getLogData() + "\r\n");
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -137,7 +162,7 @@ public class Logger {
         String appName = context.getResources().getString(R.string.app_name);
         appName = appName.replace(' ', '-');
         deviceName = deviceName == null ? "" : deviceName;
-        String fileName  = LOG_DIR_PATH + "/logcat_" + deviceName + "_" + timestamp + "_" + appName + ".txt";
+        String fileName = LOG_DIR_PATH + "/logcat_" + deviceName + "_" + timestamp + "_" + appName + ".txt";
         String cmd = "logcat -v time -f " + fileName;
 
         AndroidUtils.buildPath(LOG_DIR_PATH);

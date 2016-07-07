@@ -19,7 +19,8 @@ import java.util.ArrayList;
 import java.util.Date;
 
 /**
- * Created by ateofilo on 19-10-2015.
+ * Created by ateofilo on 19-10-2015
+ * .
  * .
  */
 class ReceptionGuiInfo {

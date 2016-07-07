@@ -1,9 +1,11 @@
 package pt.unl.fct.hyrax.wfmobilenetwork.wifidirect;
 
+import android.net.Network;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import javax.net.SocketFactory;
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -38,6 +40,33 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
         this.relayActivity = relayActivity;
     }
 
+    /**
+     *
+     */
+    private Socket getSocket(ClientActivity.BIND_TO_NETWORK bindToNetwork, String crIpAddress, int crPortNumber) {
+        try {
+            if (ClientActivity.BIND_TO_NETWORK.WF.equals(bindToNetwork)) {
+
+                // bind to WF network
+                Network networkWifi = relayActivity.getNetworkWF();
+                Log.d(TAG, "Bind socket to network: WF " + networkWifi);
+                SocketFactory sf = networkWifi.getSocketFactory();
+                return sf.createSocket(ClientSendDataThreadTCP.getInetAddress(crIpAddress), crPortNumber);
+
+            } else if (ClientActivity.BIND_TO_NETWORK.WFD.equals(bindToNetwork)) {
+                throw new RuntimeException("get socket called to get WFD interface: not supported...");
+            } else {
+
+                // InetAddress localIpAddress = InetAddress.getByName("192.168.49.241");
+                return new Socket(ClientSendDataThreadTCP.getInetAddress(crIpAddress), crPortNumber);
+
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 
     @Override
     public void run() {
@@ -57,7 +86,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
             e.printStackTrace();
             stopThread();
             relayActivity.endRelayingGuiActions();
-            if(cliSock != null)
+            if (cliSock != null)
                 try {
                     cliSock.close();
                 } catch (IOException e1) {
@@ -66,14 +95,25 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
         }
     }
 
+    /**
+     *
+     */
     @Override
     public void stopThread() {
         run = false;
         this.interrupt();
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         for (IStoppable stopable : workingThreads)
             stopable.stopThread();
     }
 
+    /**
+     *
+     */
     private class CrForwardThreadTCP extends Thread implements IStoppable {
         private int bufferSize;
         Socket originSocket;
@@ -124,7 +164,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                     destPortNumber = 30000; //default CR PORT TODO CHANGE THIS TO A DYNAMIC PORT
                 }
                 // open destination socket
-                destSocket = new Socket(destIpAddress, destPortNumber);
+                destSocket = getSocket(relayActivity.getCurrentBindToNetwork(), destIpAddress, destPortNumber); // new Socket(destIpAddress, destPortNumber);
                 destDOS = new DataOutputStream(destSocket.getOutputStream());
                 destDIS = new DataInputStream(destSocket.getInputStream());
 
@@ -154,7 +194,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
 
         public void closeCloseable(Closeable closeable) {
             try {
-                if(closeable != null)
+                if (closeable != null)
                     closeable.close();
             } catch (IOException e) {
                 e.printStackTrace();

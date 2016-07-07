@@ -9,6 +9,7 @@ import java.util.Date;
  * .
  */
 public class LoggerSession {
+    private final Date initialLogTime = new Date();
     private Logger mainLog;
     private String sessionName;
     private StringBuilder log = new StringBuilder(20 * 1024);
@@ -67,8 +68,12 @@ public class LoggerSession {
         logMsg("Battery voltage values =  " + batteryHelper.getBatteryVoltageValues().toString());
     }
 
-
-
+    /**
+     *
+     */
+    public Date getInitialLogTime() {
+        return initialLogTime;
+    }
 
 
     /**

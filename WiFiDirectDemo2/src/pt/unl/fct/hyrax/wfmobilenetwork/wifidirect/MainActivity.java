@@ -587,6 +587,8 @@ public class MainActivity extends Activity {
                     intent = new Intent(myThis, ClientActivity.class);
                 else if (activityName.equalsIgnoreCase("metering"))
                     intent = new Intent(myThis, MeteringActivity.class);
+                else if (activityName.equalsIgnoreCase("relay"))
+                    intent = new Intent(myThis, RelayActivity.class);
                 else throw new IllegalStateException("Activity not supported (yet): " + activityName);
 
                 intent.putExtra("taskStr", sb.toString());

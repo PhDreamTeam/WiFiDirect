@@ -181,7 +181,7 @@ public class ClientActivity extends Activity {
 
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
 
-    enum BIND_TO_NETWORK {NONE, WF, WFD}
+    public enum BIND_TO_NETWORK {NONE, WF, WFD}
 
     /**
      *
@@ -247,7 +247,7 @@ public class ClientActivity extends Activity {
         p2pManager = (WifiP2pManager) getSystemService(WIFI_P2P_SERVICE);
         powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        conManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        conManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 
         channel = p2pManager.initialize(this, getMainLooper(), null);
 
@@ -841,6 +841,8 @@ public class ClientActivity extends Activity {
      *
      */
     private void setTcpCommunicationMode() {
+        stopReceptionLogs();
+
         // change to TCP mode
         communicationMode = COMM_MODE.TCP;
         btnUdpMulticast.setVisibility(View.GONE);
@@ -868,6 +870,8 @@ public class ClientActivity extends Activity {
      *
      */
     private void setUdpCommunicationMode() {
+        stopReceptionLogs();
+
         // change to UDP mode
         communicationMode = COMM_MODE.UDP;
         btnTcp.setVisibility(View.GONE);
@@ -880,6 +884,8 @@ public class ClientActivity extends Activity {
     *
     */
     private void setUdpMulticastCommunicationMode() {
+        stopReceptionLogs();
+
         // change to UDP Multicast mode
         communicationMode = COMM_MODE.UDP_MULTICAST;
         btnUdp.setVisibility(View.GONE);
@@ -1148,6 +1154,18 @@ public class ClientActivity extends Activity {
         clientReceiver.stopThread();
         clientReceiver = null;
         endReceivingGuiActions();
+        stopReceptionLogs();
+    }
+
+    /**
+     *
+     */
+    private void stopReceptionLogs() {
+        for (ReceptionGuiInfo rgi: receptionGuiInfos) {
+            if (!rgi.isTerminated()) {
+                rgi.setTerminatedState("Stopped by stop reception");
+            }
+        }
     }
 
     /**

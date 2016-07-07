@@ -100,7 +100,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
      * This method gets the InetAddress for this received address (trying to) using the wlan0 interface.
      * This is a test, to verify if we can send a message throught one speicify interface
      */
-    private InetAddress getInetAddress(String destAddress) {
+    public static InetAddress getInetAddress(String destAddress) {
         try {
             // AT this code is working in ISEL - IPv6 experiments
             // InetAddress dest1 = Inet6Address.getByName(destAddress);
