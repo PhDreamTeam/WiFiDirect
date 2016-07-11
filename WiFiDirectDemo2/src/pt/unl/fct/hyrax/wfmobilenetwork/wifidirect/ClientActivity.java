@@ -110,7 +110,7 @@ public class ClientActivity extends Activity {
     private Button btnStopTransmitting;
     private Button btnStopSendingImage;
     private LinearLayout llTransmissionInputZone;
-    private String logDir;
+    private String logDir = "";
     private Button btnUdpMulticast;
     private LinearLayout llMulticastNetworkInterfaces;
 

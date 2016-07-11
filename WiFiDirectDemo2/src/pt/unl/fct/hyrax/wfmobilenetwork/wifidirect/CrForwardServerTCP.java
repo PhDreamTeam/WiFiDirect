@@ -4,6 +4,7 @@ import android.net.Network;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
+import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.LoggerSession;
 
 import javax.net.SocketFactory;
 import java.io.Closeable;
@@ -13,7 +14,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 /**
  * Created by DR & AT on 20/05/2015
@@ -29,6 +29,9 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
     TextView textViewTransferedDataOrigDest, textViewTransferedDataDestOrig;
     ArrayList<IStoppable> workingThreads = new ArrayList<>();
 
+    /**
+     *
+     */
     public CrForwardServerTCP(int portNumber, TextView textViewTransferedDataOrigDest
             , TextView textViewTransferedDataDestOrig, int bufferSize,
                               RelayActivity relayActivity) {
@@ -125,6 +128,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
         DataOutputStream origDOS;
         DataOutputStream destDOS;
         DataInputStream destDIS;
+        private LoggerSession logSession;
 
         public CrForwardThreadTCP(Socket cliSock, int bufferSize) {
             this.originSocket = cliSock;
@@ -133,13 +137,13 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
 
         @Override
         public void run() {
-            textViewTransferedDataOrigDest.post(new Runnable() {
-                @Override
-                public void run() {
-                    CharSequence text = "" + bufferSize + "KB, CrForwardThreadTCP";
-                    Toast.makeText(textViewTransferedDataOrigDest.getContext(), text, Toast.LENGTH_SHORT).show();
-                }
-            });
+//            textViewTransferedDataOrigDest.post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    CharSequence text = "" + bufferSize + "KB, CrForwardThreadTCP";
+//                    Toast.makeText(textViewTransferedDataOrigDest.getContext(), text, Toast.LENGTH_SHORT).show();
+//                }
+//            });
 
             byte buffer[] = new byte[bufferSize];
             String destIpAddress = null;
@@ -154,6 +158,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 origDIS.read(buffer, 0, addressInfoLen);
                 String addressInfo = new String(buffer, 0, addressInfoLen);
                 String aia[] = addressInfo.split(";");
+                long bytesToSent = origDIS.readLong();
 
                 destIpAddress = aia[0];
                 destPortNumber = Integer.parseInt(aia[1]);
@@ -163,6 +168,22 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                     destIpAddress = relayAddress;
                     destPortNumber = 30000; //default CR PORT TODO CHANGE THIS TO A DYNAMIC PORT
                 }
+
+                String msg = " Received a connection from " + originSocket.getInetAddress().toString().substring(1) +
+                        ":" + originSocket.getPort() + " to " + addressInfo + ", will be sent to " +
+                        destIpAddress + ":" + destPortNumber + ", with bytes: " + bytesToSent;
+
+                Log.v(TAG, msg);
+
+                // start log session and log initial time
+                logSession = MainActivity.logger.getNewLoggerSession(
+                        this.getClass().getSimpleName() + msg, relayActivity.getLogDir());
+
+                //logSession.logMsg("Destination: " + aia[0] + ":" + aia[1] + "\r\n");
+                logSession.logTime("Initial time");
+                logSession.startLoggingBatteryValues(relayActivity);
+
+
                 // open destination socket
                 destSocket = getSocket(relayActivity.getCurrentBindToNetwork(), destIpAddress, destPortNumber); // new Socket(destIpAddress, destPortNumber);
                 destDOS = new DataOutputStream(destSocket.getOutputStream());
@@ -171,14 +192,22 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 // firstly send packet destination address in case of needed by another cr
                 destDOS.writeInt(addressInfoLen);
                 destDOS.write(buffer, 0, addressInfoLen);
+                destDOS.writeLong(bytesToSent);
 
-                threadForwardDataOrigDest = forwardData(origDIS, destDOS, textViewTransferedDataOrigDest);
-                threadForwardDataDestOrig = forwardData(destDIS, origDOS, textViewTransferedDataDestOrig);
+                threadForwardDataOrigDest = forwardData("FWD", origDIS, destDOS, destSocket, textViewTransferedDataOrigDest);
+                threadForwardDataDestOrig = forwardData("BCK", destDIS, origDOS, originSocket, textViewTransferedDataDestOrig);
 
                 Log.d(TAG, "Using BufferSize: " + buffer.length);
 
                 threadForwardDataOrigDest.join();
                 threadForwardDataDestOrig.join();
+
+
+                // log end common values
+                logSession.stopLoggingBatteryValues();
+                logSession.logMsg("");
+                logSession.logBatteryConsumedJoules();
+                logSession.close(relayActivity);
 
             } catch (Exception e) {
                 Log.d(TAG, "Error opening relay channel to: " + destIpAddress + ":" + destPortNumber);
@@ -192,6 +221,9 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
             }
         }
 
+        /**
+         *
+         */
         public void closeCloseable(Closeable closeable) {
             try {
                 if (closeable != null)
@@ -201,8 +233,14 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
             }
         }
 
-        private Thread forwardData(final DataInputStream dis, final DataOutputStream dos, final TextView textView) {
+        /**
+         *
+         */
+        private Thread forwardData(final String direction, final DataInputStream dis, final DataOutputStream dos,
+                                   final Socket destSocket, final TextView textView) {
             Thread thread = new Thread(new Runnable() {
+                double maxSpeedMbps;
+
                 @Override
                 public void run() {
                     byte buffer[] = new byte[bufferSize];
@@ -211,29 +249,86 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                     long forwardedData = 0;
                     long deltaForwardData = 0;
                     int nBytesRead = 0;
+                    int nBuffersReceived = 0;
 
                     initialNanoTime = System.nanoTime();
+
+                    long initialTxTimeMs = logSession.logTime(direction + " Initial time");
+
                     // start forwarding all data to destination...
                     try {
                         while (run) {
                             nBytesRead = dis.read(buffer);
+                            Log.v(TAG, direction + " Received a buffer nº " + ++nBuffersReceived +
+                                    ", with bytes: " + nBytesRead);
 
-                            if (nBytesRead != -1) {
-                                dos.write(buffer, 0, nBytesRead);
-                                forwardedData += nBytesRead;
-                                deltaForwardData += nBytesRead;
-                                long updatedLastTime = updateVisualDeltaInformation(
-                                        forwardedData, deltaForwardData, lastUpdate, textView);
-                                if (updatedLastTime != 0) {
-                                    deltaForwardData = 0; // if updated clear delta counter
-                                    lastUpdate = updatedLastTime; // new updated inf timestamp
-                                }
-                            } else
-                                run = false;
+                            if (nBytesRead == -1)
+                                break;
+
+                            dos.write(buffer, 0, nBytesRead);
+                            forwardedData += nBytesRead;
+                            deltaForwardData += nBytesRead;
+                            long updatedLastTime = updateVisualDeltaInformation(
+                                    forwardedData, deltaForwardData, lastUpdate, textView);
+                            if (updatedLastTime != 0) {
+                                deltaForwardData = 0; // if updated clear delta counter
+                                lastUpdate = updatedLastTime; // new updated inf timestamp
+                            }
                         }
+
+                        // send EOT to destination
+                        destSocket.shutdownOutput();
+
+                        // to avoid mix data from forward and backward threads
+                        synchronized (CrForwardServerTCP.this) {
+                            // end log session
+                            // log end writing time
+                            long finalTxTimeMs = logSession.logTime("\n" + direction + " Final sent time");
+
+                            double deltaTimeSegs = (finalTxTimeMs - initialTxTimeMs) / 1000.0;
+                            logSession.logMsg(direction + " Time elapsed (s): " + String.format("%5.3f", deltaTimeSegs));
+
+                            // log final sent and receive bytes
+                            logSession.logMsg(direction + " Data forwarded (B): " + forwardedData + ", (MB): " + forwardedData / (1024.0 * 1024));
+                            double sentDataMb = ((double) (forwardedData * 8)) / (1024 * 1024);
+                            double dataSentSpeedMbps = sentDataMb / deltaTimeSegs;
+                            logSession.logMsg(direction + " Data forwarded speed (Mbps): " + String.format("%5.3f", dataSentSpeedMbps));
+                            logSession.logMsg(direction + " Data forwarded Max speed (Mbps): " + String.format("%5.3f", maxSpeedMbps));
+                        }
+
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                }
+
+                // returns 0 if not updated, else return the lastUpdateTime
+                long updateVisualDeltaInformation(long forwardedData, long deltaForwardData, long lastUpdate, final TextView textView) {
+                    // elapsed time
+                    long currentNanoTime = System.nanoTime();
+
+                    if (currentNanoTime > lastUpdate + 1000000000) {
+                        long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
+                        double elapsedDeltaRcvTimeSeconds = (double) elapsedDeltaRcvTimeNano / 1000000000.0;
+                        final double speedMbps = ((deltaForwardData * 8) / (1024.0 * 1024)) / elapsedDeltaRcvTimeSeconds;
+
+                        if (speedMbps > maxSpeedMbps) {
+                            maxSpeedMbps = speedMbps;
+                        }
+
+                        //final String msg = (forwardedData / 1024) + " KBytes " + speed + " Mbps";
+                        final String msg = String.format("%d KB,  %4.2f Mbps", forwardedData / 1024, speedMbps);
+                        lastUpdate = currentNanoTime;
+                        textView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                textView.setText(msg);
+                            }
+                        });
+
+                        Log.d(TAG, msg);
+                        return lastUpdate;
+                    }
+                    return 0;
                 }
             });
             thread.start();
@@ -245,32 +340,13 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
             run = false;
             threadForwardDataOrigDest.interrupt();
             threadForwardDataDestOrig.interrupt();
-        }
 
-        // returns 0 if not updated, else return the lastUpdateTime
-        long updateVisualDeltaInformation(long forwardedData, long deltaForwardData, long lastUpdate, final TextView textView) {
-            // elapsed time
-            long currentNanoTime = System.nanoTime();
-
-            if (currentNanoTime > lastUpdate + 1000000000) {
-                long elapsedDeltaRcvTimeNano = currentNanoTime - lastUpdate; // div 10^-9 para ter em segundos
-                double elapsedDeltaRcvTimeSeconds = (double) elapsedDeltaRcvTimeNano / 1000000000.0;
-                // transfer speed B/s
-                double speed = (deltaForwardData / 1024) / elapsedDeltaRcvTimeSeconds;
-                //final String msg = (forwardedData / 1024) + " KBytes " + speed + " KBps";
-                final String msg = String.format("%d KB,  %4.2f KBps", forwardedData / 1024, speed);
-                lastUpdate = currentNanoTime;
-                textView.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        textView.setText(msg);
-                    }
-                });
-
-                Log.d(TAG, msg);
-                return lastUpdate;
+            try {
+                origDIS.close();
+                destDIS.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            return 0;
         }
     }
 }

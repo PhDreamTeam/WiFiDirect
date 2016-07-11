@@ -1,3 +1,5 @@
+import sun.rmi.runtime.Log;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -18,6 +20,23 @@ public class LogsSummarizer extends JFrame {
     private JLabel labelWorkingDirectory;
     private JFileChooser fc;
 
+    private boolean guiExecution = true;
+
+
+    private void init(String[] args) {
+        if (args.length == 0) {
+            init();
+            return;
+        }
+
+        guiExecution = false;
+        for (int i = 0; i < args.length; i++) {
+            //System.out.println("Processing dir: " + args[i]);
+            setWorkingDirectory(args[i]);
+            processLogs();
+        }
+    }
+
     /**
      *
      */
@@ -33,6 +52,7 @@ public class LogsSummarizer extends JFrame {
 
         fc = new JFileChooser();
         fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        fc.setApproveButtonText("Do Log Summary");
 
         // intro label
         JLabel labelLogSSummarizer = new JLabel("Logs Summarizer");
@@ -62,9 +82,6 @@ public class LogsSummarizer extends JFrame {
         JButton btnSelectWorkingDirectory = new JButton("Select working directory");
         buttonsPanel.add(btnSelectWorkingDirectory);
 
-        JButton btnProcessLogs = new JButton("Process logs");
-        buttonsPanel.add(btnProcessLogs);
-
         auxPanel.add(buttonsPanel, BorderLayout.SOUTH);
 
         File curDir = new File(START_DIR);
@@ -79,15 +96,6 @@ public class LogsSummarizer extends JFrame {
                 selectWorkingDirectory_actionListener();
             }
         });
-
-
-        btnProcessLogs.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                processLogs();
-            }
-        });
-
 
         setVisible(true);
     }
@@ -131,12 +139,19 @@ public class LogsSummarizer extends JFrame {
                     if (line.contains("ClientDataReceiverServerSocketThreadUDP")) {
                         doReceiverUDPSummary(fileScan, pw);
                     }
+
+
+                    if (line.contains("CrForwardThreadTCP")) {
+                        doTCPRelaySummary(fileScan, pw);
+                    }
                 }
                 fileScan.close();
             }
 
             pw.close();
-            JOptionPane.showMessageDialog(this, "Working directory precessed: " + workingDirectory);
+            if (guiExecution)
+                JOptionPane.showMessageDialog(this, "Working directory precessed: " + workingDirectory);
+            else System.out.println("Directory: " + workingDirectory + ", processed");
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -188,7 +203,7 @@ public class LogsSummarizer extends JFrame {
                 joules = Double.parseDouble(getLastToken(line2));
             }
         }
-        pw.println(maxReceiveSpeed + "  " + avgReceiveSpeed + "  " + joules);
+        pw.println(maxReceiveSpeed + " " + avgReceiveSpeed + " " + joules);
     }
 
     /**
@@ -217,7 +232,40 @@ public class LogsSummarizer extends JFrame {
                 joules = Double.parseDouble(getLastToken(line2));
             }
         }
-        pw.println(maxReceiveSpeed + "  " + avgReceiveSpeed + "  " + joules + "  " + receivedBytes);
+        pw.println(maxReceiveSpeed + " " + avgReceiveSpeed + " " + joules + " " + receivedBytes);
+    }
+
+    /**
+     *
+     */
+    private void doTCPRelaySummary(Scanner fileScan, PrintWriter pw) {
+        double fwdMaxReceiveSpeed = 0, fwdAvgSpeed = 0, bckMaxReceiveSpeed = 0, bckAvgSpeed = 0, joules = 0;
+
+        while (fileScan.hasNextLine()) {
+            String line2 = fileScan.nextLine();
+
+            if (line2.contains("FWD Data forwarded Max speed")) {
+                fwdMaxReceiveSpeed = Double.parseDouble(getLastToken(line2));
+            }
+
+            if (line2.contains("FWD Data forwarded speed")) {
+                fwdAvgSpeed = Double.parseDouble(getLastToken(line2));
+            }
+
+            if (line2.contains("BCK Data forwarded Max speed")) {
+                bckMaxReceiveSpeed = Double.parseDouble(getLastToken(line2));
+            }
+
+            if (line2.contains("BCK Data forwarded speed")) {
+                bckAvgSpeed = Double.parseDouble(getLastToken(line2));
+            }
+
+            if (line2.contains("joules")) {
+                joules = Double.parseDouble(getLastToken(line2));
+            }
+        }
+        pw.println(fwdMaxReceiveSpeed + " " + fwdAvgSpeed + " " +
+                bckMaxReceiveSpeed + " " + bckAvgSpeed + " " + joules);
     }
 
 
@@ -245,6 +293,7 @@ public class LogsSummarizer extends JFrame {
             // This is where a real application would open the file.
             System.out.println("FileChooser, selected as working directory: " + file.getAbsolutePath());
             setWorkingDirectory(file.getAbsolutePath());
+            processLogs();
         } else {
             System.out.println("FileChooser, cancelled by user.");
         }
@@ -255,18 +304,19 @@ public class LogsSummarizer extends JFrame {
      */
     void setWorkingDirectory(String workDir) {
         workingDirectory = workDir;
-        labelWorkingDirectory.setText("<html><center>Working dir:<br>" + workDir + "<center><html>");
+        if (labelWorkingDirectory != null)
+            labelWorkingDirectory.setText("<html><center>Working dir:<br>" + workDir + "<center><html>");
     }
 
     /**
      *
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
 
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new LogsSummarizer().init();
+                new LogsSummarizer().init(args);
             }
         });
     }

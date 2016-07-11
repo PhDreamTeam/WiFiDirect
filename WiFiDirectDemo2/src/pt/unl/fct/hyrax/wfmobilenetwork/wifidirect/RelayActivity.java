@@ -76,6 +76,8 @@ public class RelayActivity extends Activity {
     private String logDir;
 
 
+
+
     enum RELAY_TYPE {TCP, UDP, TCP_ONE4ALL, TCP_ONE4ONE}
 
     ;
@@ -282,6 +284,13 @@ public class RelayActivity extends Activity {
         String taskStr = intent.getStringExtra("taskStr");
         if (taskStr != null)
             processTaskStr(taskStr);
+    }
+
+    /**
+     *
+     */
+    public String getLogDir() {
+        return logDir;
     }
 
     /**
@@ -501,6 +510,9 @@ public class RelayActivity extends Activity {
      *
      */
     private void addNewCRRule(String toAddress, String useCRAddress) {
+        toAddress = toAddress.trim();
+        useCRAddress = useCRAddress.trim();
+
         if (relayRulesMap.containsKey(toAddress)) {
             Log.d(TAG, "Attempt to duplicate toAddress (" + toAddress + ") rule, it was ignored.");
             return;

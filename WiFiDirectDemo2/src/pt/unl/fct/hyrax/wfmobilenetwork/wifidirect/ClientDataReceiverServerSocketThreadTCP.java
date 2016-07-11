@@ -23,7 +23,7 @@ import java.util.Date;
  * .
  */
 public class ClientDataReceiverServerSocketThreadTCP extends Thread implements IStoppable {
-    public static final String LOG_TAG = ClientActivity.TAG + " TCP";
+    public static final String TAG = ClientActivity.TAG + " TCP";
     static private String FILES_DIR_PATH = MainActivity.APP_MAIN_FILES_DIR_PATH + "/files";
 
     private int bufferSize;
@@ -56,7 +56,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         // receive data from other clients...
         try {
             serverSocket = new ServerSocket(portNumber);
-            Log.d(LOG_TAG, "Starting TCP reception server at port: " + portNumber);
+            Log.d(TAG, "Starting TCP reception server at port: " + portNumber);
             while (true) {
                 // wait connections
                 Socket cliSock = serverSocket.accept();
@@ -64,15 +64,15 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 // checking for stopping condition
                 if (cliSock.getInetAddress().toString().equals("/127.0.0.1")) {
                     AndroidUtils.toast(llReceptionZone, "Stopping TCP reception");
-                    Log.d(LOG_TAG, "Stopping reception server at port: " + portNumber);
+                    Log.d(TAG, "Stopping reception server at port: " + portNumber);
                     // close server socket
                     serverSocket.close();
                     return;
                 } else {
                     String transmitterIP = cliSock.getInetAddress().toString().substring(1);
                     String msg = "Received a connection from " + transmitterIP + ":" + cliSock.getPort();
-                    AndroidUtils.toast(llReceptionZone, msg);
-                    Log.d(LOG_TAG, msg);
+                    //AndroidUtils.toast(llReceptionZone, msg);
+                    Log.d(TAG, msg);
                 }
 
                 IStoppable t = new ClientDataReceiverThreadTCP(cliSock, bufferSize, llReceptionZone, replyMode);
@@ -82,7 +82,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
         } catch (IOException e) {
             e.printStackTrace();
             AndroidUtils.toast(llReceptionZone, "Exception " + e.getMessage());
-            Log.d(LOG_TAG, "Exception " + e.getMessage());
+            Log.d(TAG, "Exception " + e.getMessage());
             llReceptionZone.post(new Runnable() {
                 @Override
                 public void run() {
@@ -96,7 +96,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
      * Stop reception
      */
     public void stopThread() {
-        Log.d(LOG_TAG, "Stopping reception from GUI action");
+        Log.d(TAG, "Stopping reception from GUI action");
 
         // stop socket listening - send a termination: a dummy local socket
         // must run in the non GUI thread
@@ -205,7 +205,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 int secondIdx = addressInfo.indexOf(addressInfo.indexOf(';', firstIdx + 1), ';');
                 secondIdx = secondIdx == -1 ? addressInfo.length() : secondIdx;
                 String destPort = addressInfo.substring(firstIdx + 1, secondIdx);
-                Log.d(LOG_TAG,
+                Log.d(TAG,
                         "Received a connection from " + originIP + ":" + originPort +
                                 " with destination: " + destIPAddress + ":" + destPort +
                                 " with " + bytesToBeReceived + " bytes to be received");
@@ -218,7 +218,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                     String timestamp = new SimpleDateFormat("yy-MM-dd_HH'h'mm'm'ss's'").format(new Date());
 
                     final File f = new File(filesDirPath + "/" + timestamp + "_" + filename); // add filename
-                    Log.d(LOG_TAG, "Server: saving file: " + f.toString());
+                    Log.d(TAG, "Server: saving file: " + f.toString());
                     fos = new FileOutputStream(f);
                     AndroidUtils.toast(llReceptionZone, "Receiving file on server: " + f.getAbsolutePath());
                 }
@@ -237,12 +237,15 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 initialNanoTime = lastUpdate = System.nanoTime();
 
-                Log.d(LOG_TAG, "Using BufferSize: " + bufferSize);
+                Log.d(TAG, "Using BufferSize: " + bufferSize);
+                int nBuffersReceived = 0;
 
                 // Receive client data
                 while (true) {
                     // receive and count rcvData
                     int readDataLen = dis.read(buffer);
+
+                    Log.v(TAG, "Received buffer nº " + ++nBuffersReceived + ", with bytes: " + readDataLen);
 
                     // checking end of data from socket
                     if (readDataLen == -1) {
@@ -279,8 +282,8 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 updateVisualDeltaInformation(true);
                 String msg = "EOT OK, Reception from " + originIP + ":" + originPort +
                         ", received (B): " + nBytesReceived;
-                AndroidUtils.toast(llReceptionZone, msg);
-                Log.d(LOG_TAG, msg);
+                //AndroidUtils.toast(llReceptionZone, msg);
+                Log.d(TAG, msg);
 
                 // calculate avg speed based on time
                 double deltaTimeSegs = (finalNanoTime - initialNanoTime) / 1_000_000_000.0;
@@ -319,7 +322,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
                 // reception terminated not normally
                 String msg =  "Reception from: " + originIP + ":" + originPort + " stopped, cause: " +
                         (e.getMessage() != null ? (e.getMessage().equals("Socket closed") ? "by user action" : e.getMessage()) : e.getClass());
-                Log.e(LOG_TAG, msg);
+                Log.e(TAG, msg);
                 AndroidUtils.toast(llReceptionZone, msg);
                 receptionGuiInfoGui.setTerminatedState(" - err");
                 // e.printStackTrace();
@@ -385,7 +388,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
             float bytesReceivedPercentage = nBytesReceived / (float)bytesToBeReceived;
             if (bytesReceivedPercentage > nextNotificationValue) {
-                Log.d(LOG_TAG, "Bytes received: " + String.format("%.1f", bytesReceivedPercentage * 100) + "%");
+                Log.d(TAG, "Bytes received: " + String.format("%.1f", bytesReceivedPercentage * 100) + "%");
                 nextNotificationValue += 0.1f;
             }
         }

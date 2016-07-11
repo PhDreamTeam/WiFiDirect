@@ -67,7 +67,7 @@ public class Logger {
      *
      */
     public LoggerSession getNewLoggerSession(String loggerSessionName, String logSubDir) {
-        if (!(logSubDir.trim().equals("") || logSubDir.trim().equals("."))) {
+        if (!(logSubDir == null || logSubDir.trim().equals("") || logSubDir.trim().equals("."))) {
             // ensure log dir path exists
             LOG_DIR_PATH = LOG_DIR_BASE_PATH + "/" + logSubDir;
             AndroidUtils.buildPath(LOG_DIR_PATH);

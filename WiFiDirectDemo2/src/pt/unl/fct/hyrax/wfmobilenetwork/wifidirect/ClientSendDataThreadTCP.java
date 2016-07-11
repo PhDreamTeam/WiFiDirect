@@ -22,7 +22,7 @@ import java.net.*;
  * .
  */
 public class ClientSendDataThreadTCP extends Thread implements IStoppable {
-    public static final String LOG_TAG = ClientActivity.TAG + " TCP";
+    public static final String TAG = ClientActivity.TAG + " TCP";
 
     private int bufferSize;
     String destIpAddress;
@@ -143,7 +143,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             if (bindToNetwork.equals(ClientActivity.BIND_TO_NETWORK.WF)) {
                 // bind to WF network
                 Network networkWifi = clientActivity.getNetworkWF();
-                Log.d(LOG_TAG, "Bind socket to network: WF " + networkWifi);
+                Log.d(TAG, "Bind socket to network: WF " + networkWifi);
                 SocketFactory sf = networkWifi.getSocketFactory();
                 cliSocket = sf.createSocket(getInetAddress(crIpAddress), crPortNumber);
 
@@ -151,7 +151,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 // bind to WFD network - get P2P network not working
 
                 Network networkWifi = clientActivity.getNetworkWFD();
-                Log.d(LOG_TAG, "Bind socket to network: WFD " + networkWifi);
+                Log.d(TAG, "Bind socket to network: WFD " + networkWifi);
                 SocketFactory sf = networkWifi.getSocketFactory();
                 cliSocket = sf.createSocket(getInetAddress(crIpAddress), crPortNumber);
 
@@ -165,8 +165,8 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
 
             String msg = "Start transmission to CR " + crIpAddress + ":" + crPortNumber + " with dest " +
                     destIpAddress + ":" + destPortNumber;
-            AndroidUtils.toast(tvSentData, msg);
-            Log.d(LOG_TAG, msg);
+            //AndroidUtils.toast(tvSentData, msg);
+            Log.d(TAG, msg);
 
             // start log session and log initial time
             logSession = MainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName(),
@@ -185,11 +185,11 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 fileName = getFileNameFromURI(sourceUri);
 
                 // Log.d(WiFiDirectActivity.TAG, "File URI: " + sourceUri.toString());
-                Log.d(LOG_TAG, "Sending file: " + fileName + " with length (B): " + fileSize +
+                Log.d(TAG, "Sending file: " + fileName + " with length (B): " + fileSize +
                         ", with BufferSize (B): " + buffer.length);
                 nBytesToSend = 0; // send the complete image
             } else
-                Log.d(LOG_TAG, "Sending data (B): " + nBytesToSend + ", with BufferSize (B): " + buffer.length);
+                Log.d(TAG, "Sending data (B): " + nBytesToSend + ", with BufferSize (B): " + buffer.length);
 
 
             // receive replies from destination
@@ -205,6 +205,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             dos.writeLong(nBytesToSend);
 
             int dataLen = buffer.length;
+            int nBuffersSent = 0;
 
             while (true) {
                 if (is != null) {
@@ -217,6 +218,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 dos.write(buffer, 0, dataLen);
                 sentData += dataLen;
                 updateSentData(sentData, false);
+                Log.v(TAG, "Sent buffer nº " + ++nBuffersSent + ", with bytes: " + dataLen);
 
                 if (nBytesToSend != 0 && sentData >= nBytesToSend) {
                     break;
@@ -227,7 +229,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             }
 
             updateSentData(sentData, true);
-            Log.d(LOG_TAG, "EOT, data sent: " + sentData);
+            Log.d(TAG, "EOT, data sent: " + sentData);
 
             cliSocket.shutdownOutput();
 
@@ -258,7 +260,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             String msg = "Transmission stopped, cause: " +
                     (e.getMessage().equals("Socket closed") ? "by user action" : e.getMessage());
             AndroidUtils.toast(tvSentData, msg);
-            Log.e(LOG_TAG, msg);
+            Log.e(TAG, msg);
             e.printStackTrace();
             // e.printStackTrace();
             if (logSession != null) {
@@ -323,7 +325,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 } catch (IOException e) {
                     String msg = "Socket receiver part stopped, cause: " +
                             (e.getMessage().equals("Socket closed") ? "by user action" : e.getMessage());
-                    Log.d(LOG_TAG, msg);
+                    Log.d(TAG, msg);
                     // e.printStackTrace();
                 } finally {
                     AndroidUtils.close(dis);
@@ -366,7 +368,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         // ADB console notification
         float bytesSentPercentage = sentData / (float) nBytesToSend;
         if (bytesSentPercentage > nextNotificationValue) {
-            Log.d(LOG_TAG, "Bytes sent: " + String.format("%.1f", bytesSentPercentage * 100) + "%");
+            Log.d(TAG, "Bytes sent: " + String.format("%.1f", bytesSentPercentage * 100) + "%");
             nextNotificationValue += 0.1f;
         }
     }
