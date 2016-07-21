@@ -16,6 +16,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
+import java.util.Locale;
 
 /**
  * Created by DR & AT on 20/05/2015.
@@ -25,7 +26,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     public static final String TAG = ClientActivity.TAG + " TCP";
 
     private int bufferSize;
-    String destIpAddress;
+    String destName;
     int destPortNumber;
     String crIpAddress;
     int crPortNumber;
@@ -49,10 +50,10 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
     /*
      *
      */
-    public ClientSendDataThreadTCP(String destIpAddress, int destPortNumber, String crIpAddress, int crPortNumber
+    public ClientSendDataThreadTCP(String destName, int destPortNumber, String crIpAddress, int crPortNumber
             , long speed, long dataLimitKB, TextView tvSentData, TextView tvRcvData, ClientActivity clientActivity
             , int bufferSize, Uri sourceUri, ClientActivity.BIND_TO_NETWORK bindToNetwork) {
-        this.destIpAddress = destIpAddress;
+        this.destName = destName;
         this.destPortNumber = destPortNumber;
         this.crIpAddress = crIpAddress;
         this.crPortNumber = crPortNumber;
@@ -156,6 +157,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
                 cliSocket = sf.createSocket(getInetAddress(crIpAddress), crPortNumber);
 
             } else {
+                Log.d(TAG, "Create TCP socket to " + crIpAddress + ":" + crPortNumber);
                 // InetAddress localIpAddress = InetAddress.getByName("192.168.49.241");
                 cliSocket = new Socket(getInetAddress(crIpAddress), crPortNumber);
             }
@@ -164,7 +166,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             DataInputStream dis = new DataInputStream(cliSocket.getInputStream());
 
             String msg = "Start transmission to CR " + crIpAddress + ":" + crPortNumber + " with dest " +
-                    destIpAddress + ":" + destPortNumber;
+                    destName + ":" + destPortNumber;
             //AndroidUtils.toast(tvSentData, msg);
             Log.d(TAG, msg);
 
@@ -172,7 +174,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             logSession = MainActivity.logger.getNewLoggerSession(this.getClass().getSimpleName(),
                     clientActivity.getLogDir());
             logSession.logMsg("Send data to CR: " + crIpAddress + ":" + crPortNumber);
-            logSession.logMsg("Send data to dest: " + destIpAddress + ":" + destPortNumber + "\r\n");
+            logSession.logMsg("Send data to dest: " + destName + ":" + destPortNumber + "\r\n");
 
             long initialTxTimeMs = logSession.logTime("Initial time");
             logSession.startLoggingBatteryValues(clientActivity);
@@ -196,7 +198,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             rcvThread = createRcvThread(dis);
 
             // send destination information for the forward node
-            String addressData = this.destIpAddress + ";" + this.destPortNumber;
+            String addressData = this.destName + ";" + this.destPortNumber;
             if (sourceUri != null) {
                 addressData += ";" + fileName + ";" + fileSize;
             }
@@ -241,14 +243,14 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
             rcvThread.join();
             logSession.logTime("Final receive time");
             double deltaTimeSegs = (finalTxTimeMs - initialTxTimeMs) / 1000.0;
-            logSession.logMsg("Time elapsed (s): " + String.format("%5.3f", deltaTimeSegs) + "\r\n");
+            logSession.logMsg("Time elapsed (s): " + String.format(Locale.US, "%5.3f", deltaTimeSegs) + "\r\n");
 
             // log final sent and receive bytes
             logSession.logMsg("Data sent (B): " + sentData + ", (MB): " + sentData / (1024.0 * 1024));
             double sentDataMb = ((double) (sentData * 8)) / (1024 * 1024);
             double dataSentSpeedMbps = sentDataMb / deltaTimeSegs;
-            logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", dataSentSpeedMbps));
-            logSession.logMsg("Data sent Max speed (Mbps): " + String.format("%5.3f", maxDataSendSpeedMbps));
+            logSession.logMsg("Data sent speed (Mbps): " + String.format(Locale.US, "%5.3f", dataSentSpeedMbps));
+            logSession.logMsg("Data sent Max speed (Mbps): " + String.format(Locale.US, "%5.3f", maxDataSendSpeedMbps));
 
             logSession.logMsg("Data received (B): " + rcvData + ", (MB): " + rcvData / (1024.0 * 1024) + "\r\n");
 
@@ -368,7 +370,7 @@ public class ClientSendDataThreadTCP extends Thread implements IStoppable {
         // ADB console notification
         float bytesSentPercentage = sentData / (float) nBytesToSend;
         if (bytesSentPercentage > nextNotificationValue) {
-            Log.d(TAG, "Bytes sent: " + String.format("%.1f", bytesSentPercentage * 100) + "%");
+            Log.d(TAG, "Bytes sent: " + String.format(Locale.US, "%.1f", bytesSentPercentage * 100) + "%");
             nextNotificationValue += 0.1f;
         }
     }

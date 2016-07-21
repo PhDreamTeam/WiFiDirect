@@ -30,6 +30,8 @@ import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.Configurations;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.SystemInfo;
 
 import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -158,8 +160,8 @@ public class ClientActivity extends Activity {
 
     private LogDirMulticastSocketContainer logDirMulticastDataWFD;
     private LogDirMulticastSocketContainer logDirMulticastDataWF;
-    private Button btnSentKBytes;
-    private Button btnSentMBytes;
+    private Button btnSendKBytes;
+    private Button btnSendMBytes;
     private LinearLayout llReceptionReplyMode;
     private Button btnBindToNetwork;
     private Network networkWifi;
@@ -178,6 +180,10 @@ public class ClientActivity extends Activity {
     private Button btnEditStartTest;
     private Handler guiThreadLoopHandler;
     private String deviceName;
+
+
+    private boolean manualTestTransmit = false;
+    private boolean testTransmitCancelled = false;
 
     enum COMM_MODE {TCP, UDP, UDP_MULTICAST}
 
@@ -323,8 +329,8 @@ public class ClientActivity extends Activity {
         tvTxThrdSentData = (TextView) findViewById(R.id.textViewCATxThrdSentData);
         tvTxThrdRcvData = (TextView) findViewById(R.id.textViewCATxThrdRcvData);
 
-        btnSentKBytes = (Button) findViewById(R.id.btnCAKBytesToSend);
-        btnSentMBytes = (Button) findViewById(R.id.btnCAMBytesToSend);
+        btnSendKBytes = (Button) findViewById(R.id.btnCAKBytesToSend);
+        btnSendMBytes = (Button) findViewById(R.id.btnCAMBytesToSend);
 
         rbMulticastNetIntNone = (RadioButton) findViewById(R.id.rbCAUDPMulticastNetIntNone);
         rbMulticastNetIntWFD = (RadioButton) findViewById(R.id.rbCAUDPMulticastNetIntWFD);
@@ -477,32 +483,30 @@ public class ClientActivity extends Activity {
         tvTransmissionZone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                llTransmissionZone.setVisibility(llTransmissionZone.getVisibility() == View.GONE ?
-                        View.VISIBLE : View.GONE);
+                changeTransmissionZoneVisibility();
             }
         });
 
         tvReceptionZone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                llReceptionZone.setVisibility(llReceptionZone.getVisibility() == View.GONE ?
-                        View.VISIBLE : View.GONE);
+                changeReceptionZoneVisibility();
             }
         });
 
-        btnSentKBytes.setOnClickListener(new View.OnClickListener() {
+        btnSendKBytes.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                btnSentKBytes.setVisibility(View.GONE);
-                btnSentMBytes.setVisibility(View.VISIBLE);
+                btnSendKBytes.setVisibility(View.GONE);
+                btnSendMBytes.setVisibility(View.VISIBLE);
             }
         });
 
-        btnSentMBytes.setOnClickListener(new View.OnClickListener() {
+        btnSendMBytes.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                btnSentMBytes.setVisibility(View.GONE);
-                btnSentKBytes.setVisibility(View.VISIBLE);
+                btnSendMBytes.setVisibility(View.GONE);
+                btnSendKBytes.setVisibility(View.VISIBLE);
             }
         });
 
@@ -512,6 +516,8 @@ public class ClientActivity extends Activity {
                     public void onClick(View v) {
                         // start transmitting
                         startTransmittingGuiActions(false);
+                        manualTestTransmit = true;
+                        testTransmitCancelled = false;
                         doTransmit(null);   // send dummy data for tests
 
                         numberOfTransmittingTestsToDo = numberOfCurrentTest = 1;
@@ -524,6 +530,7 @@ public class ClientActivity extends Activity {
                     public void onClick(View v) {
                         // stop transmitting
                         clientTransmitter.stopThread();
+                        testTransmitCancelled = true;
                         endTransmittingGuiActions(null);
                     }
                 }
@@ -723,6 +730,38 @@ public class ClientActivity extends Activity {
         String taskStr = intent.getStringExtra("taskStr");
         if (taskStr != null)
             processTaskStr(taskStr);
+    }
+
+    /**
+     *
+     */
+    private void changeTransmissionZoneVisibility() {
+        setTransmissionZoneVisibility(llTransmissionZone.getVisibility() == View.GONE ?
+                View.VISIBLE : View.GONE);
+    }
+
+
+    /**
+     * @param visibility One of View.VISIBLE}, View.INVISIBLE, or View.GONE
+     */
+    private void setReceptionZoneVisibility(int visibility) {
+        llReceptionZone.setVisibility(visibility);
+    }
+
+    /**
+     *
+     */
+    private void changeReceptionZoneVisibility() {
+        setReceptionZoneVisibility(llReceptionZone.getVisibility() == View.GONE ?
+                View.VISIBLE : View.GONE);
+    }
+
+
+    /**
+     * @param visibility One of View.VISIBLE}, View.INVISIBLE, or View.GONE
+     */
+    private void setTransmissionZoneVisibility(int visibility) {
+        llTransmissionZone.setVisibility(visibility);
     }
 
     /**
@@ -1161,7 +1200,7 @@ public class ClientActivity extends Activity {
      *
      */
     private void stopReceptionLogs() {
-        for (ReceptionGuiInfo rgi: receptionGuiInfos) {
+        for (ReceptionGuiInfo rgi : receptionGuiInfos) {
             if (!rgi.isTerminated()) {
                 rgi.setTerminatedState("Stopped by stop reception");
             }
@@ -1257,7 +1296,7 @@ public class ClientActivity extends Activity {
         int destPortNumber = Integer.parseInt(editTextDestPortNumber.getText().toString());
 
         long totalKBytesToSend = Long.parseLong(editTextTotalBytesToSend.getText().toString());
-        if (btnSentMBytes.isShown())
+        if (btnSendMBytes.isShown())
             totalKBytesToSend *= 1024;
         long delayMs = Long.parseLong(editTextDelay.getText().toString());
         int bufferSizeBytes = 1024 * Integer.parseInt(editTextMaxBufferSize.getText().toString());
@@ -1279,10 +1318,26 @@ public class ClientActivity extends Activity {
                 || commMode.equalsIgnoreCase("udpMulticast")))
             throw new IllegalStateException("Client activity, received invalid communication mode parameter: " + commMode);
 
+        setTransmissionZoneVisibility(View.GONE);
+        setReceptionZoneVisibility(View.GONE);
+
         // receive or transmit action: action
         final String action = map.get("action");
         if (action == null || !(action.equalsIgnoreCase("receive") || action.equalsIgnoreCase("transmit")))
             throw new IllegalStateException("Client activity, received invalid action parameter: " + action);
+        if(action.equalsIgnoreCase("transmit"))
+            setTransmissionZoneVisibility(View.VISIBLE);
+        if(action.equalsIgnoreCase("receive"))
+            setReceptionZoneVisibility(View.VISIBLE);
+
+
+        // receive or transmit action: action2 // can only be receive
+        final String action2 = map.get("action2");
+        if (action2 != null && !(action2.equalsIgnoreCase("receive")))
+            throw new IllegalStateException("Client activity, received invalid action2 parameter: " + action);
+        Log.d(TAG, "action2 = " + action2);
+        if(action2 != null)
+            setReceptionZoneVisibility(View.VISIBLE);
 
         // log directory: logDirectory
         logDir = map.get("logDirectory");
@@ -1290,7 +1345,7 @@ public class ClientActivity extends Activity {
 
         // get bindSocketToNetwork
         final String bindSocketToNetwork = map.get("bindSocketToNetwork");
-        if(bindSocketToNetwork != null)
+        if (bindSocketToNetwork != null)
             btnBindToNetwork.setText("Bind to " + bindSocketToNetwork.toUpperCase());
 
         // run with some delay to give time to stabilize network interfaces, need mostly by UDP multicast
@@ -1301,6 +1356,10 @@ public class ClientActivity extends Activity {
                 // TCP
                 if (commMode.equalsIgnoreCase("tcp")) {
                     communicationMode = COMM_MODE.TCP;
+
+                    if (action2 != null)
+                        processTCPReceiveAction(map);
+
                     if (action.equalsIgnoreCase("receive"))
                         processTCPReceiveAction(map);
 
@@ -1319,6 +1378,10 @@ public class ClientActivity extends Activity {
                 // UDP
                 else if (commMode.equalsIgnoreCase("udp")) {
                     communicationMode = COMM_MODE.UDP;
+
+                    if (action2 != null)
+                        processUDPReceiveAction(map);
+
                     if (action.equalsIgnoreCase("receive"))
                         processUDPReceiveAction(map);
 
@@ -1358,10 +1421,12 @@ public class ClientActivity extends Activity {
         if (rcvPortNumberStr == null)
             throw new IllegalStateException("Client activity, received no receive port number");
         int rcvPortNumber = Integer.parseInt(rcvPortNumberStr);
+        etReceivePortNumber.setText("" + rcvPortNumber);
 
         // buffer size: BufferKB
         String bufferSizeKBStr = map.get("bufferKB");
         int bufferSizeKB = bufferSizeKBStr == null ? 1 : Integer.parseInt(bufferSizeKBStr);
+        editTextMaxBufferSize.setText("" + bufferSizeKBStr);
 
         // reply mode: ReplyMode
         String replyModeStr = map.get("replyMode");
@@ -1495,51 +1560,69 @@ public class ClientActivity extends Activity {
         final String crIpAddress = map.get("crAddress");
         if (crIpAddress == null)
             throw new IllegalStateException("Client activity, transmit with no CR IP address");
+        editTextCrIpAddress.setText(crIpAddress.substring(0, crIpAddress.lastIndexOf('.')));
+        editTextCrIpAddressLastPart.setText(crIpAddress.substring(crIpAddress.lastIndexOf('.') + 1));
 
         // CR port number: crPort
         String crPortNumberStr = map.get("crPort");
         if (crPortNumberStr == null)
             throw new IllegalStateException("Client activity, transmit with no cr port number");
         final int crPortNumber = Integer.parseInt(crPortNumberStr);
+        editTextCrPortNumber.setText(crPortNumberStr);
 
         // Destination IP address: DestAddress = Rt
-        final String destIpAddress = map.get("destAddress");
-        if (destIpAddress == null)
+        final String destName = map.get("destAddress");
+        if (destName == null)
             throw new IllegalStateException("Client activity, transmit with no DestAddress");
+        editTextDestIpAddress.setText(destName);
 
         // Destination port number: destPort
         String destPortNumberStr = map.get("destPort");
         if (destPortNumberStr == null)
             throw new IllegalStateException("Client activity, transmit with no dest port number");
         final int destPortNumber = Integer.parseInt(destPortNumberStr);
+        editTextDestPortNumber.setText(destPortNumberStr);
 
         //  bindSocketToNetwork
-        BIND_TO_NETWORK bindToNetwork = BIND_TO_NETWORK.NONE;
+        BIND_TO_NETWORK bindToNetwork = null;
         String bindSocketToNetworkStr = map.get("bindSocketToNetwork");
         if (bindSocketToNetworkStr != null) {
-            if (bindSocketToNetworkStr.equalsIgnoreCase("WF"))
+            if (bindSocketToNetworkStr.equalsIgnoreCase("WF")) {
                 bindToNetwork = BIND_TO_NETWORK.WF;
-            else if (bindSocketToNetworkStr.equalsIgnoreCase("WFD"))
+                btnBindToNetwork.setText("Bind to WF");
+            } else if (bindSocketToNetworkStr.equalsIgnoreCase("WFD")) {
                 bindToNetwork = BIND_TO_NETWORK.WFD;
-            else throw new IllegalStateException("Client activity, transmit bind to network with invalid value: " +
-                        bindSocketToNetworkStr);
+                btnBindToNetwork.setText("Bind to WFD");
+            } else throw new IllegalStateException("Client activity, transmit bind to network with invalid value: " +
+                    bindSocketToNetworkStr);
         } else bindToNetwork = BIND_TO_NETWORK.NONE;
         final BIND_TO_NETWORK finalBindToNetwork = bindToNetwork;
 
         // buffer size: BufferKB
         String bufferSizeKBStr = map.get("bufferKB");
         final int bufferSizeKB = bufferSizeKBStr == null ? 1 : Integer.parseInt(bufferSizeKBStr);
+        editTextMaxBufferSize.setText("" + bufferSizeKB);
 
         // delays: delayMs
         String delayMsStr = map.get("delayMs");
         final int delayMs = delayMsStr == null ? 0 : Integer.parseInt(delayMsStr);
+        editTextDelay.setText("" + delayMs);
 
         // total bytes to send: totalBytesToSend=100MB  100KB
         String totalBytesToSendStr = map.get("totalBytesToSend");
         if (totalBytesToSendStr == null || !(totalBytesToSendStr.endsWith("MB") || totalBytesToSendStr.endsWith("KB")))
             throw new IllegalStateException("Client activity, transmit with no correct total bytes to send: " + totalBytesToSendStr);
-        final int totalKBToSend = Integer.parseInt(totalBytesToSendStr.substring(0, totalBytesToSendStr.length() - 2)) *
-                (totalBytesToSendStr.endsWith("MB") ? 1024 : 1);
+        final int bytesKBMBToSend = Integer.parseInt(totalBytesToSendStr.substring(0, totalBytesToSendStr.length() - 2));
+        editTextTotalBytesToSend.setText("" + bytesKBMBToSend);
+        if (totalBytesToSendStr.endsWith("MB")) {
+            btnSendMBytes.setVisibility(View.VISIBLE);
+            btnSendKBytes.setVisibility(View.GONE);
+        } else {
+            btnSendKBytes.setVisibility(View.VISIBLE);
+            btnSendMBytes.setVisibility(View.GONE);
+        }
+
+        final long totalBytesToSend = bytesKBMBToSend * 1024 * (totalBytesToSendStr.endsWith("MB") ? 1024 : 1);
 
         // number of tests: numberOfTests
         String numberOfTestsStr = map.get("numberOfTests");
@@ -1554,9 +1637,9 @@ public class ClientActivity extends Activity {
         boolean screenONOnTests = delayBeforeEachTestMSStr == null || Boolean.parseBoolean(screenOnTestsStr);
 
         Log.d(TAG, "TCP transmit, with: crIpAddress = " + crIpAddress + ", crPortNumber = " + crPortNumber +
-                ", destIpAddress = " + destIpAddress + ", destPortNumber = " + destPortNumber +
+                ", destName = " + destName + ", destPortNumber = " + destPortNumber +
                 ", bind to network = " + bindToNetwork + ", bufferSizeKB = " + bufferSizeKB +
-                ", delayMs = " + delayMs + ", totalBytesToSend = " + totalKBToSend +
+                ", delayMs = " + delayMs + ", totalBytesToSend = " + totalBytesToSend +
                 ", with numberOfTests = " + numberOfTransmittingTestsToDo +
                 ", delay BeforeEachTestMs = " + delayBeforeEachTestMSStr + ", screenOnTests = " + screenOnTestsStr);
 
@@ -1577,8 +1660,8 @@ public class ClientActivity extends Activity {
                 Log.d(TAG, "Will run test nº: " + numberOfCurrentTest + " of " + numberOfTransmittingTestsToDo);
 
                 // start transmitting
-                transmitData(null, crIpAddress, crPortNumber, destIpAddress, destPortNumber, bufferSizeKB * 1024, delayMs,
-                        totalKBToSend, finalBindToNetwork); // send dummy data for tests
+                transmitData(null, crIpAddress, crPortNumber, destName, destPortNumber, bufferSizeKB * 1024, delayMs,
+                        totalBytesToSend, finalBindToNetwork); // send dummy data for tests
             }
         };
 
@@ -1613,7 +1696,6 @@ public class ClientActivity extends Activity {
                 setUdpCommunicationMode();
             }
         });
-
 
         // CR IP address: crAddress = 192.168.49.1
         final String crIpAddress = map.get("crAddress");
@@ -1662,8 +1744,17 @@ public class ClientActivity extends Activity {
         String totalBytesToSendStr = map.get("totalBytesToSend");
         if (totalBytesToSendStr == null || !(totalBytesToSendStr.endsWith("MB") || totalBytesToSendStr.endsWith("KB")))
             throw new IllegalStateException("Client activity, transmit with no correct total bytes to send: " + totalBytesToSendStr);
-        final int totalKBToSend = Integer.parseInt(totalBytesToSendStr.substring(0, totalBytesToSendStr.length() - 2)) *
-                (totalBytesToSendStr.endsWith("MB") ? 1024 : 1);
+        final int bytesKBMBToSend = Integer.parseInt(totalBytesToSendStr.substring(0, totalBytesToSendStr.length() - 2));
+        editTextTotalBytesToSend.setText("" + bytesKBMBToSend);
+        if (totalBytesToSendStr.endsWith("MB")) {
+            btnSendMBytes.setVisibility(View.VISIBLE);
+            btnSendKBytes.setVisibility(View.GONE);
+        } else {
+            btnSendKBytes.setVisibility(View.VISIBLE);
+            btnSendMBytes.setVisibility(View.GONE);
+        }
+
+        final long totalBytesToSend = bytesKBMBToSend * 1024 * (totalBytesToSendStr.endsWith("MB") ? 1024 : 1);
 
         // number of tests: numberOfTests
         String numberOfTestsStr = map.get("numberOfTests");
@@ -1678,9 +1769,9 @@ public class ClientActivity extends Activity {
         boolean screenONOnTests = delayBeforeEachTestMSStr == null || Boolean.parseBoolean(screenOnTestsStr);
 
         Log.d(TAG, "UDP transmit, with: crIpAddress = " + crIpAddress + ", crPortNumber = " + crPortNumber +
-                ", destIpAddress = " + destIpAddress + ", destPortNumber = " + destPortNumber +
+                ", destName = " + destIpAddress + ", destPortNumber = " + destPortNumber +
                 ", bind to network = " + bindToNetwork + ", bufferSizeKB = " + bufferSizeKB +
-                ", delayMs = " + delayMs + ", totalBytesToSend = " + totalKBToSend +
+                ", delayMs = " + delayMs + ", totalBytesToSend = " + totalBytesToSend +
                 ", with numberOfTests = " + numberOfTransmittingTestsToDo +
                 ", delay BeforeEachTestMs = " + delayBeforeEachTestMSStr + ", screenOnTests = " + screenOnTestsStr);
 
@@ -1702,7 +1793,7 @@ public class ClientActivity extends Activity {
 
                 // start transmitting
                 transmitData(null, crIpAddress, crPortNumber, destIpAddress, destPortNumber, bufferSizeKB * 1024, delayMs,
-                        totalKBToSend, finalBindToNetwork); // send dummy data for tests
+                        totalBytesToSend, finalBindToNetwork); // send dummy data for tests
             }
         };
 
@@ -1803,7 +1894,7 @@ public class ClientActivity extends Activity {
         Log.d(TAG, "UDP Multicast transmit: mc networkInterface = " + multicastNetworkInterface +
                 ", mc Address = " + multicastAddressStr +
                 ", mc portNumber = " + multicastPortNumber +
-                ", destIpAddress = " + destIpAddress + ", destPortNumber = " + destPortNumber + ", bufferSizeKB = " +
+                ", destName = " + destIpAddress + ", destPortNumber = " + destPortNumber + ", bufferSizeKB = " +
                 bufferSizeKB + ", delayMs = " + delayMs + ", totalBytesToSend = " + totalKBToSend +
                 ", with numberOfTests = " + numberOfTransmittingTestsToDo +
                 ", delay BeforeEachTestMs = " + delayBeforeEachTestMSStr + ", screenOnTests = " + screenOnTestsStr);
@@ -1987,6 +2078,12 @@ public class ClientActivity extends Activity {
         }
         setEnabledTransmissionInputViews(true);
 
+        if(manualTestTransmit)
+            return;
+
+        if(testTransmitCancelled)
+            return;
+
         // there is more transmit tests to be done?
         if (++numberOfCurrentTest <= numberOfTransmittingTestsToDo) {
             doNotificationWait();
@@ -2090,14 +2187,14 @@ public class ClientActivity extends Activity {
     /**
      * transmitData
      */
-    private void transmitData(Uri fileToSend, String crIpAddress, int crPortNumber, String destIpAddress,
+    private void transmitData(Uri fileToSend, String crIpAddress, int crPortNumber, String destName,
                               int destPortNumber, int bufferSizeKB, long delayMs, long totalBytesToSend,
                               BIND_TO_NETWORK bindToNetwork) {
 
         try {
             switch (communicationMode) {
                 case TCP:
-                    clientTransmitter = new ClientSendDataThreadTCP(destIpAddress, destPortNumber
+                    clientTransmitter = new ClientSendDataThreadTCP(destName, destPortNumber
                             , crIpAddress, crPortNumber, delayMs, totalBytesToSend
                             , tvTxThrdSentData, tvTxThrdRcvData, this, bufferSizeKB, fileToSend, bindToNetwork);
                     break;
@@ -2116,7 +2213,7 @@ public class ClientActivity extends Activity {
                     }
 
                     // create worker thread transmitting by UDP socket
-                    clientTransmitter = new ClientSendDataThreadUDP(destIpAddress, destPortNumber
+                    clientTransmitter = new ClientSendDataThreadUDP(destName, destPortNumber
                             , sock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB, network);
                     break;
 
@@ -2130,7 +2227,7 @@ public class ClientActivity extends Activity {
                             netInterface);
 
                     // create worker thread transmitting in UDP multicast socket
-                    clientTransmitter = new ClientSendDataThreadUDP(destIpAddress, destPortNumber
+                    clientTransmitter = new ClientSendDataThreadUDP(destName, destPortNumber
                             , multicastSocket, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB, null);
 
             }
@@ -2275,8 +2372,8 @@ public class ClientActivity extends Activity {
         editTextMaxBufferSize.setEnabled(enable);
         editTextDelay.setEnabled(enable);
         editTextTotalBytesToSend.setEnabled(enable);
-        btnSentKBytes.setEnabled(enable);
-        btnSentMBytes.setEnabled(enable);
+        btnSendKBytes.setEnabled(enable);
+        btnSendMBytes.setEnabled(enable);
     }
 
     @SuppressWarnings("unchecked")

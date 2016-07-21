@@ -3,6 +3,7 @@ package pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils;
 import android.content.Context;
 
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * Created by AT DR on 13-01-2016
@@ -60,8 +61,8 @@ public class LoggerSession {
      *
      */
     public void logBatteryConsumedJoules() {
-        logMsg("Battery info: elapsed time (S): " + String.format("%4.3f", batteryHelper.getRunningTimeMs() / 1000.0) +
-                ", consumed joules (J): " + String.format("%3.3f", batteryHelper.getConsumedPowerJoules()));
+        logMsg("Battery info: elapsed time (S): " + String.format(Locale.US, "%4.3f", batteryHelper.getRunningTimeMs() / 1000.0) +
+                ", consumed joules (J): " + String.format(Locale.US, "%3.3f", batteryHelper.getConsumedPowerJoules()));
 
         logMsg("Battery current values =  " + batteryHelper.getBatteryCurrentValues().toString());
 

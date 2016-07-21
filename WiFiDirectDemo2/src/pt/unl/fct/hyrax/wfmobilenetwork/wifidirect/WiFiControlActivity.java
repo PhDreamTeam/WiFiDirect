@@ -63,6 +63,9 @@ public class WiFiControlActivity extends Activity {
     private TextView tvWFMainState;
     private HashMap<String, String> gosPassword = new HashMap<>();
 
+    private Button btnDisableConfiguredNetworks;
+    private Button btnEnableConfiguredNetworks;
+
     static {
         for (Method method : WifiManager.class.getDeclaredMethods()) {
             switch (method.getName()) {
@@ -76,11 +79,15 @@ public class WiFiControlActivity extends Activity {
         }
     }
 
+    private WifiConfiguration wfSavedCurrentNetwork;
+
+
     {
         gosPassword.put("DIRECT-h9-N62", "zBmXQduT");
         gosPassword.put("DIRECT-By-N61", "eal1k164");
         gosPassword.put("DIRECT-Nm-N63", "prpfOZYD");
         gosPassword.put("DIRECT-lq-Nexus_AT", "YMtLSjWG");
+        gosPassword.put("DIRECT-Se-MG3", "9Xay7RvS");
     }
 
     private ScrollView scrollViewConsole;
@@ -129,6 +136,9 @@ public class WiFiControlActivity extends Activity {
         btnWifiGetStatus = (Button) findViewById(R.id.btnWifiGetStatus);
         btnWifiConnectDirectly = (Button) findViewById(R.id.btnWifiConnectDirectly);
 
+        btnDisableConfiguredNetworks = (Button) findViewById(R.id.btnDisableConfiguredNetworks);
+        btnEnableConfiguredNetworks = (Button) findViewById(R.id.btnEnableConfiguredNetworks);
+
         final LinearLayout llScanNetworks = (LinearLayout) findViewById(R.id.linearLayoutScanNetworks);
         final LinearLayout llConfNetworks = (LinearLayout) findViewById(R.id.linearLayoutConfiguredNetworks);
         final LinearLayout llConsole = (LinearLayout) findViewById(R.id.linearLinearConsole);
@@ -149,7 +159,7 @@ public class WiFiControlActivity extends Activity {
                 String selectedNetwork = (String) expListViewScannedNetworks.getItemAtPosition(position);
                 tvSelectedNetwork.setText(selectedNetwork);
                 String pw = gosPassword.get(selectedNetwork);
-                if(pw != null)
+                if (pw != null)
                     etSelectedNetworkPassword.setText(pw);
                 return false;
             }
@@ -179,7 +189,7 @@ public class WiFiControlActivity extends Activity {
         btnWiFiGetConfiguredNetworks.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getConfiguredNetworks();
+                showConfiguredNetworks();
             }
         });
 
@@ -227,6 +237,20 @@ public class WiFiControlActivity extends Activity {
                 WifiInfo wi = wiFiManager.getConnectionInfo();
                 consoleAppend("ConnectionInfo: " + wi);
                 tvWFLinkSpeedValue.setText(Integer.toString(wi.getLinkSpeed()));
+            }
+        });
+
+        btnDisableConfiguredNetworks.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setEnableAllConfiguredNetworks(false);
+            }
+        });
+
+        btnEnableConfiguredNetworks.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setEnableAllConfiguredNetworks(true);
             }
         });
 
@@ -400,7 +424,7 @@ public class WiFiControlActivity extends Activity {
     /*
      *
      */
-    void getConfiguredNetworks() {
+    void showConfiguredNetworks() {
         expListViewAdapterConfiguredNetworks.clear();
         listConfiguredNetworks = wiFiManager.getConfiguredNetworks();
 
@@ -414,6 +438,26 @@ public class WiFiControlActivity extends Activity {
                     wfconf.SSID + " priority: " + wfconf.priority + " status: " + wfconf.status,
                     wfconf.toString());
 
+        }
+    }
+
+    /*
+     *
+     */
+    void setEnableAllConfiguredNetworks(boolean enable) {
+        List<WifiConfiguration> listConfNetworks = wiFiManager.getConfiguredNetworks();
+
+        // to auto activate the saved network
+        if(enable && wfSavedCurrentNetwork != null) {
+            wiFiManager.enableNetwork(wfSavedCurrentNetwork.networkId, true);
+        }
+
+        for (WifiConfiguration wfConf : listConfNetworks) {
+            if(!enable && wfConf.status == WifiConfiguration.Status.CURRENT)
+                wfSavedCurrentNetwork = wfConf;
+            boolean res = enable ? wiFiManager.enableNetwork(wfConf.networkId, false) :
+                    wiFiManager.disableNetwork(wfConf.networkId);
+            Log.v(TAG, "Update conf network " + wfConf.SSID + " " + wfConf.networkId + " returned: " + res);
         }
     }
 
@@ -463,7 +507,7 @@ public class WiFiControlActivity extends Activity {
             consoleAppend("Save configuration failed");
         }
 
-        getConfiguredNetworks();
+        showConfiguredNetworks();
 
         if (!wiFiManager.disconnect()) {
             consoleAppend("Disconnect failed");
@@ -539,7 +583,7 @@ public class WiFiControlActivity extends Activity {
     // TODO: if the selected network is the network with maximum priority it should use its priority (not more than that)
     private int getMaximumPriorityConfiguredNetwork() {
         if (listConfiguredNetworks == null)
-            getConfiguredNetworks();
+            showConfiguredNetworks();
 
         if (listConfiguredNetworks == null || listConfiguredNetworks.size() == 0)
             return 0;

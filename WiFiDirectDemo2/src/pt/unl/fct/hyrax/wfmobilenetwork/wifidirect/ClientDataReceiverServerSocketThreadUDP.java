@@ -11,6 +11,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Locale;
 
 /**
  * Created by DR e AT on 27/05/2015.
@@ -268,8 +269,8 @@ class UDPSession {
         // log data
         logSession.logMsg("\r\nReceived bytes: " + nBytesReceived);
         logSession.logMsg("Received: " + nBuffersReceived + " buffers of " + (bufferSizeBytes / 1024) + "KBs");
-        logSession.logMsg("Receive global speed (Mbps): " + String.format("%5.3f", globalRcvSpeedMbps));
-        logSession.logMsg("Receive max speed (Mbps): " + String.format("%5.3f", maxSpeedMbps));
+        logSession.logMsg("Receive global speed (Mbps): " + String.format(Locale.US, "%5.3f", globalRcvSpeedMbps));
+        logSession.logMsg("Receive max speed (Mbps): " + String.format(Locale.US, "%5.3f", maxSpeedMbps));
 
         // get average Speed without first and last results
         double totalRegisteredSpeedMbps = 0;
@@ -279,7 +280,7 @@ class UDPSession {
             totalRegisteredSpeedMbps += data.speedMbps;
         }
         logSession.logMsg("Receive avg speed (excluding limits, Mbps): " +
-                String.format("%5.3f", totalRegisteredSpeedMbps / (numSpeedRegisters - 2)) + "\r\n");
+                String.format(Locale.US, "%5.3f", totalRegisteredSpeedMbps / (numSpeedRegisters - 2)) + "\r\n");
 
         logSession.logBatteryConsumedJoules();
         logSession.logMsg("");
@@ -334,7 +335,7 @@ class UDPSession {
         float bytesReceivedPercentage = nBytesReceived / ((float) nBuffersToBeReceived * bufferSizeBytes);
         if (bytesReceivedPercentage > nextNotificationValue) {
             Log.d(ClientDataReceiverServerSocketThreadUDP.LOG_TAG,
-                    "Bytes received: " + String.format("%.1f", bytesReceivedPercentage * 100) + "%");
+                    "Bytes received: " + String.format(Locale.US, "%.1f", bytesReceivedPercentage * 100) + "%");
             nextNotificationValue += 0.1f;
         }
     }
@@ -346,7 +347,7 @@ class UDPSession {
         logSession.logMsg("Transmission stopped by user - GUI");
         logSession.logMsg("Received bytes: " + nBytesReceived);
         logSession.logMsg("Received: " + nBuffersReceived + " buffers of " + (bufferSizeBytes / 1024) + "KBs");
-        logSession.logMsg("Receive max speed (Mbps): " + String.format("%5.3f", maxSpeedMbps));
+        logSession.logMsg("Receive max speed (Mbps): " + String.format(Locale.US, "%5.3f", maxSpeedMbps));
 
         logSession.logMsg("Receiving history - speedMbps, deltaTimeSegs, deltaMBytes: ");
         for (DataTransferInfo data : transferInfoArrayList)

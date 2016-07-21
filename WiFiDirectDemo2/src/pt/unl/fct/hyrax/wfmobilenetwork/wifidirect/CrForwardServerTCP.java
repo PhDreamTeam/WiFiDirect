@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Locale;
 
 /**
  * Created by DR & AT on 20/05/2015
@@ -110,8 +111,8 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        for (IStoppable stopable : workingThreads)
-            stopable.stopThread();
+        for (IStoppable stoppable : workingThreads)
+            stoppable.stopThread();
     }
 
     /**
@@ -146,6 +147,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
 //            });
 
             byte buffer[] = new byte[bufferSize];
+            String destName = null;
             String destIpAddress = null;
             int destPortNumber = 0;
 
@@ -160,20 +162,31 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 String aia[] = addressInfo.split(";");
                 long bytesToSent = origDIS.readLong();
 
-                destIpAddress = aia[0];
+                destName = aia[0];
                 destPortNumber = Integer.parseInt(aia[1]);
 
-                String relayAddress = relayActivity.getForwardDestiny(destIpAddress);
-                if (relayAddress != null) {
-                    destIpAddress = relayAddress;
-                    destPortNumber = 30000; //default CR PORT TODO CHANGE THIS TO A DYNAMIC PORT
+                RelayRule relayInfo = relayActivity.getNextHope(destName);
+                if (relayInfo == null) {
+                    Log.d(TAG, destName + " with no Relay Rule, packet will be discarded");
+                    return;
                 }
 
-                String msg = " Received a connection from " + originSocket.getInetAddress().toString().substring(1) +
-                        ":" + originSocket.getPort() + " to " + addressInfo + ", will be sent to " +
-                        destIpAddress + ":" + destPortNumber + ", with bytes: " + bytesToSent;
+                destName = relayInfo.destination != null ? relayInfo.destination : destName;
+                destIpAddress = relayInfo.ipToRelay;
+                destPortNumber = relayInfo.portToRelay;
+                String bindTo = relayInfo.bindTo;
 
-                Log.v(TAG, msg);
+                ClientActivity.BIND_TO_NETWORK destBindTo = ClientActivity.BIND_TO_NETWORK.NONE;
+                if (bindTo.length() > 1 && bindTo.equalsIgnoreCase("wf"))
+                    destBindTo = ClientActivity.BIND_TO_NETWORK.WF;
+
+                String msg = " Received a connection from " + originSocket.getInetAddress().toString().substring(1) +
+                        ":" + originSocket.getPort() + " to " + addressInfo +
+                        ", will be sent to " + destName + " on " + destIpAddress + ":" + destPortNumber +
+                        (bindTo.length() > 1 ? ", with bind to " + bindTo : "") +
+                        ", with bytes: " + bytesToSent;
+
+                Log.d(TAG, msg);
 
                 // start log session and log initial time
                 logSession = MainActivity.logger.getNewLoggerSession(
@@ -183,15 +196,15 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 logSession.logTime("Initial time");
                 logSession.startLoggingBatteryValues(relayActivity);
 
-
                 // open destination socket
-                destSocket = getSocket(relayActivity.getCurrentBindToNetwork(), destIpAddress, destPortNumber); // new Socket(destIpAddress, destPortNumber);
+                destSocket = getSocket(destBindTo, destIpAddress, destPortNumber); // new Socket(destName, destPortNumber);
                 destDOS = new DataOutputStream(destSocket.getOutputStream());
                 destDIS = new DataInputStream(destSocket.getInputStream());
 
-                // firstly send packet destination address in case of needed by another cr
-                destDOS.writeInt(addressInfoLen);
-                destDOS.write(buffer, 0, addressInfoLen);
+                //build new destination address and send it in case of needed by another cr
+                String newDestinationAddress = destName + ";" + destPortNumber;
+                destDOS.writeInt(newDestinationAddress.getBytes().length);
+                destDOS.write(newDestinationAddress.getBytes());
                 destDOS.writeLong(bytesToSent);
 
                 threadForwardDataOrigDest = forwardData("FWD", origDIS, destDOS, destSocket, textViewTransferedDataOrigDest);
@@ -202,7 +215,6 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 threadForwardDataOrigDest.join();
                 threadForwardDataDestOrig.join();
 
-
                 // log end common values
                 logSession.stopLoggingBatteryValues();
                 logSession.logMsg("");
@@ -210,7 +222,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 logSession.close(relayActivity);
 
             } catch (Exception e) {
-                Log.d(TAG, "Error opening relay channel to: " + destIpAddress + ":" + destPortNumber);
+                Log.d(TAG, "Error opening relay channel to: " + destName + ":" + destPortNumber);
 
                 e.printStackTrace();
             } finally {
@@ -232,6 +244,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                 e.printStackTrace();
             }
         }
+
 
         /**
          *
@@ -286,14 +299,14 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                             long finalTxTimeMs = logSession.logTime("\n" + direction + " Final sent time");
 
                             double deltaTimeSegs = (finalTxTimeMs - initialTxTimeMs) / 1000.0;
-                            logSession.logMsg(direction + " Time elapsed (s): " + String.format("%5.3f", deltaTimeSegs));
+                            logSession.logMsg(direction + " Time elapsed (s): " + String.format(Locale.US, "%5.3f", deltaTimeSegs));
 
                             // log final sent and receive bytes
                             logSession.logMsg(direction + " Data forwarded (B): " + forwardedData + ", (MB): " + forwardedData / (1024.0 * 1024));
                             double sentDataMb = ((double) (forwardedData * 8)) / (1024 * 1024);
                             double dataSentSpeedMbps = sentDataMb / deltaTimeSegs;
-                            logSession.logMsg(direction + " Data forwarded speed (Mbps): " + String.format("%5.3f", dataSentSpeedMbps));
-                            logSession.logMsg(direction + " Data forwarded Max speed (Mbps): " + String.format("%5.3f", maxSpeedMbps));
+                            logSession.logMsg(direction + " Data forwarded speed (Mbps): " + String.format(Locale.US, "%5.3f", dataSentSpeedMbps));
+                            logSession.logMsg(direction + " Data forwarded Max speed (Mbps): " + String.format(Locale.US, "%5.3f", maxSpeedMbps));
                         }
 
                     } catch (IOException e) {
@@ -316,7 +329,7 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
                         }
 
                         //final String msg = (forwardedData / 1024) + " KBytes " + speed + " Mbps";
-                        final String msg = String.format("%d KB,  %4.2f Mbps", forwardedData / 1024, speedMbps);
+                        final String msg = String.format(Locale.US, "%d KB,  %4.2f Mbps", forwardedData / 1024, speedMbps);
                         lastUpdate = currentNanoTime;
                         textView.post(new Runnable() {
                             @Override
@@ -349,4 +362,5 @@ public class CrForwardServerTCP extends Thread implements IStoppable {
             }
         }
     }
+
 }

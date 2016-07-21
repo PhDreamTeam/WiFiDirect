@@ -10,6 +10,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.util.Locale;
 
 /**
  * Created by DR e AT on 27/05/2015
@@ -178,8 +179,8 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
             double deltaTimeSegs = (finalTxTimeNs - initialTxTimeNs) / 1_000_000_000.0;
             double sentDataMb = (nBytesSent * 8.0) / (1024.0 * 1024.0);
             double globalSentSpeedMbps = sentDataMb / deltaTimeSegs;
-            logSession.logMsg("Data sent speed (Mbps): " + String.format("%5.3f", globalSentSpeedMbps));
-            logSession.logMsg("Data sent Max speed (Mbps): " + String.format("%5.3f", maxDataSendSpeedMbps) + "\r\n");
+            logSession.logMsg("Data sent speed (Mbps): " + String.format(Locale.US, "%5.3f", globalSentSpeedMbps));
+            logSession.logMsg("Data sent Max speed (Mbps): " + String.format(Locale.US, "%5.3f", maxDataSendSpeedMbps) + "\r\n");
             Log.d(LOG_TAG, "End of transmission, data sent: " + nBytesSent);
 
             logSession.logBatteryConsumedJoules();
@@ -233,7 +234,7 @@ public class ClientSendDataThreadUDP extends Thread implements IStoppable {
         // ADB console notification
         float bytesSentPercentage = sentData / (float) nBytesToSend;
         if (bytesSentPercentage > nextNotificationValue) {
-            Log.d(LOG_TAG, "Bytes sent: " + String.format("%.1f", bytesSentPercentage * 100) + "%");
+            Log.d(LOG_TAG, "Bytes sent: " + String.format(Locale.US, "%.1f", bytesSentPercentage * 100) + "%");
             nextNotificationValue += 0.1f;
         }
 

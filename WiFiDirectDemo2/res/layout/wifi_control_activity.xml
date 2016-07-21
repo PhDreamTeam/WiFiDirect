@@ -27,7 +27,7 @@
     <LinearLayout
             android:orientation="horizontal"
             android:layout_width="fill_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content" android:gravity="center_horizontal">
         <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -101,17 +101,24 @@
     <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-        <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Get Conf Nets"
-                android:id="@+id/btnGetConfiguredNetworks"/>
+            android:layout_height="wrap_content" android:gravity="center_horizontal">
         <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Scan Nets"
                 android:id="@+id/btnScanNetworks"/>
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Get Conf Nets"
+                android:id="@+id/btnGetConfiguredNetworks" style="?android:attr/buttonStyleSmall"/>
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DCN"
+                android:id="@+id/btnDisableConfiguredNetworks" style="?android:attr/buttonStyleSmall"/>
+        <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ECN"
+                android:id="@+id/btnEnableConfiguredNetworks" style="?android:attr/buttonStyleSmall"/>
     </LinearLayout>
     <LinearLayout
             android:orientation="vertical"
@@ -141,7 +148,7 @@
             <ScrollView android:layout_width="match_parent" android:layout_height="match_parent"
                         android:id="@+id/scrollViewConsole" android:fillViewport="false">
                 <TextView android:layout_width="match_parent" android:layout_height="match_parent"
-                          android:id="@+id/tvConsole"  />
+                          android:id="@+id/tvConsole"/>
             </ScrollView>
         </LinearLayout>
     </LinearLayout>

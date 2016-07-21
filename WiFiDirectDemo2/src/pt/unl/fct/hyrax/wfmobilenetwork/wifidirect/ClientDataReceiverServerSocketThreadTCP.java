@@ -17,6 +17,7 @@ import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * Created by DR & AT on 20/05/2015.
@@ -293,9 +294,9 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
                 // log data information and close log session
                 logSession.logMsg("\nBytes received: " + nBytesReceived);
-                logSession.logMsg("Time elapsed (s): " + String.format("%5.3f", deltaTimeSegs));
-                logSession.logMsg("Global average speed (Mbps): " + String.format("%5.3f", globalRcvSpeedMbps));
-                logSession.logMsg("Max rcv speed (Mbps): " + String.format("%5.3f", maxSpeedMbps));
+                logSession.logMsg("Time elapsed (s): " + String.format(Locale.US, "%5.3f", deltaTimeSegs));
+                logSession.logMsg("Global average speed (Mbps): " + String.format(Locale.US, "%5.3f", globalRcvSpeedMbps));
+                logSession.logMsg("Max rcv speed (Mbps): " + String.format(Locale.US, "%5.3f", maxSpeedMbps));
                 logSession.logMsg("Bytes sent: " + sentDataCounterTotal + "\r\n");
 
 
@@ -388,7 +389,7 @@ public class ClientDataReceiverServerSocketThreadTCP extends Thread implements I
 
             float bytesReceivedPercentage = nBytesReceived / (float)bytesToBeReceived;
             if (bytesReceivedPercentage > nextNotificationValue) {
-                Log.d(TAG, "Bytes received: " + String.format("%.1f", bytesReceivedPercentage * 100) + "%");
+                Log.d(TAG, "Bytes received: " + String.format(Locale.US, "%.1f", bytesReceivedPercentage * 100) + "%");
                 nextNotificationValue += 0.1f;
             }
         }

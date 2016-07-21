@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.AndroidUtils;
 import pt.unl.fct.hyrax.wfmobilenetwork.wifidirect.utils.Configurations;
@@ -41,10 +42,9 @@ public class RelayActivity extends Activity {
     private EditText etCRNewRuleUse;
     private TableLayout tableLayoutCRRules;
 
-    private HashMap<String, String> relayRulesMap = new HashMap<>();
+    private HashMap<String, RelayRule> relayRulesMap = new HashMap<>();
     private HashMap<String, Socket> controlConnectionsTo = new HashMap<>();
     private HashMap<String, Socket> controlConnectionsFrom = new HashMap<>();
-
 
     private NetworkInterface wfdNetworkInterface;
     private NetworkInterface wfNetworkInterface;
@@ -74,13 +74,12 @@ public class RelayActivity extends Activity {
 
     private ClientActivity.BIND_TO_NETWORK currentBindToNetwork = ClientActivity.BIND_TO_NETWORK.NONE;
     private String logDir;
-
-
-
+    private TextView tvControlSocketCons;
+    private TextView tvConsole;
+    private LinearLayout llControlSocketData;
+    private EditText etCRNewRuleUseLastPart;
 
     enum RELAY_TYPE {TCP, UDP, TCP_ONE4ALL, TCP_ONE4ONE}
-
-    ;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -115,6 +114,8 @@ public class RelayActivity extends Activity {
         relayType = btnTcp.getVisibility() == View.VISIBLE ? RELAY_TYPE.TCP :
                 btnUdp.getVisibility() == View.VISIBLE ? RELAY_TYPE.UDP : RELAY_TYPE.TCP_ONE4ALL;
 
+        tvControlSocketCons = (TextView) findViewById(R.id.tvRAControlSocketCons);
+        llControlSocketData = (LinearLayout) findViewById(R.id.llRAControlSocketData);
         btnConnectToControlSocket = (Button) findViewById(R.id.btnRAConnectControlSocket);
         btnReceiveFromControlSocket = (Button) findViewById(R.id.btnRAReceiveFromControlSocket);
         etControlSocketIPaddress = (EditText) findViewById(R.id.etRAControlSocketIPAddress);
@@ -126,6 +127,7 @@ public class RelayActivity extends Activity {
         tvWFDState = (TextView) findViewById(R.id.tvRAWFDState);
         tvWFState = (TextView) findViewById(R.id.tvRAWFState);
 
+        tvConsole = ((TextView) findViewById(R.id.textViewRAConsole));
 
         printNetworkInfo(getApplicationContext());
 
@@ -179,13 +181,22 @@ public class RelayActivity extends Activity {
                 llAddNewRule.setVisibility(View.VISIBLE);
                 btnEditNewRule.setVisibility(View.GONE);
                 btnClearRelayRule.setVisibility(View.GONE);
+
+                etCRNewRuleTo.setText("R");
+                etCRNewRuleUse.setText("192.168.49.");
             }
         });
 
         btnAddNewRule.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                addNewCRRule(etCRNewRuleTo.getText().toString(), etCRNewRuleUse.getText().toString());
+                String relayTo = etCRNewRuleUse.getText().toString();
+                String bindTo = "";
+                if (relayTo.substring(relayTo.length() - 2).equalsIgnoreCase("wf")) {
+                    bindTo = relayTo.substring(relayTo.length() - 2);
+                    relayTo = relayTo.substring(0, relayTo.length() - 3).trim();
+                }
+                addNewCRRule(etCRNewRuleTo.getText().toString(), relayTo, bindTo);
                 endOfNewRuleActions();
             }
         });
@@ -201,6 +212,16 @@ public class RelayActivity extends Activity {
             @Override
             public void onClick(View v) {
                 clearRelayRule();
+            }
+        });
+
+
+        // ==============================
+        tvControlSocketCons.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                llControlSocketData.setVisibility(
+                        llControlSocketData.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
             }
         });
 
@@ -310,21 +331,21 @@ public class RelayActivity extends Activity {
         logDir = map.get("logDirectory");
         //etLogDir.setText(logDir);
 
-        final String bindSocketRelayToNetwork = map.get("bindSocketRelayToNetwork");
-        if (bindSocketRelayToNetwork != null) {
-            // btnBindToNetwork.setText("Bind to " + bindSocketToNetwork.toUpperCase());
-            Log.d(TAG, "bindSocketRelayToNetwork to: " + bindSocketRelayToNetwork);
-            currentBindToNetwork = bindSocketRelayToNetwork.equalsIgnoreCase("WF") ? ClientActivity.BIND_TO_NETWORK.WF :
-                    ClientActivity.BIND_TO_NETWORK.WF;
-        }
+//        final String bindSocketRelayToNetwork = map.get("bindSocketRelayToNetwork");
+//        if (bindSocketRelayToNetwork != null) {
+//            // btnBindToNetwork.setText("Bind to " + bindSocketToNetwork.toUpperCase());
+//            Log.d(TAG, "bindSocketRelayToNetwork to: " + bindSocketRelayToNetwork);
+//            currentBindToNetwork = bindSocketRelayToNetwork.equalsIgnoreCase("WF") ? ClientActivity.BIND_TO_NETWORK.WF :
+//                    ClientActivity.BIND_TO_NETWORK.WF;
+//        }
 
         // get relayRules: relayRule = Rt;192.168.49.241;wf
         for (int i = 1; true; ++i) {
             String relayRule = map.get("relayRule-" + i);
             if (relayRule == null)
                 break;
-            String[] theRule = relayRule.split(":");
-            addNewCRRule(theRule[0], theRule[1]);
+            String[] theRule = relayRule.split("-");
+            addNewCRRule(theRule[0], theRule[1], theRule.length == 2 ? "" : theRule[2]);
         }
 
         // run with some delay to give time to stabilize network request if bid to is necessary
@@ -454,7 +475,7 @@ public class RelayActivity extends Activity {
     /**
      *
      */
-    public String getForwardDestiny(String destination) {
+    public RelayRule getForwardDestiny(String destination) {
         // get destiny in rules
         return relayRulesMap.get(destination);
     }
@@ -509,16 +530,17 @@ public class RelayActivity extends Activity {
     /*
      *
      */
-    private void addNewCRRule(String toAddress, String useCRAddress) {
+    private void addNewCRRule(String toAddress, String useCRAddress, String bindTo) {
         toAddress = toAddress.trim();
         useCRAddress = useCRAddress.trim();
+        bindTo = bindTo == null ? "" : bindTo.trim();
 
         if (relayRulesMap.containsKey(toAddress)) {
             Log.d(TAG, "Attempt to duplicate toAddress (" + toAddress + ") rule, it was ignored.");
             return;
         }
 
-        Log.d(TAG, "Add Relay Rule: to " + toAddress + ", use: " + useCRAddress);
+        Log.d(TAG, "Add Relay Rule: to " + toAddress + ", use: " + useCRAddress + (bindTo.length() > 1 ? ", bind to " + bindTo : ""));
 
         TableRow tr = new TableRow(this);
 
@@ -534,24 +556,38 @@ public class RelayActivity extends Activity {
         TextView tvUse = new TextView(this);
         tvUse.setGravity(Gravity.CENTER);
         tvUse.setLayoutParams(trp);
-        tvUse.setText(useCRAddress);
+        tvUse.setText(useCRAddress + (bindTo.length() > 1 ? " " + bindTo : ""));
         tr.addView(tvUse);
 
         tableLayoutCRRules.addView(tr);
 
-        // Save rule
-        relayRulesMap.put(toAddress, useCRAddress);
+        // Save rule - //default CR PORT TODO CHANGE THIS TO A DYNAMIC PORT
+        relayRulesMap.put(toAddress, new RelayRule(useCRAddress, bindTo, 30000));
     }
 
     /*
      *
      */
     private void endOfNewRuleActions() {
-        etCRNewRuleTo.setText("R");
-        etCRNewRuleUse.setText("192.168.49.");
         llAddNewRule.setVisibility(View.GONE);
         btnEditNewRule.setVisibility(View.VISIBLE);
         btnClearRelayRule.setVisibility(View.VISIBLE);
+
+        hideKeyboard(this);
+    }
+
+    /*
+     *
+     */
+    public static void hideKeyboard(Activity activity) {
+        InputMethodManager imm = (InputMethodManager) activity.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        //Find the currently focused view, so we can grab the correct window token from it.
+        View view = activity.getCurrentFocus();
+        //If no view currently has focus, create a new one, just so we can grab a window token from it
+        if (view == null) {
+            view = new View(activity);
+        }
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
 
     /*
@@ -655,7 +691,7 @@ public class RelayActivity extends Activity {
         for (NetworkInfo ni : nia) {
             netStr += "\t" + ni.getTypeName() + ", " + ni.getType() + "\n";
         }
-        ((TextView) findViewById(R.id.textViewNetInfo)).append("getAllNetworkInfo: \n" + netStr);
+        tvConsole.append("getAllNetworkInfo: \n" + netStr);
 
 //       Toast toast2 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
 //       toast2.show();
@@ -672,7 +708,7 @@ public class RelayActivity extends Activity {
                     netStr += "\t\t" + inetAddr + "\n";
                 }
             }
-            ((TextView) findViewById(R.id.textViewNetInfo)).append("\nGetNetworkInterfaces: \n" + netStr);
+            tvConsole.append("\nGetNetworkInterfaces: \n" + netStr);
 
 //            Toast toast3 = Toast.makeText(context, netStr, Toast.LENGTH_SHORT);
 //            toast3.show();
@@ -743,5 +779,40 @@ public class RelayActivity extends Activity {
 //        };
 //        connMng.requestNetwork(netReq2, netCallBack2);
 
+    }
+
+    /**
+     * One rule can have the next ip as a name; another rule can relay from that name to another IP.
+     * So the relay will be to that name and address. This enables to change the destination name.
+     */
+    public RelayRule getNextHope(String destination) {
+        RelayRule destinationRelayRule = getForwardDestiny(destination);
+        if (destinationRelayRule == null)
+            return null;
+
+        String destinationAddress = destinationRelayRule.ipToRelay;
+        RelayRule destinationRule2 = getForwardDestiny(destinationAddress);
+        if (destinationRule2 == null)
+            return destinationRelayRule;
+
+        return new RelayRule(destinationRule2, destinationAddress);
+    }
+}
+
+class RelayRule {
+    public String ipToRelay;
+    public String bindTo;
+    public int portToRelay;
+    public String destination;
+
+    public RelayRule(String ipToRelay, String bindTo, int portToRelay) {
+        this.ipToRelay = ipToRelay;
+        this.bindTo = bindTo;
+        this.portToRelay = portToRelay;
+    }
+
+    public RelayRule(RelayRule rl, String destination) {
+        this(rl.ipToRelay, rl.bindTo, rl.portToRelay);
+        this.destination = destination;
     }
 }
