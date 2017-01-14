@@ -22,9 +22,7 @@ public class MainActivity extends Activity {
     private LinearLayout llFavoriteFiles;
     private LinearLayout llFavoriteDirs;
 
-    enum SHOW_STATUS {DIRS_AND_FILES, FAVORITE_DIRS, FAVORITE_FILES}
-
-    ;
+    enum SHOW_STATUS {DIRS_AND_FILES, FAVORITE_DIRS, FAVORITE_FILES};
 
     SHOW_STATUS[] show_status_values = SHOW_STATUS.values();
 

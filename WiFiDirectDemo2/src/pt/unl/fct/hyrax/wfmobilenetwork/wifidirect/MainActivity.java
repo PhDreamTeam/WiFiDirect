@@ -220,7 +220,7 @@ public class MainActivity extends Activity {
             long time = ze.getTime();
             zf.close();
 
-           return new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault()).format(time);
+            return new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault()).format(time);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -546,6 +546,8 @@ public class MainActivity extends Activity {
 
             String activityName = null;
 
+            Log.d(TAG, "Inside ParseAndExecuteTaskFile, with arg: " + taskFile);
+
             // read file lines
             while (scan.hasNextLine()) {
                 // read line
@@ -554,7 +556,7 @@ public class MainActivity extends Activity {
                 if (line.isEmpty() || line.charAt(0) == '%')
                     continue;
 
-                //Log.d(TAG, "line: " + line);
+                Log.d(TAG, "line: " + line);
 
                 // line should have only one '=' character
                 if (line.indexOf('=') == -1 || line.indexOf('=') != line.lastIndexOf('=')) {
@@ -591,11 +593,15 @@ public class MainActivity extends Activity {
                     intent = new Intent(myThis, RelayActivity.class);
                 else throw new IllegalStateException("Activity not supported (yet): " + activityName);
 
+
+                Log.d(TAG, "Will start activity: " + activityName);
+
                 intent.putExtra("taskStr", sb.toString());
                 startActivity(intent);
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
+            Log.d(TAG, "FileNotFoundException: " + e.getMessage());
         } finally {
             if (scan != null)
                 scan.close();

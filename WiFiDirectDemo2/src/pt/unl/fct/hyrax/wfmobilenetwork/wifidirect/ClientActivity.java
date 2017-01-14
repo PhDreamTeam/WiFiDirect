@@ -1325,9 +1325,9 @@ public class ClientActivity extends Activity {
         final String action = map.get("action");
         if (action == null || !(action.equalsIgnoreCase("receive") || action.equalsIgnoreCase("transmit")))
             throw new IllegalStateException("Client activity, received invalid action parameter: " + action);
-        if(action.equalsIgnoreCase("transmit"))
+        if (action.equalsIgnoreCase("transmit"))
             setTransmissionZoneVisibility(View.VISIBLE);
-        if(action.equalsIgnoreCase("receive"))
+        if (action.equalsIgnoreCase("receive"))
             setReceptionZoneVisibility(View.VISIBLE);
 
 
@@ -1336,7 +1336,7 @@ public class ClientActivity extends Activity {
         if (action2 != null && !(action2.equalsIgnoreCase("receive")))
             throw new IllegalStateException("Client activity, received invalid action2 parameter: " + action);
         Log.d(TAG, "action2 = " + action2);
-        if(action2 != null)
+        if (action2 != null)
             setReceptionZoneVisibility(View.VISIBLE);
 
         // log directory: logDirectory
@@ -1554,119 +1554,125 @@ public class ClientActivity extends Activity {
     /**
      *
      */
-    private void processTCPTransmitAction(HashMap<String, String> map) {
+    private void processTCPTransmitAction(final HashMap<String, String> map) {
 
-        // CR IP address: crAddress = 192.168.49.1
-        final String crIpAddress = map.get("crAddress");
-        if (crIpAddress == null)
-            throw new IllegalStateException("Client activity, transmit with no CR IP address");
-        editTextCrIpAddress.setText(crIpAddress.substring(0, crIpAddress.lastIndexOf('.')));
-        editTextCrIpAddressLastPart.setText(crIpAddress.substring(crIpAddress.lastIndexOf('.') + 1));
-
-        // CR port number: crPort
-        String crPortNumberStr = map.get("crPort");
-        if (crPortNumberStr == null)
-            throw new IllegalStateException("Client activity, transmit with no cr port number");
-        final int crPortNumber = Integer.parseInt(crPortNumberStr);
-        editTextCrPortNumber.setText(crPortNumberStr);
-
-        // Destination IP address: DestAddress = Rt
-        final String destName = map.get("destAddress");
-        if (destName == null)
-            throw new IllegalStateException("Client activity, transmit with no DestAddress");
-        editTextDestIpAddress.setText(destName);
-
-        // Destination port number: destPort
-        String destPortNumberStr = map.get("destPort");
-        if (destPortNumberStr == null)
-            throw new IllegalStateException("Client activity, transmit with no dest port number");
-        final int destPortNumber = Integer.parseInt(destPortNumberStr);
-        editTextDestPortNumber.setText(destPortNumberStr);
-
-        //  bindSocketToNetwork
-        BIND_TO_NETWORK bindToNetwork = null;
-        String bindSocketToNetworkStr = map.get("bindSocketToNetwork");
-        if (bindSocketToNetworkStr != null) {
-            if (bindSocketToNetworkStr.equalsIgnoreCase("WF")) {
-                bindToNetwork = BIND_TO_NETWORK.WF;
-                btnBindToNetwork.setText("Bind to WF");
-            } else if (bindSocketToNetworkStr.equalsIgnoreCase("WFD")) {
-                bindToNetwork = BIND_TO_NETWORK.WFD;
-                btnBindToNetwork.setText("Bind to WFD");
-            } else throw new IllegalStateException("Client activity, transmit bind to network with invalid value: " +
-                    bindSocketToNetworkStr);
-        } else bindToNetwork = BIND_TO_NETWORK.NONE;
-        final BIND_TO_NETWORK finalBindToNetwork = bindToNetwork;
-
-        // buffer size: BufferKB
-        String bufferSizeKBStr = map.get("bufferKB");
-        final int bufferSizeKB = bufferSizeKBStr == null ? 1 : Integer.parseInt(bufferSizeKBStr);
-        editTextMaxBufferSize.setText("" + bufferSizeKB);
-
-        // delays: delayMs
-        String delayMsStr = map.get("delayMs");
-        final int delayMs = delayMsStr == null ? 0 : Integer.parseInt(delayMsStr);
-        editTextDelay.setText("" + delayMs);
-
-        // total bytes to send: totalBytesToSend=100MB  100KB
-        String totalBytesToSendStr = map.get("totalBytesToSend");
-        if (totalBytesToSendStr == null || !(totalBytesToSendStr.endsWith("MB") || totalBytesToSendStr.endsWith("KB")))
-            throw new IllegalStateException("Client activity, transmit with no correct total bytes to send: " + totalBytesToSendStr);
-        final int bytesKBMBToSend = Integer.parseInt(totalBytesToSendStr.substring(0, totalBytesToSendStr.length() - 2));
-        editTextTotalBytesToSend.setText("" + bytesKBMBToSend);
-        if (totalBytesToSendStr.endsWith("MB")) {
-            btnSendMBytes.setVisibility(View.VISIBLE);
-            btnSendKBytes.setVisibility(View.GONE);
-        } else {
-            btnSendKBytes.setVisibility(View.VISIBLE);
-            btnSendMBytes.setVisibility(View.GONE);
-        }
-
-        final long totalBytesToSend = bytesKBMBToSend * 1024 * (totalBytesToSendStr.endsWith("MB") ? 1024 : 1);
-
-        // number of tests: numberOfTests
-        String numberOfTestsStr = map.get("numberOfTests");
-        numberOfTransmittingTestsToDo = numberOfTestsStr == null ? 1 : Integer.parseInt(numberOfTestsStr);
-
-        // delay before each test in MS: delayBeforeEachTestMS=1000
-        String delayBeforeEachTestMSStr = map.get("delayBeforeEachTestMS");
-        delayBeforeEachTransmitTestMS = delayBeforeEachTestMSStr == null ? 0 : Integer.parseInt(delayBeforeEachTestMSStr);
-
-        // screen state on tests : screenOnTests = on / off
-        String screenOnTestsStr = map.get("screenOnTests");
-        boolean screenONOnTests = delayBeforeEachTestMSStr == null || Boolean.parseBoolean(screenOnTestsStr);
-
-        Log.d(TAG, "TCP transmit, with: crIpAddress = " + crIpAddress + ", crPortNumber = " + crPortNumber +
-                ", destName = " + destName + ", destPortNumber = " + destPortNumber +
-                ", bind to network = " + bindToNetwork + ", bufferSizeKB = " + bufferSizeKB +
-                ", delayMs = " + delayMs + ", totalBytesToSend = " + totalBytesToSend +
-                ", with numberOfTests = " + numberOfTransmittingTestsToDo +
-                ", delay BeforeEachTestMs = " + delayBeforeEachTestMSStr + ", screenOnTests = " + screenOnTestsStr);
-
-
-        // transmit timer task
-        transmitTask = new Runnable() {
+        // this is quick fix, find a better way to to this
+        editTextCrIpAddress.post(new Runnable() {
+            @Override
             public void run() {
-                // update gui
-                btnSendData.post(new Runnable() {
+                // CR IP address: crAddress = 192.168.49.1
+                final String crIpAddress = map.get("crAddress");
+                if (crIpAddress == null)
+                    throw new IllegalStateException("Client activity, transmit with no CR IP address");
+
+                editTextCrIpAddress.setText(crIpAddress.substring(0, crIpAddress.lastIndexOf('.')));
+                editTextCrIpAddressLastPart.setText(crIpAddress.substring(crIpAddress.lastIndexOf('.') + 1));
+
+                // CR port number: crPort
+                String crPortNumberStr = map.get("crPort");
+                if (crPortNumberStr == null)
+                    throw new IllegalStateException("Client activity, transmit with no cr port number");
+                final int crPortNumber = Integer.parseInt(crPortNumberStr);
+                editTextCrPortNumber.setText(crPortNumberStr);
+
+                // Destination IP address: DestAddress = Rt
+                final String destName = map.get("destAddress");
+                if (destName == null)
+                    throw new IllegalStateException("Client activity, transmit with no DestAddress");
+                editTextDestIpAddress.setText(destName);
+
+                // Destination port number: destPort
+                String destPortNumberStr = map.get("destPort");
+                if (destPortNumberStr == null)
+                    throw new IllegalStateException("Client activity, transmit with no dest port number");
+                final int destPortNumber = Integer.parseInt(destPortNumberStr);
+                editTextDestPortNumber.setText(destPortNumberStr);
+
+                //  bindSocketToNetwork
+                BIND_TO_NETWORK bindToNetwork = null;
+                String bindSocketToNetworkStr = map.get("bindSocketToNetwork");
+                if (bindSocketToNetworkStr != null) {
+                    if (bindSocketToNetworkStr.equalsIgnoreCase("WF")) {
+                        bindToNetwork = BIND_TO_NETWORK.WF;
+                        btnBindToNetwork.setText("Bind to WF");
+                    } else if (bindSocketToNetworkStr.equalsIgnoreCase("WFD")) {
+                        bindToNetwork = BIND_TO_NETWORK.WFD;
+                        btnBindToNetwork.setText("Bind to WFD");
+                    } else
+                        throw new IllegalStateException("Client activity, transmit bind to network with invalid value: " +
+                                bindSocketToNetworkStr);
+                } else bindToNetwork = BIND_TO_NETWORK.NONE;
+                final BIND_TO_NETWORK finalBindToNetwork = bindToNetwork;
+
+                // buffer size: BufferKB
+                String bufferSizeKBStr = map.get("bufferKB");
+                final int bufferSizeKB = bufferSizeKBStr == null ? 1 : Integer.parseInt(bufferSizeKBStr);
+                editTextMaxBufferSize.setText("" + bufferSizeKB);
+
+                // delays: delayMs
+                String delayMsStr = map.get("delayMs");
+                final int delayMs = delayMsStr == null ? 0 : Integer.parseInt(delayMsStr);
+                editTextDelay.setText("" + delayMs);
+
+                // total bytes to send: totalBytesToSend=100MB  100KB
+                String totalBytesToSendStr = map.get("totalBytesToSend");
+                if (totalBytesToSendStr == null || !(totalBytesToSendStr.endsWith("MB") || totalBytesToSendStr.endsWith("KB")))
+                    throw new IllegalStateException("Client activity, transmit with no correct total bytes to send: " + totalBytesToSendStr);
+                final int bytesKBMBToSend = Integer.parseInt(totalBytesToSendStr.substring(0, totalBytesToSendStr.length() - 2));
+                editTextTotalBytesToSend.setText("" + bytesKBMBToSend);
+                if (totalBytesToSendStr.endsWith("MB")) {
+                    btnSendMBytes.setVisibility(View.VISIBLE);
+                    btnSendKBytes.setVisibility(View.GONE);
+                } else {
+                    btnSendKBytes.setVisibility(View.VISIBLE);
+                    btnSendMBytes.setVisibility(View.GONE);
+                }
+
+                final long totalKBytesToSend = bytesKBMBToSend * (totalBytesToSendStr.endsWith("MB") ? 1024 : 1);
+
+                // number of tests: numberOfTests
+                String numberOfTestsStr = map.get("numberOfTests");
+                numberOfTransmittingTestsToDo = numberOfTestsStr == null ? 1 : Integer.parseInt(numberOfTestsStr);
+
+                // delay before each test in MS: delayBeforeEachTestMS=1000
+                String delayBeforeEachTestMSStr = map.get("delayBeforeEachTestMS");
+                delayBeforeEachTransmitTestMS = delayBeforeEachTestMSStr == null ? 0 : Integer.parseInt(delayBeforeEachTestMSStr);
+
+                // screen state on tests : screenOnTests = on / off
+                String screenOnTestsStr = map.get("screenOnTests");
+                boolean screenONOnTests = delayBeforeEachTestMSStr == null || Boolean.parseBoolean(screenOnTestsStr);
+
+                Log.d(TAG, "TCP transmit, with: crIpAddress = " + crIpAddress + ", crPortNumber = " + crPortNumber +
+                        ", destName = " + destName + ", destPortNumber = " + destPortNumber +
+                        ", bind to network = " + bindToNetwork + ", bufferSizeKB = " + bufferSizeKB +
+                        ", delayMs = " + delayMs + ", totalKBytesToSend = " + totalKBytesToSend +
+                        ", with numberOfTests = " + numberOfTransmittingTestsToDo +
+                        ", delay BeforeEachTestMs = " + delayBeforeEachTestMSStr + ", screenOnTests = " + screenOnTestsStr);
+
+
+                // transmit timer task
+                transmitTask = new Runnable() {
                     public void run() {
-                        startTransmittingGuiActions(false);
-                        //alertDialogScreenOff.cancel();
+                        // update gui
+                        btnSendData.post(new Runnable() {
+                            public void run() {
+                                startTransmittingGuiActions(false);
+                                //alertDialogScreenOff.cancel();
+                            }
+                        });
+
+                        doNotificationStart();
+
+                        Log.d(TAG, "Will run test nº: " + numberOfCurrentTest + " of " + numberOfTransmittingTestsToDo);
+
+                        // start transmitting
+                        transmitData(null, crIpAddress, crPortNumber, destName, destPortNumber, bufferSizeKB * 1024, delayMs,
+                                totalKBytesToSend, finalBindToNetwork); // send dummy data for tests
                     }
-                });
+                };
 
-                doNotificationStart();
-
-                Log.d(TAG, "Will run test nº: " + numberOfCurrentTest + " of " + numberOfTransmittingTestsToDo);
-
-                // start transmitting
-                transmitData(null, crIpAddress, crPortNumber, destName, destPortNumber, bufferSizeKB * 1024, delayMs,
-                        totalBytesToSend, finalBindToNetwork); // send dummy data for tests
-            }
-        };
-
-        // create transmit handler and schedule transmit task, count with one less transmit task
-        transmitHandler = new Handler();
+                // create transmit handler and schedule transmit task, count with one less transmit task
+                transmitHandler = new Handler();
 
 //        if (!screenONOnTests && ((PowerManager) getSystemService(Context.POWER_SERVICE)).isInteractive()) {
 //            // show alert dialog to wait for screen off
@@ -1682,8 +1688,11 @@ public class ClientActivity extends Activity {
 //            });
 //
 //        } else {
-        transmitHandler.postDelayed(transmitTask, delayBeforeEachTransmitTestMS);
+                transmitHandler.postDelayed(transmitTask, delayBeforeEachTransmitTestMS);
 //        }
+            }
+        });
+
     }
 
     /**
@@ -1754,7 +1763,7 @@ public class ClientActivity extends Activity {
             btnSendMBytes.setVisibility(View.GONE);
         }
 
-        final long totalBytesToSend = bytesKBMBToSend * 1024 * (totalBytesToSendStr.endsWith("MB") ? 1024 : 1);
+        final long totalKBytesToSend = bytesKBMBToSend * (totalBytesToSendStr.endsWith("MB") ? 1024 : 1);
 
         // number of tests: numberOfTests
         String numberOfTestsStr = map.get("numberOfTests");
@@ -1771,7 +1780,7 @@ public class ClientActivity extends Activity {
         Log.d(TAG, "UDP transmit, with: crIpAddress = " + crIpAddress + ", crPortNumber = " + crPortNumber +
                 ", destName = " + destIpAddress + ", destPortNumber = " + destPortNumber +
                 ", bind to network = " + bindToNetwork + ", bufferSizeKB = " + bufferSizeKB +
-                ", delayMs = " + delayMs + ", totalBytesToSend = " + totalBytesToSend +
+                ", delayMs = " + delayMs + ", totalKBytesToSend = " + totalKBytesToSend +
                 ", with numberOfTests = " + numberOfTransmittingTestsToDo +
                 ", delay BeforeEachTestMs = " + delayBeforeEachTestMSStr + ", screenOnTests = " + screenOnTestsStr);
 
@@ -1793,7 +1802,7 @@ public class ClientActivity extends Activity {
 
                 // start transmitting
                 transmitData(null, crIpAddress, crPortNumber, destIpAddress, destPortNumber, bufferSizeKB * 1024, delayMs,
-                        totalBytesToSend, finalBindToNetwork); // send dummy data for tests
+                        totalKBytesToSend, finalBindToNetwork); // send dummy data for tests
             }
         };
 
@@ -2078,10 +2087,10 @@ public class ClientActivity extends Activity {
         }
         setEnabledTransmissionInputViews(true);
 
-        if(manualTestTransmit)
+        if (manualTestTransmit)
             return;
 
-        if(testTransmitCancelled)
+        if (testTransmitCancelled)
             return;
 
         // there is more transmit tests to be done?
@@ -2188,14 +2197,14 @@ public class ClientActivity extends Activity {
      * transmitData
      */
     private void transmitData(Uri fileToSend, String crIpAddress, int crPortNumber, String destName,
-                              int destPortNumber, int bufferSizeKB, long delayMs, long totalBytesToSend,
+                              int destPortNumber, int bufferSizeKB, long delayMs, long totalKBytesToSend,
                               BIND_TO_NETWORK bindToNetwork) {
 
         try {
             switch (communicationMode) {
                 case TCP:
                     clientTransmitter = new ClientSendDataThreadTCP(destName, destPortNumber
-                            , crIpAddress, crPortNumber, delayMs, totalBytesToSend
+                            , crIpAddress, crPortNumber, delayMs, totalKBytesToSend
                             , tvTxThrdSentData, tvTxThrdRcvData, this, bufferSizeKB, fileToSend, bindToNetwork);
                     break;
 
@@ -2214,7 +2223,7 @@ public class ClientActivity extends Activity {
 
                     // create worker thread transmitting by UDP socket
                     clientTransmitter = new ClientSendDataThreadUDP(destName, destPortNumber
-                            , sock, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB, network);
+                            , sock, delayMs, totalKBytesToSend, tvTxThrdSentData, this, bufferSizeKB, network);
                     break;
 
                 case UDP_MULTICAST:
@@ -2228,7 +2237,7 @@ public class ClientActivity extends Activity {
 
                     // create worker thread transmitting in UDP multicast socket
                     clientTransmitter = new ClientSendDataThreadUDP(destName, destPortNumber
-                            , multicastSocket, delayMs, totalBytesToSend, tvTxThrdSentData, this, bufferSizeKB, null);
+                            , multicastSocket, delayMs, totalKBytesToSend, tvTxThrdSentData, this, bufferSizeKB, null);
 
             }
 

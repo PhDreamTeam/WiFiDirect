@@ -291,7 +291,7 @@
             <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Peers with Services"
+                    android:text="Peers with this Service"
                     android:id="@+id/textViewWFDPeersWithServices" android:gravity="center" android:background="#ff536aaf"
                     android:textColor="#fffaf9ff"/>
             <ListView

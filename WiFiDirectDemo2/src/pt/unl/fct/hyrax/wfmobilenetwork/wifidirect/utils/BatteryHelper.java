@@ -193,8 +193,8 @@ public class BatteryHelper {
      */
     private void logBattery(int capacity, int chargeCounter, int currentAverage, int currentNow, int energyCounter,
                             int voltageNow) {
-        Log.v("Battery helper: ",
-                "capacity = " + capacity + ", current now = " + currentNow + ", voltage now = " + voltageNow);
+        //Log.v("Battery helper: ",
+         //       "capacity = " + capacity + ", current now = " + currentNow + ", voltage now = " + voltageNow);
         accumulatedCurrentPlusVoltage += ((long)currentNow) * voltageNow;
 
         batteryCurrentValues.add(currentNow);

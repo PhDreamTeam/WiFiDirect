@@ -339,7 +339,7 @@ public class RelayActivity extends Activity {
 //                    ClientActivity.BIND_TO_NETWORK.WF;
 //        }
 
-        // get relayRules: relayRule = Rt;192.168.49.241;wf
+        // get relayRules: relayRule = Rt-192.168.49.241-wf
         for (int i = 1; true; ++i) {
             String relayRule = map.get("relayRule-" + i);
             if (relayRule == null)

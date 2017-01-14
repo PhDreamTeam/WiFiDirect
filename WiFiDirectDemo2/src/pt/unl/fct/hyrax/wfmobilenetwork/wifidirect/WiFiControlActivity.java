@@ -84,10 +84,11 @@ public class WiFiControlActivity extends Activity {
 
     {
         gosPassword.put("DIRECT-h9-N62", "zBmXQduT");
-        gosPassword.put("DIRECT-By-N61", "eal1k164");
+        gosPassword.put("DIRECT-RA-N61", "KnrejzHr");
         gosPassword.put("DIRECT-Nm-N63", "prpfOZYD");
         gosPassword.put("DIRECT-lq-Nexus_AT", "YMtLSjWG");
         gosPassword.put("DIRECT-Se-MG3", "9Xay7RvS");
+        gosPassword.put("ANDROID-AP1", "01234567");
     }
 
     private ScrollView scrollViewConsole;

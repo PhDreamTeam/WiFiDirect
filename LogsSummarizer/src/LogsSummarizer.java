@@ -14,7 +14,7 @@ import java.util.Scanner;
  */
 public class LogsSummarizer extends JFrame {
 
-    private static String START_DIR = "C:\\AT\\PhD\\ADB\\scenarios\\2 devices\\2D-1-a N61CLwfd to N62GO";
+    private static String START_DIR = "C:\\AT\\PhD\\ADB\\scenarios\\";
 
     private String workingDirectory;
     private JLabel labelWorkingDirectory;
@@ -52,6 +52,7 @@ public class LogsSummarizer extends JFrame {
 
         fc = new JFileChooser();
         fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        fc.setMultiSelectionEnabled(true);
         fc.setApproveButtonText("Do Log Summary");
 
         // intro label
@@ -281,19 +282,22 @@ public class LogsSummarizer extends JFrame {
      *
      */
     private void selectWorkingDirectory_actionListener() {
-        fc.setCurrentDirectory(new File(workingDirectory).getParentFile());
+        fc.setCurrentDirectory(new File(workingDirectory));
+        //fc.setCurrentDirectory(new File(workingDirectory).getParentFile());
 
         int returnVal = fc.showOpenDialog(LogsSummarizer.this);
 
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-            File file = fc.getSelectedFile();
-            if (!file.isDirectory()) {
-                file = file.getParentFile();
+            File[] files = fc.getSelectedFiles();
+            for (File file: files) {
+                if (!file.isDirectory()) {
+                    file = file.getParentFile();
+                }
+                // This is where a real application would open the file.
+                System.out.println("FileChooser, selected as working directory: " + file.getAbsolutePath());
+                setWorkingDirectory(file.getAbsolutePath());
+                processLogs();
             }
-            // This is where a real application would open the file.
-            System.out.println("FileChooser, selected as working directory: " + file.getAbsolutePath());
-            setWorkingDirectory(file.getAbsolutePath());
-            processLogs();
         } else {
             System.out.println("FileChooser, cancelled by user.");
         }
